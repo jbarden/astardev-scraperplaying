@@ -1,0 +1,14 @@
+/home/jbarden/repos/_scratch/AStar.Dev.Scraper.Playing/AStar.Dev.Scraper.Playing/bin/Debug/net10.0/AStar.Dev.Scraper.Playing
+/home/jbarden/repos/_scratch/AStar.Dev.Scraper.Playing/AStar.Dev.Scraper.Playing/bin/Debug/net10.0/AStar.Dev.Scraper.Playing.deps.json
+/home/jbarden/repos/_scratch/AStar.Dev.Scraper.Playing/AStar.Dev.Scraper.Playing/bin/Debug/net10.0/AStar.Dev.Scraper.Playing.runtimeconfig.json
+/home/jbarden/repos/_scratch/AStar.Dev.Scraper.Playing/AStar.Dev.Scraper.Playing/bin/Debug/net10.0/AStar.Dev.Scraper.Playing.dll
+/home/jbarden/repos/_scratch/AStar.Dev.Scraper.Playing/AStar.Dev.Scraper.Playing/bin/Debug/net10.0/AStar.Dev.Scraper.Playing.pdb
+/home/jbarden/repos/_scratch/AStar.Dev.Scraper.Playing/AStar.Dev.Scraper.Playing/obj/Debug/net10.0/AStar.Dev.Scraper.Playing.GeneratedMSBuildEditorConfig.editorconfig
+/home/jbarden/repos/_scratch/AStar.Dev.Scraper.Playing/AStar.Dev.Scraper.Playing/obj/Debug/net10.0/AStar.Dev.Scraper.Playing.AssemblyInfoInputs.cache
+/home/jbarden/repos/_scratch/AStar.Dev.Scraper.Playing/AStar.Dev.Scraper.Playing/obj/Debug/net10.0/AStar.Dev.Scraper.Playing.AssemblyInfo.cs
+/home/jbarden/repos/_scratch/AStar.Dev.Scraper.Playing/AStar.Dev.Scraper.Playing/obj/Debug/net10.0/AStar.Dev.Scraper.Playing.csproj.CoreCompileInputs.cache
+/home/jbarden/repos/_scratch/AStar.Dev.Scraper.Playing/AStar.Dev.Scraper.Playing/obj/Debug/net10.0/AStar.Dev.Scraper.Playing.dll
+/home/jbarden/repos/_scratch/AStar.Dev.Scraper.Playing/AStar.Dev.Scraper.Playing/obj/Debug/net10.0/refint/AStar.Dev.Scraper.Playing.dll
+/home/jbarden/repos/_scratch/AStar.Dev.Scraper.Playing/AStar.Dev.Scraper.Playing/obj/Debug/net10.0/AStar.Dev.Scraper.Playing.pdb
+/home/jbarden/repos/_scratch/AStar.Dev.Scraper.Playing/AStar.Dev.Scraper.Playing/obj/Debug/net10.0/AStar.Dev.Scraper.Playing.genruntimeconfig.cache
+/home/jbarden/repos/_scratch/AStar.Dev.Scraper.Playing/AStar.Dev.Scraper.Playing/obj/Debug/net10.0/ref/AStar.Dev.Scraper.Playing.dll
