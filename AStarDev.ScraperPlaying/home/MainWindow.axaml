@@ -7,6 +7,7 @@
         MinWidth="480"
         MinHeight="320">
   <Grid RowDefinitions="Auto,*" Margin="32">
+  <StackPanel>
     <TextBlock Text="AStarDev Scraper Playing"
                FontSize="28"
                FontWeight="SemiBold" />
@@ -15,10 +16,13 @@
             Padding="24"
             Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
             CornerRadius="8">
-      <TextBlock Text="MainWindow is ready."
+      <TextBlock Text="MainWindow is ready." x:Name="StatusTextBlock"
                  VerticalAlignment="Center"
                  HorizontalAlignment="Center"
                  FontSize="18" />
     </Border>
+
+    <Button Content="Do Stuff" Click="DoStuff" HorizontalAlignment="Center" Margin="0,24,0,0"/>
+    </StackPanel>
   </Grid>
 </Window>
