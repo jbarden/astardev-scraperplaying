@@ -13,7 +13,59 @@
   <ItemGroup>
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="AvaloniaUI.DiagnosticsSupport">
+      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Avalonia.ReactiveUI" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" />
+    <PackageReference Include="Testably.Abstractions" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../infrastructure/logging/AStarDev.LoggingExtensions/AStarDev.LoggingExtensions.csproj" />
+    <ProjectReference Include="../infrastructure/AStarDev.FunctionalParadigm/AStarDev.FunctionalParadigm.csproj" />
+    <ProjectReference Include="../infrastructure/AStarDev.ControlDb/AStarDev.ControlDb.csproj" />
+    <ProjectReference Include="../infrastructure/source-generators/AStarDev.SourceGeneratorAttributes/AStarDev.SourceGeneratorAttributes.csproj" />
+    <ProjectReference Include="../infrastructure/source-generators/AStarDev.SourceGenerators/AStarDev.SourceGenerators.csproj" />
+  </ItemGroup>
+
+    <Target Name="AddGeneratorAnalyzerRefs" BeforeTargets="CoreCompile">
+        <!--
+          RuntimeIdentifier=; SelfContained=false override any RID inherited from an outer
+          `dotnet publish -r <rid>` invocation. Without this, AppendRuntimeIdentifierToOutputPath
+          (Directory.Build.props) makes GetTargetPath return a RID-suffixed path for these
+          netstandard2.0 analyzer projects, but nothing ever builds them into that path — CSC
+          then fails with CS0006 (metadata file not found).
+        -->
+        <MSBuild Projects="../infrastructure/source-generators/AStarDev.SourceGenerators/AStarDev.SourceGenerators.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration);RuntimeIdentifier=;SelfContained=false">
+            <Output TaskParameter="TargetOutputs" ItemName="Analyzer" />
+        </MSBuild>
+        <MSBuild Projects="../infrastructure/source-generators/AStarDev.SourceGeneratorAttributes/AStarDev.SourceGeneratorAttributes.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration);RuntimeIdentifier=;SelfContained=false">
+            <Output TaskParameter="TargetOutputs" ItemName="Analyzer" />
+        </MSBuild>
+    </Target>
 
 </Project>

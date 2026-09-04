@@ -45,7 +45,7 @@ public sealed class GivenAResponseModel
 
         response.Data.Single().ShortUrl.ShouldBe("abc");
         response.Data.Single().DimensionX.ShouldBe(1920);
-        response.Data.Single().Thumbs.large.ShouldBe("large");
+        response.Data.Single().Thumbs.Large.ShouldBe("large");
         response.Meta.CurrentPage.ShouldBe(1);
     }
 }

@@ -9,7 +9,8 @@ namespace AStarDev.ScraperPlaying.home;
 
 public partial class MainWindow : Window
 {
-    private static readonly HttpClient client = new HttpClient();
+    private static readonly HttpClient client = new();
+    private readonly IScrapeConfigurationRepository scrapeConfigurationRepository;
 
     // Replace with your actual Wallhaven API key if needed SOME_FAKE_API_KEY_AS_PLACEHOLDER
     private const string ApiKey = "T5FPTPqzrpcL4jptNdB8TlpEei3smy7E";
@@ -18,6 +19,13 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        scrapeConfigurationRepository = null!;
+    }
+
+    public MainWindow(IScrapeConfigurationRepository scrapeConfigurationRepository)
+    {
+        InitializeComponent();
+        this.scrapeConfigurationRepository = scrapeConfigurationRepository;
     }
 
     public async void DoStuff(object? sender, RoutedEventArgs eventArgs)
