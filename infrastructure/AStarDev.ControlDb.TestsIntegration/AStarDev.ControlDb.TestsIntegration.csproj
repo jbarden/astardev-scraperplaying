@@ -1,16 +1,28 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <IsTestProject>true</IsTestProject>
     <EnableMicrosoftTestingPlatform>true</EnableMicrosoftTestingPlatform>
     <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Testing.Platform.MSBuild" />
+    <PackageReference Include="Shouldly" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.v3.mtp-v2" />
+    <PackageReference Include="NSubstitute" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Shouldly" />
+    <Using Include="NSubstitute" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="../AStarDev.ControlDb/AStarDev.ControlDb.csproj" />
   </ItemGroup>
+
 </Project>

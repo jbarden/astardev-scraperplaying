@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using AStarDev.ScraperPlaying.SearchAPI;
 using AStarDev.ScraperPlaying.SearchAPI.DetailResponse;
+using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 
@@ -46,7 +47,6 @@ public partial class MainWindow : Window
             Console.WriteLine(string.Concat(detailResponse.Data.ToString().AsSpan(0, 500), "..."));
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
             StatusTextBlock.Text += $"\nDetails fetched for wallpaper {wallpaperId}: {detailResponse}";
-
         }
         catch (HttpRequestException e)
         {

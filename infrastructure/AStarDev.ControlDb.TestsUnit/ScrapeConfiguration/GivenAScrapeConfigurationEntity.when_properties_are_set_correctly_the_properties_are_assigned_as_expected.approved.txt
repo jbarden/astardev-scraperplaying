@@ -1,0 +1,60 @@
+﻿{
+  "id": {
+    "value": "00000000-0000-0000-0000-000000000000"
+  },
+  "userConfiguration": {
+    "id": {
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    "scrapeConfigurationEntityId": {
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    "emailAddress": "user@example.com",
+    "username": "username",
+    "password": "password",
+    "sessionCookie": "session-cookie"
+  },
+  "searchConfiguration": {
+    "id": {
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    "scrapeConfigurationId": {
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    "searchTerm": "search-config",
+    "maxResults": 10,
+    "baseUrl": "https://example.com",
+    "apiKey": "",
+    "searchCategories": [],
+    "searchString": "",
+    "topWallpapers": "",
+    "searchStringPrefix": "",
+    "searchStringSuffix": "",
+    "subscriptions": "",
+    "imagePauseInSeconds": 0,
+    "startingPageNumber": 0,
+    "totalPages": 0,
+    "subscriptionsStartingPageNumber": 0,
+    "subscriptionsTotalPages": 0,
+    "topWallpapersStartingPageNumber": 0,
+    "topWallpapersTotalPages": 0,
+    "loginUrl": "https://example.com/login",
+    "useHeadless": false,
+    "slowMotionDelay": null,
+    "createdAt": "<date>",
+    "updatedAt": "<date>"
+  },
+  "scrapeDirectories": {
+    "id": {
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    "scrapeConfigurationEntityId": {
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    "rootDirectory": "scrape-directory",
+    "baseSaveDirectory": "base-save-directory",
+    "baseDirectory": "base-directory",
+    "baseDirectoryFamous": "base-directory-famous",
+    "subDirectoryName": "sub-directory-name"
+  }
+}

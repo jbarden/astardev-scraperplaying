@@ -23,4 +23,19 @@
     <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-2m69-gcr7-jv3q" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="../AStarDev.EFCoreSqlite/AStarDev.EFCoreSqlite.csproj" />
+    <ProjectReference Include="../source-generators/AStarDev.SourceGeneratorAttributes/AStarDev.SourceGeneratorAttributes.csproj" />
+    <ProjectReference Include="../source-generators/AStarDev.SourceGenerators/AStarDev.SourceGenerators.csproj" PrivateAssets="all" />
+  </ItemGroup>
+
+  <Target Name="AddGeneratorAnalyzerRefs" BeforeTargets="CoreCompile">
+    <MSBuild Projects="../source-generators/AStarDev.SourceGenerators/AStarDev.SourceGenerators.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="Analyzer" />
+    </MSBuild>
+    <MSBuild Projects="../source-generators/AStarDev.SourceGeneratorAttributes/AStarDev.SourceGeneratorAttributes.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="Analyzer" />
+    </MSBuild>
+  </Target>
+
 </Project>

@@ -1,0 +1,149 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>AStarDev.LoggingOTel</name>
+    </assembly>
+    <members>
+        <member name="T:AStarDev.LoggingOTel.LogViewer.ILogEntryProvider">
+            <summary>Provides access to in-memory log entries captured by <see cref="T:AStarDev.LoggingOTel.LogViewer.InMemoryLogProcessor"/>.</summary>
+        </member>
+        <member name="M:AStarDev.LoggingOTel.LogViewer.ILogEntryProvider.GetSnapshot">
+            <summary>Returns a point-in-time snapshot of all retained log entries.</summary>
+        </member>
+        <member name="P:AStarDev.LoggingOTel.LogViewer.ILogEntryProvider.EntryAdded">
+            <summary>Observable that fires each time a new <see cref="T:AStarDev.LoggingOTel.LogViewer.LogEntry"/> is captured.</summary>
+        </member>
+        <member name="T:AStarDev.LoggingOTel.LogViewer.InMemoryLogProcessor">
+            <summary>
+                OpenTelemetry log processor that retains the last <see cref="F:AStarDev.LoggingOTel.LogViewer.InMemoryLogProcessor.DefaultCapacity"/> log entries in a thread-safe ring buffer
+                and exposes them via <see cref="T:AStarDev.LoggingOTel.LogViewer.ILogEntryProvider"/> (LG-01, NF-07).
+                PII (email addresses) is scrubbed before storage.
+            </summary>
+        </member>
+        <member name="F:AStarDev.LoggingOTel.LogViewer.InMemoryLogProcessor.DefaultCapacity">
+            <summary>Default maximum number of log entries held in memory.</summary>
+        </member>
+        <member name="M:AStarDev.LoggingOTel.LogViewer.InMemoryLogProcessor.#ctor">
+            <summary>Initialises the processor with <see cref="F:AStarDev.LoggingOTel.LogViewer.InMemoryLogProcessor.DefaultCapacity"/>.</summary>
+        </member>
+        <member name="P:AStarDev.LoggingOTel.LogViewer.InMemoryLogProcessor.EntryAdded">
+            <inheritdoc />
+        </member>
+        <member name="M:AStarDev.LoggingOTel.LogViewer.InMemoryLogProcessor.GetSnapshot">
+            <inheritdoc />
+        </member>
+        <member name="M:AStarDev.LoggingOTel.LogViewer.InMemoryLogProcessor.OnEnd(OpenTelemetry.Logs.LogRecord)">
+            <summary>Called by the OpenTelemetry logging pipeline on arbitrary threads. Never blocks.</summary>
+        </member>
+        <member name="M:AStarDev.LoggingOTel.LogViewer.InMemoryLogProcessor.Dispose(System.Boolean)">
+            <inheritdoc />
+        </member>
+        <member name="T:AStarDev.LoggingOTel.LogViewer.LogEntry">
+            <summary>An immutable snapshot of a single OpenTelemetry log record, with PII already scrubbed.</summary>
+        </member>
+        <member name="M:AStarDev.LoggingOTel.LogViewer.LogEntry.#ctor(System.DateTimeOffset,Microsoft.Extensions.Logging.LogLevel,System.String,System.String)">
+            <summary>An immutable snapshot of a single OpenTelemetry log record, with PII already scrubbed.</summary>
+        </member>
+        <member name="T:AStarDev.LoggingOTel.LogViewer.LogEntryFactory">
+            <summary>Factory for <see cref="T:AStarDev.LoggingOTel.LogViewer.LogEntry"/>.</summary>
+        </member>
+        <member name="M:AStarDev.LoggingOTel.LogViewer.LogEntryFactory.Create(System.DateTimeOffset,Microsoft.Extensions.Logging.LogLevel,System.String,System.String)">
+            <summary>Creates a <see cref="T:AStarDev.LoggingOTel.LogViewer.LogEntry"/> with the supplied values.</summary>
+        </member>
+        <member name="M:AStarDev.LoggingOTel.LogViewer.PiiScrubber.EmailRegex">
+            <remarks>
+            Pattern:<br/>
+            <code>[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match a character in the set [%+\-.0-9A-Z_a-z] atomically at least once.<br/>
+            ○ Match '@'.<br/>
+            ○ Match a character in the set [\-.0-9A-Za-z] greedily at least once.<br/>
+            ○ Match '.'.<br/>
+            ○ Match an ASCII letter atomically at least twice.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:AStarDev.LoggingOTel.LogViewer.PiiScrubber.Scrub(System.String)">
+            <summary>Replaces any email addresses in <paramref name="message"/> with <c>[email redacted]</c>.</summary>
+        </member>
+        <member name="T:AStarDev.LoggingOTel.OTelLoggingConfigurator">
+            <summary>
+                This class provides extension methods to configure OpenTelemetry logging, exporting to the console and,
+                when a connection string is configured, to Azure Monitor (Application Insights).
+            </summary>
+        </member>
+        <member name="M:AStarDev.LoggingOTel.OTelLoggingConfigurator.ConfigureOTelLogging(Microsoft.Extensions.Logging.ILoggingBuilder,Microsoft.Extensions.Configuration.IConfigurationRoot,System.String)">
+            <summary>
+                The <see cref="M:AStarDev.LoggingOTel.OTelLoggingConfigurator.ConfigureOTelLogging(Microsoft.Extensions.Logging.ILoggingBuilder,Microsoft.Extensions.Configuration.IConfigurationRoot,System.String)" /> method wires up OpenTelemetry
+                logging: console output plus an Azure Monitor log exporter when a connection string is configured.
+            </summary>
+            <param name="loggingBuilder">The logging builder to configure.</param>
+            <param name="configuration">The configuration providing the Azure Monitor connection string.</param>
+            <param name="connectionStringConfigurationKey">The configuration key holding the Azure Monitor connection string.</param>
+            <returns>The original instance of <see cref="T:Microsoft.Extensions.Logging.ILoggingBuilder" /> for further method chaining.</returns>
+        </member>
+        <member name="M:AStarDev.LoggingOTel.OTelLoggingConfigurator.ConfigureOTelLogging(Microsoft.Extensions.Logging.ILoggingBuilder,Microsoft.Extensions.Configuration.IConfigurationRoot,AStarDev.LoggingOTel.LogViewer.InMemoryLogProcessor,System.String)">
+            <summary>
+                The <see cref="M:AStarDev.LoggingOTel.OTelLoggingConfigurator.ConfigureOTelLogging(Microsoft.Extensions.Logging.ILoggingBuilder,Microsoft.Extensions.Configuration.IConfigurationRoot,AStarDev.LoggingOTel.LogViewer.InMemoryLogProcessor,System.String)" /> method wires up
+                OpenTelemetry logging the same way as <see cref="M:AStarDev.LoggingOTel.OTelLoggingConfigurator.ConfigureOTelLogging(Microsoft.Extensions.Logging.ILoggingBuilder,Microsoft.Extensions.Configuration.IConfigurationRoot,System.String)" />,
+                additionally routing log records to the supplied <see cref="T:AStarDev.LoggingOTel.LogViewer.InMemoryLogProcessor"/>.
+            </summary>
+            <param name="loggingBuilder">The logging builder to configure.</param>
+            <param name="configuration">The configuration providing the Azure Monitor connection string.</param>
+            <param name="inMemoryLogProcessor">The in-memory processor to additionally route log records to.</param>
+            <param name="connectionStringConfigurationKey">The configuration key holding the Azure Monitor connection string.</param>
+            <returns>The original instance of <see cref="T:Microsoft.Extensions.Logging.ILoggingBuilder" /> for further method chaining.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.EmailRegex_0">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the EmailRegex method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.EmailRegex_0.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.EmailRegex_0.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.EmailRegex_0.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.EmailRegex_0.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.EmailRegex_0.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.EmailRegex_0.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.EmailRegex_0.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.EmailRegex_0.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.Utilities">
+            <summary>Helper methods used by generated <see cref="T:System.Text.RegularExpressions.Regex"/>-derived implementations.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_defaultTimeout">
+            <summary>Default timeout value set in <see cref="T:System.AppContext"/>, or <see cref="F:System.Text.RegularExpressions.Regex.InfiniteMatchTimeout"/> if none was set.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_hasTimeout">
+            <summary>Whether <see cref="F:System.Text.RegularExpressions.Generated.Utilities.s_defaultTimeout"/> is non-infinite.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_asciiLetters">
+            <summary>Supports searching for characters in or not in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_asciiLettersAndDigitsAndDashDot">
+            <summary>Supports searching for characters in or not in "-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_ascii_2068FF03FEFFFF87FEFFFF07">
+            <summary>Supports searching for characters in or not in "%+-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz".</summary>
+        </member>
+    </members>
+</doc>

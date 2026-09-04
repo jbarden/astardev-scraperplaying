@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace AStarDev.ScraperPlaying.SearchAPI;
+namespace AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
 
 public record Data(
     string Id,

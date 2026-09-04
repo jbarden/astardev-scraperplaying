@@ -1,0 +1,9 @@
+<Project>
+  <!-- This ensures the Attributes assembly is available as a compile-time reference for consumers -->
+  <ItemGroup>
+    <Reference Include="AStarDev.SourceGeneratorAttributes">
+      <HintPath>$(MSBuildThisFileDirectory)..\attributes\netstandard2.0\AStarDev.SourceGeneratorAttributes.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>
