@@ -28,7 +28,7 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options) : DbCo
     {
         _ = modelBuilder.ApplyConfigurationsFromAssembly(typeof(ControlDbContext).Assembly);
 
-        modelBuilder.UseSqliteFriendlyConversions([typeof(ScrapeConfigurationEntity)]);
+        modelBuilder.UseSqliteFriendlyConversions([typeof(ScrapeConfigurationEntity), typeof(SearchCategoryEntity), typeof(UserConfigurationEntity), typeof(ScrapeDirectoriesEntity)]);
     }
 
     /// <inheritdoc />

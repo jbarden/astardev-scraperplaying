@@ -35,4 +35,15 @@ public static class ExceptionalExtensions
                 throw new InvalidOperationException(UnexpectedExceptionalTypeMessage);
         }
     }
+    
+    /// <summary>
+    ///     Pattern matches on the <see cref="Exceptional{T}" />, invoking the handler for the case present.
+    /// </summary>
+    public static TOut Match<T, TOut>(this Exceptional<T> exceptional, Func<T, TOut> onSuccess, Func<Exception, TOut> onFailure)
+        => exceptional switch
+        {
+            Success<T> success => onSuccess(success.Value),
+            Failure<T> failure => onFailure(failure.Exception),
+            _ => throw new InvalidOperationException(UnexpectedExceptionalTypeMessage + $" Type: {exceptional.GetType().FullName}")
+        };
 }

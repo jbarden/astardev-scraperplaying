@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using AStarDev.ScraperPlaying.SearchAPI;
 using AStarDev.ScraperPlaying.Startup;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -23,11 +24,11 @@ public partial class App : Application, IDisposable
 
     public override void OnFrameworkInitializationCompleted()
     {
+        serviceProvider = BuildServices();
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new home.MainWindow();
+            desktop.MainWindow = new home.MainWindow(serviceProvider.GetRequiredService<IScrapeConfigurationRepository>());
         }
-        serviceProvider = BuildServices();
 
         base.OnFrameworkInitializationCompleted();
     }

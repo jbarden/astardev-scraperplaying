@@ -22,6 +22,8 @@ public static class DatabaseMigrator
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
         await dbContext.Database.MigrateAsync();
 
+        LogMessage.Information(logger, "Database migrations applied successfully");
+
         return UnitFp.Instance;
     }
 

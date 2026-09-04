@@ -31,6 +31,8 @@ public static class ModelBuilderExtensions
 
         foreach (var property in entityType.ClrType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
+            if (entityType.FindNavigation(property.Name) is not null || entityType.FindSkipNavigation(property.Name) is not null) continue;
+
             var propertyBuilder = entityBuilder.Property(property.Name);
             ConfigureProperty(propertyBuilder, property.PropertyType, property.Name);
         }

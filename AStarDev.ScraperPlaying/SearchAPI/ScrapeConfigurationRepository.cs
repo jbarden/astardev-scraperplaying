@@ -17,6 +17,7 @@ public sealed class ScrapeConfigurationRepository(IDbContextFactory<ControlDbCon
             {
                 using var dbContext = dbContextFactory.CreateDbContext();
                 
-                return (await dbContext.ScrapeConfigurations.FirstAsync()).ToDto(); 
+                return (await dbContext.ScrapeConfigurations.Include(sc => sc.ScrapeDirectories).Include(sc => sc.UserConfiguration)
+                .Include(sc => sc.SearchConfiguration).FirstAsync()).ToDto(); 
             });
 }

@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.SearchAPI;
 using AStarDev.ScraperPlaying.SearchAPI.DetailResponse;
 using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
@@ -16,12 +17,6 @@ public partial class MainWindow : Window
     private const string ApiKey = "T5FPTPqzrpcL4jptNdB8TlpEei3smy7E";
     private const string BaseUrl = "https://wallhaven.cc/api/v1";
 
-    public MainWindow()
-    {
-        InitializeComponent();
-        scrapeConfigurationRepository = null!;
-    }
-
     public MainWindow(IScrapeConfigurationRepository scrapeConfigurationRepository)
     {
         InitializeComponent();
@@ -32,6 +27,12 @@ public partial class MainWindow : Window
     {
         try
         {
+            var configuration = await scrapeConfigurationRepository.GetScrapeConfigurationAsync();
+            var dyi = configuration.Match(
+                c => c,
+                _ => throw new InvalidOperationException("Scrape configuration not found")
+            )!;
+
             Console.WriteLine("Searching Wallhaven for 'cyberpunk' wallpapers...");
 
             // 1. Search for wallpapers
