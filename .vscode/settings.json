@@ -5,7 +5,10 @@
         "dotnet run": true,
         "dotnet ef": true,
         "dotnet tool": true,
-        "dotnet /home/jbarden/.dotnet/tools/.store/dotnet-ef/10.0.11/dotnet-ef/10.0.11/tools/net8.0/any/dotnet-ef.dll": true
+        "dotnet /home/jbarden/.dotnet/tools/.store/dotnet-ef/10.0.11/dotnet-ef/10.0.11/tools/net8.0/any/dotnet-ef.dll": true,
+        "./artifacts/bin/AStarDev.ScraperPlaying.TestsUnit/Debug/net10.0/AStarDev.ScraperPlaying.TestsUnit": true,
+        "dotnet artifacts/bin/AStarDev.ScraperPlaying.TestsUnit/Debug/net10.0/AStarDev.ScraperPlaying.TestsUnit.dll": true,
+        "git add": true
     },
     "cSpell.words": [
         "Avalonia",

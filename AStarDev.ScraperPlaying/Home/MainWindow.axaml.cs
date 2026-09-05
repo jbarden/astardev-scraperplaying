@@ -64,6 +64,10 @@ public partial class MainWindow : Window
                 _ => throw new InvalidOperationException("Scrape configuration not found")
             )!;
             System.Console.WriteLine(configuration);
+            var subscriptionsUrl = configuration.SubscribedUrl;
+            var topWallpapersUrl = configuration.TopWallpapersUrl;
+            var searchCategoriesUrl = configuration.SearchCategoriesUrl;
+            var searchCategories = configuration.SearchCategories;
 #pragma warning disable CA1873 // Avoid potentially expensive logging
             LogMessage.Information(logger, "Scrape configuration: {Configuration}", configuration.ToJson());
 #pragma warning restore CA1873 // Avoid potentially expensive logging
