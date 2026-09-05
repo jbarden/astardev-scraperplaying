@@ -1,6 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="AStarDev.ScraperPlaying.home.MainWindow"
+        x:Class="AStarDev.ScraperPlaying.Home.MainWindow"
         Title="AStarDev Scraper Playing"
         Width="900"
         Height="600"
@@ -22,7 +22,10 @@
                  FontSize="18" />
     </Border>
 
-    <Button Content="Do Stuff" Click="DoStuff" HorizontalAlignment="Center" Margin="0,24,0,0"/>
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12" Margin="0,24,0,0">
+      <Button Content="Import configuration" Click="ImportConfiguration" />
+      <Button Content="Do Stuff" Click="DoStuff" />
+    </StackPanel>
     </StackPanel>
   </Grid>
 </Window>

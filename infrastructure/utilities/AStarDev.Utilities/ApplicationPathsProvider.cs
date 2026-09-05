@@ -49,19 +49,19 @@ public static class ApplicationPathsProvider
 
     private static string GetPlatformDataDirectory(string applicationName)
     {
-        string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string Home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
         string directory = OperatingSystem.IsWindows()
             ? Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 applicationName)
-            : SetNonWindowsPath(applicationName, home);
+            : SetNonWindowsPath(applicationName, Home);
         _ = Directory.CreateDirectory(directory);
 
         return directory;
     }
 
-    private static string SetNonWindowsPath(string applicationName, string home) => OperatingSystem.IsMacOS()
-                    ? Path.Combine(home, "Library", "Application Support", applicationName)
-                    : Path.Combine(home, ".config", applicationName);
+    private static string SetNonWindowsPath(string applicationName, string Home) => OperatingSystem.IsMacOS()
+                    ? Path.Combine(Home, "Library", "Application Support", applicationName)
+                    : Path.Combine(Home, ".config", applicationName);
 }

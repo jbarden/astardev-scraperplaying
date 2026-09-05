@@ -1,0 +1,24 @@
+using Avalonia.Controls;
+using Avalonia.Platform.Storage;
+
+namespace AStarDev.ScraperPlaying.Home;
+
+public interface IConfigurationFilePicker
+{
+    Task<string?> PickAsync(Window owner);
+}
+
+public sealed class ConfigurationFilePicker : IConfigurationFilePicker
+{
+    public async Task<string?> PickAsync(Window owner)
+    {
+        var files = await owner.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            AllowMultiple = false,
+            Title = "Import scrape configuration",
+            FileTypeFilter = [new FilePickerFileType("JSON configuration") { Patterns = ["*.json"] }]
+        });
+
+        return files.Count == 0 ? null : files[0].Path.LocalPath;
+    }
+}

@@ -3,7 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using AStarDev.ControlDb;
 using AStarDev.Utilities;
-using AStarDev.ScraperPlaying.home;
+using AStarDev.ScraperPlaying.Home;
+using AStarDev.ScraperPlaying.SearchAPI;
 
 namespace AStarDev.ScraperPlaying.Startup;
 
@@ -17,6 +18,10 @@ public static class ApplicationServicesExtensions
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration) =>
         services
             .AddSingleton<IApplicationDirectories, ApplicationDirectories>()
+            .AddSingleton<IConfigurationFilePicker, ConfigurationFilePicker>()
+            .AddSingleton<IScrapeConfigurationFileReader, ScrapeConfigurationFileReader>()
+            .AddSingleton<IScrapeConfigurationImportService, ScrapeConfigurationImportService>()
+            .AddSingleton<IScrapeConfigurationRepository, ScrapeConfigurationRepository>()
             .AddSingleton<MainWindow>()
             .AddDbContextFactory<ControlDbContext>((serviceProvider, options) =>
                 options.UseSqlite($"Data Source={ApplicationMetadata.ApplicationNameHyphenated.ApplicationDirectory().CombinePath(Path.DirectorySeparatorChar.ToString()).CombinePath("data").CombinePath(Path.DirectorySeparatorChar.ToString()).CombinePath("astar-control.db")}"));

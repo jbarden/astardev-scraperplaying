@@ -27,7 +27,7 @@ public partial class App : Application, IDisposable
         serviceProvider = BuildServices();
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new home.MainWindow(serviceProvider.GetRequiredService<IScrapeConfigurationRepository>());
+            desktop.MainWindow = serviceProvider.GetRequiredService<Home.MainWindow>();
         }
 
         base.OnFrameworkInitializationCompleted();

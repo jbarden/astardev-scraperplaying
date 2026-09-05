@@ -16,8 +16,23 @@ public sealed class ScrapeConfigurationRepository(IDbContextFactory<ControlDbCon
         => await Try.RunAsync(async () =>
             {
                 using var dbContext = dbContextFactory.CreateDbContext();
-                
+
                 return (await dbContext.ScrapeConfigurations.Include(sc => sc.ScrapeDirectories).Include(sc => sc.UserConfiguration)
-                .Include(sc => sc.SearchConfiguration).FirstAsync()).ToDto(); 
+                .Include(sc => sc.SearchConfiguration).FirstAsync()).ToDto();
             });
+
+    /// <inheritdoc/>
+    public async Task ImportScrapeConfigurationAsync(ScrapeConfigurationImportDocument document)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
+        var current = await dbContext.ScrapeConfigurations.FirstOrDefaultAsync();
+        if (current is not null)
+        {
+            dbContext.ScrapeConfigurations.Remove(current);
+            await dbContext.SaveChangesAsync();
+        }
+
+        dbContext.ScrapeConfigurations.Add(document.ToEntity());
+        await dbContext.SaveChangesAsync();
+    }
 }

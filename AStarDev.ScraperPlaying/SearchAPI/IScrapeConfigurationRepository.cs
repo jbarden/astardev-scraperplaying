@@ -12,4 +12,7 @@ public interface IScrapeConfigurationRepository
     /// </summary>
     /// <returns>A task that represents the asynchronous operation. The task result contains the scrape configuration settings.</returns>
     Task<Exceptional<ScrapeConfiguration>> GetScrapeConfigurationAsync();
+
+    /// <summary>Replaces the persisted scrape configuration aggregate.</summary>
+    Task ImportScrapeConfigurationAsync(ScrapeConfigurationImportDocument document);
 }

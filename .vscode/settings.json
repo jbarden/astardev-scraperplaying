@@ -1,7 +1,8 @@
 {
     "chat.tools.terminal.autoApprove": {
         "printf": true,
-        "dotnet new": true
+        "dotnet new": true,
+        "dotnet run": true
     },
     "cSpell.words": [
         "Avalonia",
