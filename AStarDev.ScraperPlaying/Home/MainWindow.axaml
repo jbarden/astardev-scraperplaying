@@ -22,10 +22,10 @@
                  FontSize="18" />
     </Border>
 
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12" Margin="0,24,0,0">
-      <Button Content="Import configuration" Click="ImportConfiguration" />
-      <Button Content="Do Stuff" Click="DoStuff" />
-    </StackPanel>
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12" Margin="0,24,0,0">
+        <Button Content="Import configuration" Click="ImportConfiguration" />
+        <Button Content="Do Stuff" Click="DoStuff" />
+      </StackPanel>
     </StackPanel>
   </Grid>
 </Window>

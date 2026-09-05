@@ -30,8 +30,14 @@ public sealed class ScrapeConfigurationFileReader : IScrapeConfigurationFileRead
     public async Task<ScrapeConfigurationImportDocument> ReadAsync(string filePath)
     {
         await using var stream = File.OpenRead(filePath);
-        var document = await JsonSerializer.DeserializeAsync<ScrapeConfigurationImportDocument>(stream, JsonOptions)
-            ?? throw new JsonException("The configuration file is empty.");
+        using var json = await JsonDocument.ParseAsync(stream);
+        var document = json.RootElement.TryGetProperty("scrapeConfiguration", out _)
+            ? JsonSerializer.Deserialize<ScrapeSettingsImportDocument>(json.RootElement.GetRawText(), JsonOptions)?.ToImportDocument()
+            : JsonSerializer.Deserialize<ScrapeConfigurationImportDocument>(json.RootElement.GetRawText(), JsonOptions);
+        if (document is null)
+        {
+            throw new JsonException("The configuration file is empty.");
+        }
         Validate(document);
         return document;
     }

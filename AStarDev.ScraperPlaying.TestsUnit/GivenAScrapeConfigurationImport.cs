@@ -57,6 +57,44 @@ public sealed class GivenAScrapeConfigurationImport
     }
 
     [Fact]
+    public async Task when_application_settings_are_read_then_scrape_configuration_is_converted()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllTextAsync(path, """
+                                {
+                                    "logging": { "logLevel": { "default": "Warning" } },
+                                    "scrapeConfiguration": {
+                                        "userConfiguration": { "loginEmailAddress": "user@example.test", "username": "user", "password": "secret" },
+                                        "searchConfiguration": {
+                                            "baseUrl": "https://example.test", "loginUrl": "login",
+                                            "searchCategories": [{ "id": "1", "name": "General", "lastPageVisited": 4, "totalPages": 8 }],
+                                            "searchString": "/search", "imagePauseInSeconds": 10
+                                        },
+                                        "scrapeDirectories": {
+                                            "baseSaveDirectory": "Pictures", "baseDirectory": "Pictures/Wallhaven",
+                                            "baseDirectoryFamous": "Pictures/Famous", "subDirectoryName": "Wallhaven"
+                                        }
+                                    }
+                                }
+                                """, TestContext.Current.CancellationToken);
+
+            var document = await new ScrapeConfigurationFileReader().ReadAsync(path);
+
+            document.UserConfiguration.EmailAddress.ShouldBe("user@example.test");
+            document.SearchConfiguration.SearchCategories.Single().LastPageVisited.ShouldBe(4);
+            document.ScrapeDirectories.RootDirectory.ShouldBe("Pictures/Wallhaven");
+            document.Id.ShouldNotBe(Guid.Empty);
+            document.SearchConfiguration.Id.ShouldNotBe(Guid.Empty);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public async Task when_json_is_malformed_then_reading_fails_with_a_json_exception()
     {
         var path = Path.GetTempFileName();
