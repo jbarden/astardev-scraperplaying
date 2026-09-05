@@ -2,7 +2,10 @@
     "chat.tools.terminal.autoApprove": {
         "printf": true,
         "dotnet new": true,
-        "dotnet run": true
+        "dotnet run": true,
+        "dotnet ef": true,
+        "dotnet tool": true,
+        "dotnet /home/jbarden/.dotnet/tools/.store/dotnet-ef/10.0.11/dotnet-ef/10.0.11/tools/net8.0/any/dotnet-ef.dll": true
     },
     "cSpell.words": [
         "Avalonia",
