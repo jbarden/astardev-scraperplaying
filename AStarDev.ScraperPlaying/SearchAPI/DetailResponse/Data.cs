@@ -22,5 +22,5 @@ public record Data(
     string[] Colors,
     string Path,
     Thumbs Thumbs,
-    Tags[] Tags
+    [property: JsonPropertyName("tags")] Tag[] Tags
 );

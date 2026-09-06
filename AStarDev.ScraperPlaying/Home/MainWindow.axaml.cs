@@ -6,6 +6,7 @@ using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.SearchAPI;
 using AStarDev.ScraperPlaying.SearchAPI.DetailResponse;
 using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
+using AStarDev.ScraperPlaying.SearchAPI.TagResponse;
 using AStarDev.Utilities;
 using Avalonia.Controls;
 using Avalonia.Threading;
@@ -119,9 +120,9 @@ public partial class MainWindow : Window
 
     public async void RunScraper(object? sender, RoutedEventArgs eventArgs)
     {
+        var startTime = Stopwatch.GetTimestamp();
         try
         {
-            var startTime = Stopwatch.GetTimestamp();
             LogInformation("Starting scrape operation.");
             var configuration = (await scrapeConfigurationRepository.GetScrapeConfigurationAsync())
             .Match(
@@ -153,7 +154,7 @@ public partial class MainWindow : Window
 #pragma warning restore CA1873 // Avoid potentially expensive logging
                 var pageResult = await GetFromJsonAsync<SearchResponse>(pageUrl, sessionCookie);
                 await File.WriteAllTextAsync($"topWallpapers-{i}.json", pageResult.ToJson());
-                await Task.Delay(500); // Add a small delay to avoid overwhelming the server
+                await Task.Delay(1000); // Add a small delay to avoid overwhelming the server
                 foreach (var wallpaper in pageResult!.Data)
                 {
                     await GetImageDetails(sessionCookie, wallpaper.Id);
@@ -170,9 +171,9 @@ public partial class MainWindow : Window
 #pragma warning restore CA1873 // Avoid potentially expensive logging
                 var searchResponse = await GetFromJsonAsync<SearchResponse>(searchCategoriesUrl.Replace("%7Bid%7D", category.Id), sessionCookie);
                 await File.WriteAllTextAsync($"{category.Id}.json", searchResponse.ToJson());
-                await Task.Delay(500); // Add a small delay to avoid overwhelming the server
-                                       // You can process pageResult here as needed
-                                       // we need to process each page of results for the category
+                await Task.Delay(1000); // Add a small delay to avoid overwhelming the server
+                                        // You can process pageResult here as needed
+                                        // we need to process each page of results for the category
                 foreach (var wallpaper in searchResponse!.Data)
                 {
                     await GetImageDetails(sessionCookie, wallpaper.Id);
@@ -182,7 +183,7 @@ public partial class MainWindow : Window
                     var pageUrl = searchCategoriesUrl.Replace("%7Bid%7D", category.Id) + i;
                     var pageResult = await GetFromJsonAsync<SearchResponse>(pageUrl, sessionCookie);
                     await File.WriteAllTextAsync($"{category.Id}-{i}.json", pageResult.ToJson());
-                    await Task.Delay(500); // Add a small delay to avoid overwhelming the server
+                    await Task.Delay(1000); // Add a small delay to avoid overwhelming the server
                     foreach (var wallpaper in pageResult!.Data)
                     {
                         await GetImageDetails(sessionCookie, wallpaper.Id);
@@ -196,8 +197,9 @@ public partial class MainWindow : Window
         }
         catch (HttpRequestException e)
         {
-            Console.WriteLine($"Request error: {e.Message}");
+            AppendStatusMessage($"Request error: {e.Message}");
         }
+        AppendStatusMessage($"Search completed2 in: {Stopwatch.GetElapsedTime(startTime).TotalMilliseconds} total milliseconds.");
     }
 
     private async Task GetImageDetails(string sessionCookie, string wallpaperId)
@@ -210,7 +212,13 @@ public partial class MainWindow : Window
         LogInformation($"Fetched details for wallpaper {wallpaperId}.");
         LogInformation($"Detail response for wallpaper {wallpaperId}: {detailResponse.Data}");
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
-        await Task.Delay(500); // Add a small delay to avoid overwhelming the server
+        await Task.Delay(1000); // Add a small delay to avoid overwhelming the server
+
+        foreach (var tag in detailResponse.Data.Tags)
+        {
+            LogInformation($"Tag for wallpaper {wallpaperId}: {tag}");
+            await Task.Delay(100); // Add a small delay to avoid overwhelming the server
+        }
     }
 
     private void LogInformation(string message)
@@ -240,3 +248,4 @@ public partial class MainWindow : Window
         });
     }
 }
+

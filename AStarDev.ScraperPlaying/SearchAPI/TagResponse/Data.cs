@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-namespace AStarDev.ScraperPlaying.SearchAPI.DetailResponse;
+namespace AStarDev.ScraperPlaying.SearchAPI.TagResponse;
 
-public record Tag(
+public record Data(
     int Id,
     string Name,
     string Alias,

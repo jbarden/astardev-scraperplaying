@@ -1,5 +1,6 @@
 using System.Text.Json;
 using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
+using TagResponse = AStarDev.ScraperPlaying.SearchAPI.TagResponse.TagResponse;
 using Shouldly;
 using Xunit;
 
@@ -49,5 +50,33 @@ public sealed class GivenAResponseModel
         response.Meta.CurrentPage.ShouldBe(1);
         response.Meta.PerPage.ShouldBe(24);
         response.Meta.Query.GetProperty("id").GetInt32().ShouldBe(1);
+    }
+
+    [Fact]
+    public void when_tag_json_is_deserialized_then_wire_names_are_mapped()
+    {
+        const string json = """
+            {
+              "data": {
+                "id": 1,
+                "name": "anime",
+                "alias": "Chinese cartoons",
+                "category_id": 1,
+                "category": "Anime & Manga",
+                "purity": "sfw",
+                "created_at": "2015-01-16 02:06:45"
+              }
+            }
+            """;
+
+        var response = JsonSerializer.Deserialize<TagResponse>(json, JsonOptions)!;
+
+        response.Data.Id.ShouldBe(1);
+        response.Data.Name.ShouldBe("anime");
+        response.Data.Alias.ShouldBe("Chinese cartoons");
+        response.Data.CategoryId.ShouldBe(1);
+        response.Data.Category.ShouldBe("Anime & Manga");
+        response.Data.Purity.ShouldBe("sfw");
+        response.Data.CreatedAt.ShouldBe("2015-01-16 02:06:45");
     }
 }
