@@ -8,6 +8,7 @@ using AStarDev.ScraperPlaying.SearchAPI.DetailResponse;
 using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
 using AStarDev.Utilities;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Avalonia.Interactivity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -17,7 +18,9 @@ namespace AStarDev.ScraperPlaying.Home;
 
 public partial class MainWindow : Window
 {
+    private const int MaximumStatusMessages = 100;
     private static readonly HttpClient client = CreateHttpClient();
+    private readonly Queue<string> statusMessages = new();
     private readonly IScrapeConfigurationRepository scrapeConfigurationRepository;
     private readonly IScrapeConfigurationImportService importService;
     private readonly IConfigurationFilePicker configurationFilePicker;
@@ -94,7 +97,7 @@ public partial class MainWindow : Window
     public static MainWindow CreateStartupError(Exception exception)
     {
         var window = new MainWindow(NullLogger<MainWindow>.Instance, null!, null!, null!);
-        window.StatusTextBlock.Text = $"Startup failed: {exception.GetType().Name}: {exception.Message}\n\n{exception}";
+        window.AppendStatusMessage($"Startup failed: {exception.GetType().Name}: {exception.Message}");
         return window;
     }
 
@@ -110,8 +113,7 @@ public partial class MainWindow : Window
         }
         catch (Exception exception) when (exception is IOException or JsonException or InvalidOperationException)
         {
-            LogMessage.Error(logger, "Unable to import scrape configuration.", exception);
-            StatusTextBlock.Text = $"Configuration import failed: {exception.Message}";
+            LogError("Unable to import scrape configuration.", exception);
         }
     }
 
@@ -120,7 +122,7 @@ public partial class MainWindow : Window
         try
         {
             var startTime = Stopwatch.GetTimestamp();
-            LogMessage.Information(logger, "Starting scrape operation.");
+            LogInformation("Starting scrape operation.");
             var configuration = (await scrapeConfigurationRepository.GetScrapeConfigurationAsync())
             .Match(
                 c => c,
@@ -134,7 +136,7 @@ public partial class MainWindow : Window
             var searchCategoriesUrl = configuration.SearchCategoriesUrl.AbsoluteUri.Replace("%7BapiKey%7D", encodedApiKey);
             var searchCategories = configuration.SearchCategories;
 
-            LogMessage.Information(logger, "Fetching top wallpapers.");
+            LogInformation("Fetching top wallpapers.");
             var topWallpapersResult = await GetFromJsonAsync<SearchResponse>(topWallpapersUrl + 1, sessionCookie);
             await File.WriteAllTextAsync("topWallpapers-1.json", topWallpapersResult.ToJson());
 
@@ -147,7 +149,7 @@ public partial class MainWindow : Window
             {
                 var pageUrl = configuration.TopWallpapersUrl.AbsoluteUri + i;
 #pragma warning disable CA1873 // Avoid potentially expensive logging
-                LogMessage.Information(logger, $"Fetching top wallpapers page {i}.");
+                LogInformation($"Fetching top wallpapers page {i}.");
 #pragma warning restore CA1873 // Avoid potentially expensive logging
                 var pageResult = await GetFromJsonAsync<SearchResponse>(pageUrl, sessionCookie);
                 await File.WriteAllTextAsync($"topWallpapers-{i}.json", pageResult.ToJson());
@@ -164,7 +166,7 @@ public partial class MainWindow : Window
             foreach (var category in searchCategories.Take(3))
             {
 #pragma warning disable CA1873 // Avoid potentially expensive logging
-                LogMessage.Information(logger, $"Fetching search category {category.Id} page 1.");
+                LogInformation($"Fetching search category {category.Id} page 1.");
 #pragma warning restore CA1873 // Avoid potentially expensive logging
                 var searchResponse = await GetFromJsonAsync<SearchResponse>(searchCategoriesUrl.Replace("%7Bid%7D", category.Id), sessionCookie);
                 await File.WriteAllTextAsync($"{category.Id}.json", searchResponse.ToJson());
@@ -190,7 +192,7 @@ public partial class MainWindow : Window
                 }
             }
 
-            StatusTextBlock.Text += $"{Environment.NewLine}Search completed in : {Stopwatch.GetElapsedTime(startTime).TotalMilliseconds} total milliseconds";
+            AppendStatusMessage($"Search completed in: {Stopwatch.GetElapsedTime(startTime).TotalMilliseconds} total milliseconds.");
         }
         catch (HttpRequestException e)
         {
@@ -203,14 +205,38 @@ public partial class MainWindow : Window
         string detailUrl = $"{BaseUrl}/w/{wallpaperId}";
         var detailResponse = await GetFromJsonAsync<DetailResponse>(detailUrl, sessionCookie);
 
-#pragma warning disable CA1873 // Avoid potentially expensive logging
-        LogMessage.Information(logger, $"Fetching details for wallpaper {wallpaperId}.");
+        LogInformation($"Fetching details for wallpaper {wallpaperId}.");
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-        LogMessage.Information(logger, $"Fetched details for wallpaper {wallpaperId}.");
-        Console.WriteLine(string.Concat(detailResponse.Data.ToString().AsSpan(0, 500), "..."));
+        LogInformation($"Fetched details for wallpaper {wallpaperId}.");
+        LogInformation($"Detail response for wallpaper {wallpaperId}: {detailResponse.Data}");
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
-#pragma warning restore CA1873 // Avoid potentially expensive logging
-        StatusTextBlock.Text += $"\nDetails fetched for wallpaper {wallpaperId}: {detailResponse}";
         await Task.Delay(500); // Add a small delay to avoid overwhelming the server
+    }
+
+    private void LogInformation(string message)
+    {
+        LogMessage.Information(logger, message);
+        AppendStatusMessage(message);
+    }
+
+    private void LogError(string message, Exception exception)
+    {
+        LogMessage.Error(logger, message, exception);
+        AppendStatusMessage($"{message} {exception.Message}");
+    }
+
+    private void AppendStatusMessage(string message)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            statusMessages.Enqueue(message);
+            while (statusMessages.Count > MaximumStatusMessages)
+            {
+                statusMessages.Dequeue();
+            }
+
+            StatusTextBlock.Text = string.Join(Environment.NewLine, statusMessages);
+            StatusScrollViewer.ScrollToEnd();
+        });
     }
 }

@@ -7,28 +7,23 @@
         MinWidth="480"
         MinHeight="320">
   <Grid RowDefinitions="Auto,*" Margin="32">
-  <StackPanel>
-    <TextBlock Text="AStarDev Scraper Playing"
-               FontSize="28"
-               FontWeight="SemiBold" />
-    <Border Grid.Row="1"
-            Margin="0,24,0,0"
-            Padding="24"
-            Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
-            CornerRadius="8">
-      <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <TextBlock Text="MainWindow is ready." x:Name="StatusTextBlock"
-                   TextWrapping="Wrap"
-                   VerticalAlignment="Center"
-                   HorizontalAlignment="Center"
-                   FontSize="12" />
-      </ScrollViewer>
-    </Border>
-
-      <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12" Margin="0,24,0,0">
-        <Button Content="Import configuration" Click="ImportConfiguration" />
-        <Button Content="Run Scraper" Click="RunScraper" />
-      </StackPanel>
+    <StackPanel>
+      <TextBlock Text="AStarDev Scraper Playing"
+                FontSize="28"
+                FontWeight="SemiBold" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12" Margin="0,24,0,0">
+          <Button Content="Import configuration" Click="ImportConfiguration" />
+          <Button Content="Run Scraper" Click="RunScraper" />
+        </StackPanel>
+      <Border Grid.Row="1"
+              Margin="0,24,0,0"
+              Padding="24"
+              Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+              CornerRadius="8">
+        <ScrollViewer x:Name="StatusScrollViewer" VerticalScrollBarVisibility="Auto">
+          <TextBlock Text="MainWindow is ready." x:Name="StatusTextBlock" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="12" />
+        </ScrollViewer>
+      </Border>
     </StackPanel>
   </Grid>
 </Window>
