@@ -17,7 +17,7 @@ using System.Diagnostics;
 
 namespace AStarDev.ScraperPlaying.Home;
 
-public partial class MainWindow : Window
+public partial class MainWindow : Window, IDisposable
 {
     private const int MaximumStatusMessages = 100;
     private static readonly HttpClient client = CreateHttpClient();
@@ -26,6 +26,8 @@ public partial class MainWindow : Window
     private readonly IScrapeConfigurationImportService importService;
     private readonly IConfigurationFilePicker configurationFilePicker;
     private readonly ILogger<MainWindow> logger;
+    private readonly OperationCoordinator operationCoordinator = new();
+    private bool isDisposing;
 
     // Replace with your actual Wallhaven API key if needed SOME_FAKE_API_KEY_AS_PLACEHOLDER
     private const string BaseUrl = "https://wallhaven.cc/api/v1";
@@ -41,7 +43,7 @@ public partial class MainWindow : Window
         return httpClient;
     }
 
-    private static async Task<T?> GetFromJsonAsync<T>(string url, string? sessionCookie)
+    private static async Task<T?> GetFromJsonAsync<T>(string url, string? sessionCookie, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         var cookieHeader = NormalizeCookieHeader(sessionCookie);
@@ -50,10 +52,10 @@ public partial class MainWindow : Window
             request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
         }
 
-        using var response = await client.SendAsync(request);
+        using var response = await client.SendAsync(request, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            var responseBody = await response.Content.ReadAsStringAsync();
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
             throw new HttpRequestException(
                 $"Wallhaven returned {(int)response.StatusCode} ({response.StatusCode}) for {url}. " +
                 $"Location: {response.Headers.Location}. Response: {responseBody}");
@@ -61,7 +63,7 @@ public partial class MainWindow : Window
 
         try
         {
-            return await response.Content.ReadFromJsonAsync<T>();
+            return await response.Content.ReadFromJsonAsync<T>(cancellationToken: cancellationToken);
         }
         catch (Exception exception) when (exception is JsonException or InvalidOperationException)
         {
@@ -93,6 +95,9 @@ public partial class MainWindow : Window
         this.importService = importService;
         this.configurationFilePicker = configurationFilePicker;
         this.logger = logger;
+        operationCoordinator.StateChanged += (_, _) => UpdateOperationControls();
+        Closed += (_, _) => Dispose();
+        UpdateOperationControls();
     }
 
     public static MainWindow CreateStartupError(Exception exception)
@@ -104,22 +109,35 @@ public partial class MainWindow : Window
 
     public async void ImportConfiguration(object? sender, RoutedEventArgs eventArgs)
     {
+        if (!operationCoordinator.TryStart(out var cancellationToken)) return;
+
         try
         {
             var filePath = await configurationFilePicker.PickAsync(this);
             if (filePath is null) return;
 
-            await importService.ImportAsync(filePath);
+            cancellationToken.ThrowIfCancellationRequested();
+            await importService.ImportAsync(filePath, cancellationToken);
             StatusTextBlock.Text = "Scrape configuration imported.";
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            AppendStatusMessage("Scrape configuration import cancelled.");
         }
         catch (Exception exception) when (exception is IOException or JsonException or InvalidOperationException)
         {
             LogError("Unable to import scrape configuration.", exception);
         }
+        finally
+        {
+            operationCoordinator.Complete();
+        }
     }
 
     public async void RunScraper(object? sender, RoutedEventArgs eventArgs)
     {
+        if (!operationCoordinator.TryStart(out var cancellationToken)) return;
+
         var startTime = Stopwatch.GetTimestamp();
         try
         {
@@ -138,12 +156,12 @@ public partial class MainWindow : Window
             var searchCategories = configuration.SearchCategories;
 
             LogInformation("Fetching top wallpapers.");
-            var topWallpapersResult = await GetFromJsonAsync<SearchResponse>(topWallpapersUrl + 1, sessionCookie);
-            await File.WriteAllTextAsync("topWallpapers-1.json", topWallpapersResult.ToJson());
+            var topWallpapersResult = await GetFromJsonAsync<SearchResponse>(topWallpapersUrl + 1, sessionCookie, cancellationToken);
+            await File.WriteAllTextAsync("topWallpapers-1.json", topWallpapersResult.ToJson(), cancellationToken);
 
             foreach (var wallpaper in topWallpapersResult!.Data)
             {
-                await GetImageDetails(sessionCookie, wallpaper.Id);
+                await GetImageDetails(sessionCookie, wallpaper.Id, cancellationToken);
             }
 
             for (var i = 2; i <= topWallpapersResult!.Meta.LastPage; i++)
@@ -152,12 +170,12 @@ public partial class MainWindow : Window
 #pragma warning disable CA1873 // Avoid potentially expensive logging
                 LogInformation($"Fetching top wallpapers page {i}.");
 #pragma warning restore CA1873 // Avoid potentially expensive logging
-                var pageResult = await GetFromJsonAsync<SearchResponse>(pageUrl, sessionCookie);
-                await File.WriteAllTextAsync($"topWallpapers-{i}.json", pageResult.ToJson());
-                await Task.Delay(1000); // Add a small delay to avoid overwhelming the server
+                var pageResult = await GetFromJsonAsync<SearchResponse>(pageUrl, sessionCookie, cancellationToken);
+                await File.WriteAllTextAsync($"topWallpapers-{i}.json", pageResult.ToJson(), cancellationToken);
+                await Task.Delay(1000, cancellationToken); // Add a small delay to avoid overwhelming the server
                 foreach (var wallpaper in pageResult!.Data)
                 {
-                    await GetImageDetails(sessionCookie, wallpaper.Id);
+                    await GetImageDetails(sessionCookie, wallpaper.Id, cancellationToken);
                 }
                 // You can process pageResult here as needed
                 if (i == 4)
@@ -169,24 +187,24 @@ public partial class MainWindow : Window
 #pragma warning disable CA1873 // Avoid potentially expensive logging
                 LogInformation($"Fetching search category {category.Id} page 1.");
 #pragma warning restore CA1873 // Avoid potentially expensive logging
-                var searchResponse = await GetFromJsonAsync<SearchResponse>(searchCategoriesUrl.Replace("%7Bid%7D", category.Id), sessionCookie);
-                await File.WriteAllTextAsync($"{category.Id}.json", searchResponse.ToJson());
-                await Task.Delay(1000); // Add a small delay to avoid overwhelming the server
-                                        // You can process pageResult here as needed
-                                        // we need to process each page of results for the category
+                var searchResponse = await GetFromJsonAsync<SearchResponse>(searchCategoriesUrl.Replace("%7Bid%7D", category.Id), sessionCookie, cancellationToken);
+                await File.WriteAllTextAsync($"{category.Id}.json", searchResponse.ToJson(), cancellationToken);
+                await Task.Delay(1000, cancellationToken); // Add a small delay to avoid overwhelming the server
+                                                           // You can process pageResult here as needed
+                                                           // we need to process each page of results for the category
                 foreach (var wallpaper in searchResponse!.Data)
                 {
-                    await GetImageDetails(sessionCookie, wallpaper.Id);
+                    await GetImageDetails(sessionCookie, wallpaper.Id, cancellationToken);
                 }
                 for (var i = 2; i <= searchResponse!.Meta.LastPage; i++)
                 {
                     var pageUrl = searchCategoriesUrl.Replace("%7Bid%7D", category.Id) + i;
-                    var pageResult = await GetFromJsonAsync<SearchResponse>(pageUrl, sessionCookie);
-                    await File.WriteAllTextAsync($"{category.Id}-{i}.json", pageResult.ToJson());
-                    await Task.Delay(1000); // Add a small delay to avoid overwhelming the server
+                    var pageResult = await GetFromJsonAsync<SearchResponse>(pageUrl, sessionCookie, cancellationToken);
+                    await File.WriteAllTextAsync($"{category.Id}-{i}.json", pageResult.ToJson(), cancellationToken);
+                    await Task.Delay(1000, cancellationToken); // Add a small delay to avoid overwhelming the server
                     foreach (var wallpaper in pageResult!.Data)
                     {
-                        await GetImageDetails(sessionCookie, wallpaper.Id);
+                        await GetImageDetails(sessionCookie, wallpaper.Id, cancellationToken);
                     }
                     if (i == 4)
                         break;
@@ -199,25 +217,74 @@ public partial class MainWindow : Window
         {
             AppendStatusMessage($"Request error: {e.Message}");
         }
-        AppendStatusMessage($"Search completed2 in: {Stopwatch.GetElapsedTime(startTime).TotalMilliseconds} total milliseconds.");
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            AppendStatusMessage("Search cancelled.");
+        }
+        finally
+        {
+            operationCoordinator.Complete();
+        }
     }
 
-    private async Task GetImageDetails(string sessionCookie, string wallpaperId)
+    public void CancelOperation(object? sender, RoutedEventArgs eventArgs)
+    {
+        operationCoordinator.Cancel();
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (isDisposing) return;
+
+        if (disposing)
+        {
+            operationCoordinator.Dispose();
+        }
+
+        isDisposing = true;
+    }
+
+    private async Task GetImageDetails(string sessionCookie, string wallpaperId, CancellationToken cancellationToken)
     {
         string detailUrl = $"{BaseUrl}/w/{wallpaperId}";
-        var detailResponse = await GetFromJsonAsync<DetailResponse>(detailUrl, sessionCookie);
+        var detailResponse = await GetFromJsonAsync<DetailResponse>(detailUrl, sessionCookie, cancellationToken);
 
         LogInformation($"Fetching details for wallpaper {wallpaperId}.");
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
         LogInformation($"Fetched details for wallpaper {wallpaperId}.");
         LogInformation($"Detail response for wallpaper {wallpaperId}: {detailResponse.Data}");
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
-        await Task.Delay(1000); // Add a small delay to avoid overwhelming the server
+        await Task.Delay(1000, cancellationToken); // Add a small delay to avoid overwhelming the server
 
+        await GetTags(wallpaperId, detailResponse, cancellationToken);
+
+        var httpClient = CreateHttpClient();
+        var imageResponse = await httpClient.GetAsync(detailResponse.Data.Path, cancellationToken);
+        imageResponse.EnsureSuccessStatusCode();
+        LogInformation($"Fetched image for wallpaper {wallpaperId}.");
+        var imageData = await imageResponse.Content.ReadAsByteArrayAsync(cancellationToken);
+        LogInformation($"Downloaded image data for wallpaper {wallpaperId}, size: {imageData.Length} bytes.");
+        SaveImageData(wallpaperId, imageData);
+    }
+
+    private void SaveImageData(string wallpaperId, byte[] imageData)
+    {
+        LogInformation($"Saving image data for wallpaper {wallpaperId}, size: {imageData.Length} bytes.");
+        File.WriteAllBytes($"{wallpaperId}.jpg", imageData);
+    }
+
+    private async Task GetTags(string wallpaperId, DetailResponse detailResponse, CancellationToken cancellationToken)
+    {
         foreach (var tag in detailResponse.Data.Tags)
         {
             LogInformation($"Tag for wallpaper {wallpaperId}: {tag}");
-            await Task.Delay(100); // Add a small delay to avoid overwhelming the server
+            await Task.Delay(100, cancellationToken); // Add a small delay to avoid overwhelming the server
         }
     }
 
@@ -231,6 +298,14 @@ public partial class MainWindow : Window
     {
         LogMessage.Error(logger, message, exception);
         AppendStatusMessage($"{message} {exception.Message}");
+    }
+
+    private void UpdateOperationControls()
+    {
+        var isOperationRunning = operationCoordinator.IsOperationRunning;
+        ImportConfigurationButton.IsEnabled = !isOperationRunning;
+        RunScraperButton.IsEnabled = !isOperationRunning;
+        CancelButton.IsEnabled = isOperationRunning;
     }
 
     private void AppendStatusMessage(string message)

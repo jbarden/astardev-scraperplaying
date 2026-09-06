@@ -17,12 +17,47 @@ public sealed class GivenAScrapeConfigurationImport
         {
             SearchConfiguration = new() { ApiKey = "api-key", SearchCategories = [new() { Id = "general" }] }
         };
-        reader.ReadAsync("configuration.json").Returns(document);
+        reader.ReadAsync("configuration.json", Arg.Any<CancellationToken>()).Returns(document);
         var service = new ScrapeConfigurationImportService(repository, reader);
 
-        await service.ImportAsync("configuration.json");
+        await service.ImportAsync("configuration.json", TestContext.Current.CancellationToken);
 
         await repository.Received(1).ImportScrapeConfigurationAsync(document);
+    }
+
+    [Fact]
+    public async Task when_import_is_cancelled_then_file_processing_does_not_start()
+    {
+        var repository = Substitute.For<IScrapeConfigurationRepository>();
+        var reader = Substitute.For<IScrapeConfigurationFileReader>();
+        var service = new ScrapeConfigurationImportService(repository, reader);
+        using var cancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource.Cancel();
+
+        await Should.ThrowAsync<OperationCanceledException>(
+            () => service.ImportAsync("configuration.json", cancellationTokenSource.Token));
+
+        await reader.DidNotReceive().ReadAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task when_import_is_cancelled_while_reading_then_the_repository_is_not_updated()
+    {
+        var repository = Substitute.For<IScrapeConfigurationRepository>();
+        var reader = Substitute.For<IScrapeConfigurationFileReader>();
+        var document = new ScrapeConfigurationImportDocument();
+        using var cancellationTokenSource = new CancellationTokenSource();
+        reader.ReadAsync("configuration.json", cancellationTokenSource.Token).Returns(_ =>
+        {
+            cancellationTokenSource.Cancel();
+            return document;
+        });
+        var service = new ScrapeConfigurationImportService(repository, reader);
+
+        await Should.ThrowAsync<OperationCanceledException>(
+            () => service.ImportAsync("configuration.json", cancellationTokenSource.Token));
+
+        await repository.DidNotReceive().ImportScrapeConfigurationAsync(Arg.Any<ScrapeConfigurationImportDocument>());
     }
 
     [Fact]
@@ -43,7 +78,7 @@ public sealed class GivenAScrapeConfigurationImport
                 }
                 """, TestContext.Current.CancellationToken);
 
-            var document = await new ScrapeConfigurationFileReader().ReadAsync(path);
+            var document = await new ScrapeConfigurationFileReader().ReadAsync(path, TestContext.Current.CancellationToken);
 
             document.UserConfiguration.Username.ShouldBe("user");
             document.SearchConfiguration.ApiKey.ShouldBe("key");
@@ -80,7 +115,7 @@ public sealed class GivenAScrapeConfigurationImport
                                 }
                                 """, TestContext.Current.CancellationToken);
 
-            var document = await new ScrapeConfigurationFileReader().ReadAsync(path);
+            var document = await new ScrapeConfigurationFileReader().ReadAsync(path, TestContext.Current.CancellationToken);
 
             document.UserConfiguration.EmailAddress.ShouldBe("user@example.test");
             document.SearchConfiguration.SearchCategories.Single().LastPageVisited.ShouldBe(4);
@@ -102,7 +137,7 @@ public sealed class GivenAScrapeConfigurationImport
         {
             await File.WriteAllTextAsync(path, "not json", TestContext.Current.CancellationToken);
 
-            await Should.ThrowAsync<JsonException>(() => new ScrapeConfigurationFileReader().ReadAsync(path));
+            await Should.ThrowAsync<JsonException>(() => new ScrapeConfigurationFileReader().ReadAsync(path, TestContext.Current.CancellationToken));
         }
         finally
         {

@@ -2,8 +2,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="AStarDev.ScraperPlaying.Home.MainWindow"
         Title="AStarDev Scraper Playing"
-        Width="900"
-        Height="600"
+        Width="1800"
+        Height="800"
         MinWidth="480"
         MinHeight="320">
   <Grid RowDefinitions="Auto,Auto,*" Margin="32">
@@ -15,8 +15,9 @@
                 HorizontalAlignment="Center"
                 Spacing="12"
                 Margin="0,24,0,0">
-      <Button Content="Import configuration" Click="ImportConfiguration" />
-      <Button Content="Run Scraper" Click="RunScraper" />
+      <Button x:Name="ImportConfigurationButton" Content="Import configuration" Click="ImportConfiguration" />
+      <Button x:Name="RunScraperButton" Content="Run Scraper" Click="RunScraper" />
+      <Button x:Name="CancelButton" Content="Cancel" Click="CancelOperation" IsEnabled="False" />
     </StackPanel>
     <Border Grid.Row="2"
             Margin="0,24,0,0"

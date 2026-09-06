@@ -4,33 +4,35 @@ namespace AStarDev.ScraperPlaying.SearchAPI;
 
 public interface IScrapeConfigurationImportService
 {
-    Task ImportAsync(string filePath);
+    Task ImportAsync(string filePath, CancellationToken cancellationToken = default);
 }
 
 public sealed class ScrapeConfigurationImportService(
     IScrapeConfigurationRepository repository,
     IScrapeConfigurationFileReader fileReader) : IScrapeConfigurationImportService
 {
-    public async Task ImportAsync(string filePath)
+    public async Task ImportAsync(string filePath, CancellationToken cancellationToken = default)
     {
-        var document = await fileReader.ReadAsync(filePath);
+        cancellationToken.ThrowIfCancellationRequested();
+        var document = await fileReader.ReadAsync(filePath, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         await repository.ImportScrapeConfigurationAsync(document);
     }
 }
 
 public interface IScrapeConfigurationFileReader
 {
-    Task<ScrapeConfigurationImportDocument> ReadAsync(string filePath);
+    Task<ScrapeConfigurationImportDocument> ReadAsync(string filePath, CancellationToken cancellationToken = default);
 }
 
 public sealed class ScrapeConfigurationFileReader : IScrapeConfigurationFileReader
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public async Task<ScrapeConfigurationImportDocument> ReadAsync(string filePath)
+    public async Task<ScrapeConfigurationImportDocument> ReadAsync(string filePath, CancellationToken cancellationToken = default)
     {
         await using var stream = File.OpenRead(filePath);
-        using var json = await JsonDocument.ParseAsync(stream);
+        using var json = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
         var document = json.RootElement.TryGetProperty("scrapeConfiguration", out _)
             ? JsonSerializer.Deserialize<ScrapeSettingsImportDocument>(json.RootElement.GetRawText(), JsonOptions)?.ToImportDocument()
             : JsonSerializer.Deserialize<ScrapeConfigurationImportDocument>(json.RootElement.GetRawText(), JsonOptions);
