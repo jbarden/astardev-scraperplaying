@@ -79,7 +79,7 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options) : DbCo
                 };
         context.Set<ScrapeConfigurationEntity>().Add(new ScrapeConfigurationEntity(Guid.Empty)
         {
-            UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, "jason.j.barden2@outlook.com", "jbarden", Environment.GetEnvironmentVariable("ScrapePassword") ?? "Password1!", "n/a"),
+            UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, "jason.j.barden2@outlook.com", "jbarden", Environment.GetEnvironmentVariable("ScrapePassword") ?? "Password1!", "n/a", "n/a"),
             SearchConfiguration = new SearchConfigurationEntity(Guid.Empty, Guid.Empty, "search term", 500, searchCategories)
             {
                 BaseUrl = new Uri("https://wallhaven.cc/"),

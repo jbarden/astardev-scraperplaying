@@ -16,6 +16,7 @@ public sealed class UserConfigurationImportDocument
     public string Username { get; init; } = string.Empty;
     public string Password { get; init; } = string.Empty;
     public string SessionCookie { get; init; } = string.Empty;
+    public string ApiKey { get; init; } = string.Empty;
 }
 
 public sealed class SearchConfigurationImportDocument
