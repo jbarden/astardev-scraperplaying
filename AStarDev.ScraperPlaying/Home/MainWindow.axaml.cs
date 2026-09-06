@@ -153,7 +153,7 @@ public partial class MainWindow : Window, IDisposable
             LogInformation("Fetching top wallpapers.");
             await FetchAndProcessPagesAsync(
                 "top wallpapers",
-                page => page == 1 ? topWallpapersUrl + 1 : configuration.TopWallpapersUrl.AbsoluteUri + page,
+                page => topWallpapersUrl + page,
                 page => page == 1 ? "topWallpapers-1.json" : $"topWallpapers-{page}.json",
                 sessionCookie,
                 cancellationToken);
@@ -188,18 +188,20 @@ public partial class MainWindow : Window, IDisposable
 
     private async Task FetchAndProcessPagesAsync(string logLabel, Func<int, string> pageUrlFactory, Func<int, string> pageFileNameFactory, string sessionCookie, CancellationToken cancellationToken)
     {
-        SearchResponse? pageResult = null;
-        for (var page = 1; page == 1 || (page <= pageResult!.Meta.LastPage && page <= 4); page++)
+        var page = 1;
+        SearchResponse pageResult;
+        do
         {
             LogInformation($"Fetching {logLabel} page {page}.");
-            pageResult = await GetFromJsonAsync<SearchResponse>(pageUrlFactory(page), sessionCookie, cancellationToken);
+            pageResult = (await GetFromJsonAsync<SearchResponse>(pageUrlFactory(page), sessionCookie, cancellationToken))!;
             await File.WriteAllTextAsync(pageFileNameFactory(page), pageResult.ToJson(), cancellationToken);
             await Task.Delay(1000, cancellationToken);
-            foreach (var wallpaper in pageResult!.Data)
+            foreach (var wallpaper in pageResult.Data)
             {
                 await GetImageDetails(sessionCookie, wallpaper.Id, cancellationToken);
             }
-        }
+            page++;
+        } while (page <= pageResult.Meta.LastPage && page <= 4);
     }
 
     public void CancelOperation(object? sender, RoutedEventArgs eventArgs)
