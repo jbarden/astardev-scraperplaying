@@ -1,4 +1,8 @@
 {
+    "terminal.integrated.env.linux": {
+        "DOTNET_ROOT": "${env:HOME}/.dotnet",
+        "DOTNET_ROOT_X64": "${env:HOME}/.dotnet"
+    },
     "chat.tools.terminal.autoApprove": {
         "printf": true,
         "dotnet new": true,
