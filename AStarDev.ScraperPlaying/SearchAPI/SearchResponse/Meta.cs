@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
@@ -10,6 +11,6 @@ public record Meta(
     [property: JsonPropertyName("per_page")]
     int PerPage,
     int Total,
-    string Query,
+    JsonElement Query,
     object Seed
 );

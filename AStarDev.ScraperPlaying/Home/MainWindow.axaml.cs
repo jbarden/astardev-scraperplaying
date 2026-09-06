@@ -11,6 +11,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Diagnostics;
 
 namespace AStarDev.ScraperPlaying.Home;
 
@@ -54,7 +55,14 @@ public partial class MainWindow : Window
                 $"Location: {response.Headers.Location}. Response: {responseBody}");
         }
 
-        return await response.Content.ReadFromJsonAsync<T>();
+        try
+        {
+            return await response.Content.ReadFromJsonAsync<T>();
+        }
+        catch (Exception exception) when (exception is JsonException or InvalidOperationException)
+        {
+            throw new InvalidOperationException($"Unable to deserialize response from {url} as {typeof(T).Name}.", exception);
+        }
     }
 
     private static string? NormalizeCookieHeader(string? sessionCookie)
@@ -107,10 +115,12 @@ public partial class MainWindow : Window
         }
     }
 
-    public async void DoStuff(object? sender, RoutedEventArgs eventArgs)
+    public async void RunScraper(object? sender, RoutedEventArgs eventArgs)
     {
         try
         {
+            var startTime = Stopwatch.GetTimestamp();
+            LogMessage.Information(logger, "Starting scrape operation.");
             var configuration = (await scrapeConfigurationRepository.GetScrapeConfigurationAsync())
             .Match(
                 c => c,
@@ -120,53 +130,87 @@ public partial class MainWindow : Window
             var apiKey = configuration.UserConfiguration.ApiKey;
             var sessionCookie = configuration.UserConfiguration.SessionCookie;
             var encodedApiKey = Uri.EscapeDataString(apiKey);
-            var topWallpapersUrl = (configuration.TopWallpapersUrl.AbsoluteUri + "1")
-                .Replace("%7BapiKey%7D", encodedApiKey);
-            var searchCategoriesUrl = (configuration.SearchCategoriesUrl.AbsoluteUri + "1")
-                .Replace("%7BapiKey%7D", encodedApiKey);
+            var topWallpapersUrl = configuration.TopWallpapersUrl.AbsoluteUri.Replace("%7BapiKey%7D", encodedApiKey);
+            var searchCategoriesUrl = configuration.SearchCategoriesUrl.AbsoluteUri.Replace("%7BapiKey%7D", encodedApiKey);
             var searchCategories = configuration.SearchCategories;
-#pragma warning disable CA1873 // Avoid potentially expensive logging
-            LogMessage.Information(logger, "Scrape configuration: {Configuration}", configuration.ToJson());
-            LogMessage.Information(logger, "apiKey: {ApiKey}", apiKey);
-            LogMessage.Information(logger, "topWallpapersUrl: {TopWallpapersUrl}", topWallpapersUrl);
-            LogMessage.Information(logger, "searchCategoriesUrl: {SearchCategoriesUrl}", searchCategoriesUrl);
-#pragma warning restore CA1873 // Avoid potentially expensive logging
 
-            var result2 = await GetFromJsonAsync<SearchResponse>(topWallpapersUrl, sessionCookie);
-            await File.WriteAllTextAsync("topWallpapers.json", result2.ToJson());
-            foreach (var category in searchCategories)
+            LogMessage.Information(logger, "Fetching top wallpapers.");
+            var topWallpapersResult = await GetFromJsonAsync<SearchResponse>(topWallpapersUrl + 1, sessionCookie);
+            await File.WriteAllTextAsync("topWallpapers-1.json", topWallpapersResult.ToJson());
+
+            foreach (var wallpaper in topWallpapersResult!.Data)
             {
-                var result3 = await GetFromJsonAsync<SearchResponse>(searchCategoriesUrl.Replace("%7Bid%7D", category.Id), sessionCookie);
-                await File.WriteAllTextAsync($"{category.Id}.json", result3.ToJson());
+                await GetImageDetails(sessionCookie, wallpaper.Id);
             }
 
-            Console.WriteLine("Searching Wallhaven for 'cyberpunk' wallpapers...");
+            for (var i = 2; i <= topWallpapersResult!.Meta.LastPage; i++)
+            {
+                var pageUrl = configuration.TopWallpapersUrl.AbsoluteUri + i;
+#pragma warning disable CA1873 // Avoid potentially expensive logging
+                LogMessage.Information(logger, $"Fetching top wallpapers page {i}.");
+#pragma warning restore CA1873 // Avoid potentially expensive logging
+                var pageResult = await GetFromJsonAsync<SearchResponse>(pageUrl, sessionCookie);
+                await File.WriteAllTextAsync($"topWallpapers-{i}.json", pageResult.ToJson());
+                await Task.Delay(500); // Add a small delay to avoid overwhelming the server
+                foreach (var wallpaper in pageResult!.Data)
+                {
+                    await GetImageDetails(sessionCookie, wallpaper.Id);
+                }
+                // You can process pageResult here as needed
+                if (i == 4)
+                    break;
+            }
 
-            // 1. Search for wallpapers
-            string searchUrl = $"{BaseUrl}/search?q=cyberpunk&categories=111&purity=100&apikey={apiKey}";
-            var searchResponse = await GetFromJsonAsync<SearchResponse>(searchUrl, sessionCookie);
+            foreach (var category in searchCategories.Take(3))
+            {
+#pragma warning disable CA1873 // Avoid potentially expensive logging
+                LogMessage.Information(logger, $"Fetching search category {category.Id} page 1.");
+#pragma warning restore CA1873 // Avoid potentially expensive logging
+                var searchResponse = await GetFromJsonAsync<SearchResponse>(searchCategoriesUrl.Replace("%7Bid%7D", category.Id), sessionCookie);
+                await File.WriteAllTextAsync($"{category.Id}.json", searchResponse.ToJson());
+                await Task.Delay(500); // Add a small delay to avoid overwhelming the server
+                                       // You can process pageResult here as needed
+                                       // we need to process each page of results for the category
+                foreach (var wallpaper in searchResponse!.Data)
+                {
+                    await GetImageDetails(sessionCookie, wallpaper.Id);
+                }
+                for (var i = 2; i <= searchResponse!.Meta.LastPage; i++)
+                {
+                    var pageUrl = searchCategoriesUrl.Replace("%7Bid%7D", category.Id) + i;
+                    var pageResult = await GetFromJsonAsync<SearchResponse>(pageUrl, sessionCookie);
+                    await File.WriteAllTextAsync($"{category.Id}-{i}.json", pageResult.ToJson());
+                    await Task.Delay(500); // Add a small delay to avoid overwhelming the server
+                    foreach (var wallpaper in pageResult!.Data)
+                    {
+                        await GetImageDetails(sessionCookie, wallpaper.Id);
+                    }
+                    if (i == 4)
+                        break;
+                }
+            }
 
-            Console.WriteLine("\nSearch Results JSON Summary:");
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-            Console.WriteLine(string.Concat(searchResponse.Data.First().ToString().AsSpan(0, 500), "...")); // Shows first 500 characters
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-
-            StatusTextBlock.Text = $"Search completed: {searchResponse}";
-
-            // 2. Fetch specific wallpaper details (Example ID: 8527o1)
-            string wallpaperId = "yq9zqk";
-            string detailUrl = $"{BaseUrl}/w/{wallpaperId}";
-            var detailResponse = await GetFromJsonAsync<DetailResponse>(detailUrl, sessionCookie);
-
-            Console.WriteLine($"\nDetails for Wallpaper {wallpaperId}:");
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-            Console.WriteLine(string.Concat(detailResponse.Data.ToString().AsSpan(0, 500), "..."));
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-            StatusTextBlock.Text += $"\nDetails fetched for wallpaper {wallpaperId}: {detailResponse}";
+            StatusTextBlock.Text += $"{Environment.NewLine}Search completed in : {Stopwatch.GetElapsedTime(startTime).TotalMilliseconds} total milliseconds";
         }
         catch (HttpRequestException e)
         {
             Console.WriteLine($"Request error: {e.Message}");
         }
+    }
+
+    private async Task GetImageDetails(string sessionCookie, string wallpaperId)
+    {
+        string detailUrl = $"{BaseUrl}/w/{wallpaperId}";
+        var detailResponse = await GetFromJsonAsync<DetailResponse>(detailUrl, sessionCookie);
+
+#pragma warning disable CA1873 // Avoid potentially expensive logging
+        LogMessage.Information(logger, $"Fetching details for wallpaper {wallpaperId}.");
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+        LogMessage.Information(logger, $"Fetched details for wallpaper {wallpaperId}.");
+        Console.WriteLine(string.Concat(detailResponse.Data.ToString().AsSpan(0, 500), "..."));
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+#pragma warning restore CA1873 // Avoid potentially expensive logging
+        StatusTextBlock.Text += $"\nDetails fetched for wallpaper {wallpaperId}: {detailResponse}";
+        await Task.Delay(500); // Add a small delay to avoid overwhelming the server
     }
 }

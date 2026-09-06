@@ -21,13 +21,13 @@
                    TextWrapping="Wrap"
                    VerticalAlignment="Center"
                    HorizontalAlignment="Center"
-                   FontSize="18" />
+                   FontSize="12" />
       </ScrollViewer>
     </Border>
 
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12" Margin="0,24,0,0">
         <Button Content="Import configuration" Click="ImportConfiguration" />
-        <Button Content="Do Stuff" Click="DoStuff" />
+        <Button Content="Run Scraper" Click="RunScraper" />
       </StackPanel>
     </StackPanel>
   </Grid>
