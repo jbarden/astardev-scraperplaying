@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using AStarDev.ScraperPlaying.SearchAPI;
 using AStarDev.ScraperPlaying.Startup;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;

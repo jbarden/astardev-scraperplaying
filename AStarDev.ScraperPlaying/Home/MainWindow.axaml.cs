@@ -6,7 +6,6 @@ using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.SearchAPI;
 using AStarDev.ScraperPlaying.SearchAPI.DetailResponse;
 using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
-using AStarDev.ScraperPlaying.SearchAPI.TagResponse;
 using AStarDev.Utilities;
 using Avalonia.Controls;
 using Avalonia.Threading;
@@ -84,11 +83,7 @@ public partial class MainWindow : Window, IDisposable
         return cookieHeader;
     }
 
-    public MainWindow(
-        ILogger<MainWindow> logger,
-        IScrapeConfigurationRepository scrapeConfigurationRepository,
-        IScrapeConfigurationImportService importService,
-        IConfigurationFilePicker configurationFilePicker)
+    public MainWindow(ILogger<MainWindow> logger, IScrapeConfigurationRepository scrapeConfigurationRepository, IScrapeConfigurationImportService importService, IConfigurationFilePicker configurationFilePicker)
     {
         InitializeComponent();
         this.scrapeConfigurationRepository = scrapeConfigurationRepository;
@@ -156,59 +151,23 @@ public partial class MainWindow : Window, IDisposable
             var searchCategories = configuration.SearchCategories;
 
             LogInformation("Fetching top wallpapers.");
-            var topWallpapersResult = await GetFromJsonAsync<SearchResponse>(topWallpapersUrl + 1, sessionCookie, cancellationToken);
-            await File.WriteAllTextAsync("topWallpapers-1.json", topWallpapersResult.ToJson(), cancellationToken);
-
-            foreach (var wallpaper in topWallpapersResult!.Data)
-            {
-                await GetImageDetails(sessionCookie, wallpaper.Id, cancellationToken);
-            }
-
-            for (var i = 2; i <= topWallpapersResult!.Meta.LastPage; i++)
-            {
-                var pageUrl = configuration.TopWallpapersUrl.AbsoluteUri + i;
-#pragma warning disable CA1873 // Avoid potentially expensive logging
-                LogInformation($"Fetching top wallpapers page {i}.");
-#pragma warning restore CA1873 // Avoid potentially expensive logging
-                var pageResult = await GetFromJsonAsync<SearchResponse>(pageUrl, sessionCookie, cancellationToken);
-                await File.WriteAllTextAsync($"topWallpapers-{i}.json", pageResult.ToJson(), cancellationToken);
-                await Task.Delay(1000, cancellationToken);
-                foreach (var wallpaper in pageResult!.Data)
-                {
-                    await GetImageDetails(sessionCookie, wallpaper.Id, cancellationToken);
-                }
-                // You can process pageResult here as needed
-                if (i == 4)
-                    break;
-            }
+            await FetchAndProcessPagesAsync(
+                "top wallpapers",
+                page => page == 1 ? topWallpapersUrl + 1 : configuration.TopWallpapersUrl.AbsoluteUri + page,
+                page => page == 1 ? "topWallpapers-1.json" : $"topWallpapers-{page}.json",
+                sessionCookie,
+                cancellationToken);
 
             foreach (var category in searchCategories.Take(3))
             {
-#pragma warning disable CA1873 // Avoid potentially expensive logging
-                LogInformation($"Fetching search category {category.Id} page 1.");
-#pragma warning restore CA1873 // Avoid potentially expensive logging
-                var searchResponse = await GetFromJsonAsync<SearchResponse>(searchCategoriesUrl.Replace("%7Bid%7D", category.Id), sessionCookie, cancellationToken);
-                await File.WriteAllTextAsync($"{category.Id}.json", searchResponse.ToJson(), cancellationToken);
-                await Task.Delay(1000, cancellationToken);
-                // You can process pageResult here as needed
-                // we need to process each page of results for the category
-                foreach (var wallpaper in searchResponse!.Data)
-                {
-                    await GetImageDetails(sessionCookie, wallpaper.Id, cancellationToken);
-                }
-                for (var i = 2; i <= searchResponse!.Meta.LastPage; i++)
-                {
-                    var pageUrl = searchCategoriesUrl.Replace("%7Bid%7D", category.Id) + i;
-                    var pageResult = await GetFromJsonAsync<SearchResponse>(pageUrl, sessionCookie, cancellationToken);
-                    await File.WriteAllTextAsync($"{category.Id}-{i}.json", pageResult.ToJson(), cancellationToken);
-                    await Task.Delay(1000, cancellationToken);
-                    foreach (var wallpaper in pageResult!.Data)
-                    {
-                        await GetImageDetails(sessionCookie, wallpaper.Id, cancellationToken);
-                    }
-                    if (i == 4)
-                        break;
-                }
+                await FetchAndProcessPagesAsync(
+                    $"search category {category.Id}",
+                    page => page == 1
+                        ? searchCategoriesUrl.Replace("%7Bid%7D", category.Id)
+                        : searchCategoriesUrl.Replace("%7Bid%7D", category.Id) + page,
+                    page => page == 1 ? $"{category.Id}.json" : $"{category.Id}-{page}.json",
+                    sessionCookie,
+                    cancellationToken);
             }
 
             AppendStatusMessage($"Search completed in: {Stopwatch.GetElapsedTime(startTime).TotalMilliseconds} total milliseconds.");
@@ -224,6 +183,22 @@ public partial class MainWindow : Window, IDisposable
         finally
         {
             operationCoordinator.Complete();
+        }
+    }
+
+    private async Task FetchAndProcessPagesAsync(string logLabel, Func<int, string> pageUrlFactory, Func<int, string> pageFileNameFactory, string sessionCookie, CancellationToken cancellationToken)
+    {
+        SearchResponse? pageResult = null;
+        for (var page = 1; page == 1 || (page <= pageResult!.Meta.LastPage && page <= 4); page++)
+        {
+            LogInformation($"Fetching {logLabel} page {page}.");
+            pageResult = await GetFromJsonAsync<SearchResponse>(pageUrlFactory(page), sessionCookie, cancellationToken);
+            await File.WriteAllTextAsync(pageFileNameFactory(page), pageResult.ToJson(), cancellationToken);
+            await Task.Delay(1000, cancellationToken);
+            foreach (var wallpaper in pageResult!.Data)
+            {
+                await GetImageDetails(sessionCookie, wallpaper.Id, cancellationToken);
+            }
         }
     }
 
@@ -263,8 +238,7 @@ public partial class MainWindow : Window, IDisposable
 
         await GetTags(wallpaperId, detailResponse, cancellationToken);
 
-        var httpClient = CreateHttpClient();
-        var imageResponse = await httpClient.GetAsync(detailResponse.Data.Path, cancellationToken);
+        var imageResponse = await client.GetAsync(detailResponse.Data.Path, cancellationToken);
         imageResponse.EnsureSuccessStatusCode();
         LogInformation($"Fetched image for wallpaper {wallpaperId}.");
         var imageData = await imageResponse.Content.ReadAsByteArrayAsync(cancellationToken);

@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using AStarDev.ScraperPlaying;
 using Microsoft.Extensions.Configuration;
 
 namespace AStarDev.ScraperPlaying.Startup;
