@@ -25,7 +25,11 @@
     <PackageReference Include="Avalonia.Headless.XUnit" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
-    <PackageReference Include="xunit.v3.mtp-v2" />
+    <!-- Pinned below the solution-wide xunit.v3 version: Avalonia.Headless.XUnit 12.1.1 is built
+         against xunit.v3.extensibility.core 3.2.2 and breaks under xunit.v3 4.0.0's extensibility
+         API changes (test discovery throws before Skip is even evaluated). No xunit v3-compatible
+         Avalonia headless package exists yet - see https://github.com/AvaloniaUI/Avalonia/issues/18356. -->
+    <PackageReference Include="xunit.v3.mtp-v2" VersionOverride="3.2.2" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Shouldly" />
     <PackageReference Include="NSubstitute" />
