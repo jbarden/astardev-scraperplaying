@@ -37,7 +37,7 @@ public sealed class GivenAResponseModel
                 "path": "https://example.test/image.jpg",
                 "thumbs": { "large": "large", "original": "original", "small": "small" }
               }],
-              "meta": { "current_page": 1, "last_page": 1, "per_page": "24", "total": 1, "query": "test", "seed": null }
+              "meta": { "current_page": 1, "last_page": 1, "per_page": 24, "total": 1, "query": "test", "seed": null }
             }
             """;
 
@@ -47,5 +47,6 @@ public sealed class GivenAResponseModel
         response.Data.Single().DimensionX.ShouldBe(1920);
         response.Data.Single().Thumbs.Large.ShouldBe("large");
         response.Meta.CurrentPage.ShouldBe(1);
+        response.Meta.PerPage.ShouldBe(24);
     }
 }

@@ -85,11 +85,7 @@ public partial class MainWindow : Window
 
     public static MainWindow CreateStartupError(Exception exception)
     {
-        var window = new MainWindow(
-            NullLogger<MainWindow>.Instance,
-            null!,
-            null!,
-            null!);
+        var window = new MainWindow(NullLogger<MainWindow>.Instance, null!, null!, null!);
         window.StatusTextBlock.Text = $"Startup failed: {exception.GetType().Name}: {exception.Message}\n\n{exception}";
         return window;
     }
@@ -120,12 +116,10 @@ public partial class MainWindow : Window
                 c => c,
                 _ => throw new InvalidOperationException("Scrape configuration not found")
             )!;
-            System.Console.WriteLine(configuration);
+
             var apiKey = configuration.UserConfiguration.ApiKey;
             var sessionCookie = configuration.UserConfiguration.SessionCookie;
             var encodedApiKey = Uri.EscapeDataString(apiKey);
-            var subscriptionsUrl = (configuration.SubscribedUrl.AbsoluteUri + "1")
-                .Replace("%7BapiKey%7D", encodedApiKey);
             var topWallpapersUrl = (configuration.TopWallpapersUrl.AbsoluteUri + "1")
                 .Replace("%7BapiKey%7D", encodedApiKey);
             var searchCategoriesUrl = (configuration.SearchCategoriesUrl.AbsoluteUri + "1")
@@ -134,15 +128,17 @@ public partial class MainWindow : Window
 #pragma warning disable CA1873 // Avoid potentially expensive logging
             LogMessage.Information(logger, "Scrape configuration: {Configuration}", configuration.ToJson());
             LogMessage.Information(logger, "apiKey: {ApiKey}", apiKey);
-            LogMessage.Information(logger, "subscriptionsUrl: {SubscriptionsUrl}", subscriptionsUrl);
             LogMessage.Information(logger, "topWallpapersUrl: {TopWallpapersUrl}", topWallpapersUrl);
             LogMessage.Information(logger, "searchCategoriesUrl: {SearchCategoriesUrl}", searchCategoriesUrl);
 #pragma warning restore CA1873 // Avoid potentially expensive logging
 
-            var result = await GetFromJsonAsync<SearchResponse>(subscriptionsUrl, sessionCookie);
             var result2 = await GetFromJsonAsync<SearchResponse>(topWallpapersUrl, sessionCookie);
-            var result3 = await GetFromJsonAsync<SearchResponse>(
-                searchCategoriesUrl.Replace("%7Bid%7D", "1111111"), sessionCookie);
+            await File.WriteAllTextAsync("topWallpapers.json", result2.ToJson());
+            foreach (var category in searchCategories)
+            {
+                var result3 = await GetFromJsonAsync<SearchResponse>(searchCategoriesUrl.Replace("%7Bid%7D", category.Id), sessionCookie);
+                await File.WriteAllTextAsync($"{category.Id}.json", result3.ToJson());
+            }
 
             Console.WriteLine("Searching Wallhaven for 'cyberpunk' wallpapers...");
 

@@ -8,7 +8,7 @@ public record Meta(
     [property: JsonPropertyName("last_page")]
     int LastPage,
     [property: JsonPropertyName("per_page")]
-    string PerPage,
+    int PerPage,
     int Total,
     string Query,
     object Seed
