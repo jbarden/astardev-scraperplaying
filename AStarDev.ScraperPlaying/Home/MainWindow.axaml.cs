@@ -172,7 +172,7 @@ public partial class MainWindow : Window, IDisposable
 #pragma warning restore CA1873 // Avoid potentially expensive logging
                 var pageResult = await GetFromJsonAsync<SearchResponse>(pageUrl, sessionCookie, cancellationToken);
                 await File.WriteAllTextAsync($"topWallpapers-{i}.json", pageResult.ToJson(), cancellationToken);
-                await Task.Delay(1000, cancellationToken); // Add a small delay to avoid overwhelming the server
+                await Task.Delay(1000, cancellationToken);
                 foreach (var wallpaper in pageResult!.Data)
                 {
                     await GetImageDetails(sessionCookie, wallpaper.Id, cancellationToken);
@@ -189,9 +189,9 @@ public partial class MainWindow : Window, IDisposable
 #pragma warning restore CA1873 // Avoid potentially expensive logging
                 var searchResponse = await GetFromJsonAsync<SearchResponse>(searchCategoriesUrl.Replace("%7Bid%7D", category.Id), sessionCookie, cancellationToken);
                 await File.WriteAllTextAsync($"{category.Id}.json", searchResponse.ToJson(), cancellationToken);
-                await Task.Delay(1000, cancellationToken); // Add a small delay to avoid overwhelming the server
-                                                           // You can process pageResult here as needed
-                                                           // we need to process each page of results for the category
+                await Task.Delay(1000, cancellationToken);
+                // You can process pageResult here as needed
+                // we need to process each page of results for the category
                 foreach (var wallpaper in searchResponse!.Data)
                 {
                     await GetImageDetails(sessionCookie, wallpaper.Id, cancellationToken);
@@ -201,7 +201,7 @@ public partial class MainWindow : Window, IDisposable
                     var pageUrl = searchCategoriesUrl.Replace("%7Bid%7D", category.Id) + i;
                     var pageResult = await GetFromJsonAsync<SearchResponse>(pageUrl, sessionCookie, cancellationToken);
                     await File.WriteAllTextAsync($"{category.Id}-{i}.json", pageResult.ToJson(), cancellationToken);
-                    await Task.Delay(1000, cancellationToken); // Add a small delay to avoid overwhelming the server
+                    await Task.Delay(1000, cancellationToken);
                     foreach (var wallpaper in pageResult!.Data)
                     {
                         await GetImageDetails(sessionCookie, wallpaper.Id, cancellationToken);
@@ -253,14 +253,13 @@ public partial class MainWindow : Window, IDisposable
     private async Task GetImageDetails(string sessionCookie, string wallpaperId, CancellationToken cancellationToken)
     {
         string detailUrl = $"{BaseUrl}/w/{wallpaperId}";
+        LogInformation($"Fetching details for wallpaper {wallpaperId}.");
         var detailResponse = await GetFromJsonAsync<DetailResponse>(detailUrl, sessionCookie, cancellationToken);
 
-        LogInformation($"Fetching details for wallpaper {wallpaperId}.");
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-        LogInformation($"Fetched details for wallpaper {wallpaperId}.");
         LogInformation($"Detail response for wallpaper {wallpaperId}: {detailResponse.Data}");
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
-        await Task.Delay(1000, cancellationToken); // Add a small delay to avoid overwhelming the server
+        await Task.Delay(1000, cancellationToken);
 
         await GetTags(wallpaperId, detailResponse, cancellationToken);
 
@@ -284,7 +283,7 @@ public partial class MainWindow : Window, IDisposable
         foreach (var tag in detailResponse.Data.Tags)
         {
             LogInformation($"Tag for wallpaper {wallpaperId}: {tag}");
-            await Task.Delay(100, cancellationToken); // Add a small delay to avoid overwhelming the server
+            await Task.Delay(100, cancellationToken);
         }
     }
 

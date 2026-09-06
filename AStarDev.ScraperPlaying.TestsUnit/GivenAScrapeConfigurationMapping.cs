@@ -19,7 +19,8 @@ public sealed class GivenAScrapeConfigurationMapping
                 SearchStringSuffix = "&page=1",
                 TopWallpapers = "top",
                 Subscriptions = "subscriptions"
-            }
+            },
+            UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
         };
 
         var dto = entity.ToDto();
@@ -38,7 +39,8 @@ public sealed class GivenAScrapeConfigurationMapping
                 [new() { Id = "1", Name = "General" }, new() { Id = "2", Name = "Anime" }])
             {
                 BaseUrl = new Uri("https://example.test/")
-            }
+            },
+            UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
         };
 
         var dto = entity.ToDto();
@@ -56,7 +58,8 @@ public sealed class GivenAScrapeConfigurationMapping
             SearchConfiguration = new SearchConfigurationEntity(Guid.Empty, Guid.Empty, "search term", 10, [])
             {
                 BaseUrl = new Uri("https://example.test/")
-            }
+            },
+            UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
         };
 
         var dto = entity.ToDto();
