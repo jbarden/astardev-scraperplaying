@@ -10,7 +10,8 @@
         "dotnet artifacts/bin/AStarDev.ScraperPlaying.TestsUnit/Debug/net10.0/AStarDev.ScraperPlaying.TestsUnit.dll": true,
         "git add": true,
         "git commit": true,
-        "git push": true
+        "git push": true,
+        "sqlite3": true
     },
     "cSpell.words": [
         "Avalonia",

@@ -12,7 +12,8 @@
     "emailAddress": "user@example.com",
     "username": "username",
     "password": "password",
-    "sessionCookie": "session-cookie"
+    "sessionCookie": "session-cookie",
+    "apiKey": "apiKey"
   },
   "searchConfiguration": {
     "id": {

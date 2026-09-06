@@ -1,9 +1,10 @@
+using AStar.Dev.Velopack.Publishing;
 using AStar.Dev.Velopack.Publishing.Avalonia.Updates;
 using Microsoft.Extensions.Logging;
 using NSubstitute.ExceptionExtensions;
 using Velopack;
 
-namespace AStar.Dev.Velopack.Publishing.Avalonia.TestsUnit.Updates;
+namespace AStarDev.VelopackPublishingAvalonia.TestsUnit.Updates;
 
 public sealed class GivenAnUpdateAvailableViewModel
 {

@@ -1,6 +1,6 @@
 using AStar.Dev.Velopack.Publishing.Avalonia.Updates;
 
-namespace AStar.Dev.Velopack.Publishing.Avalonia.TestsUnit.Updates;
+namespace AStarDev.VelopackPublishingAvalonia.TestsUnit.Updates;
 
 internal sealed class FakeUpdateDialogTextProvider : IUpdateDialogTextProvider
 {

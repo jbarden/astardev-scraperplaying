@@ -10,6 +10,7 @@ using AStarDev.Utilities;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AStarDev.ScraperPlaying.Home;
 
@@ -31,13 +32,7 @@ public partial class MainWindow : Window
             "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
             "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36");
         httpClient.DefaultRequestHeaders.Accept.Add(
-            new MediaTypeWithQualityHeaderValue("text/html"));
-        httpClient.DefaultRequestHeaders.Accept.Add(
-            new MediaTypeWithQualityHeaderValue("application/xhtml+xml"));
-        httpClient.DefaultRequestHeaders.Accept.Add(
-            new MediaTypeWithQualityHeaderValue("application/xml", 0.9));
-        httpClient.DefaultRequestHeaders.Accept.Add(
-            new MediaTypeWithQualityHeaderValue("*/*", 0.8));
+            new MediaTypeWithQualityHeaderValue("application/json"));
         return httpClient;
     }
 
@@ -86,6 +81,17 @@ public partial class MainWindow : Window
         this.importService = importService;
         this.configurationFilePicker = configurationFilePicker;
         this.logger = logger;
+    }
+
+    public static MainWindow CreateStartupError(Exception exception)
+    {
+        var window = new MainWindow(
+            NullLogger<MainWindow>.Instance,
+            null!,
+            null!,
+            null!);
+        window.StatusTextBlock.Text = $"Startup failed: {exception.GetType().Name}: {exception.Message}\n\n{exception}";
+        return window;
     }
 
     public async void ImportConfiguration(object? sender, RoutedEventArgs eventArgs)

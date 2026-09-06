@@ -16,10 +16,13 @@
             Padding="24"
             Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
             CornerRadius="8">
-      <TextBlock Text="MainWindow is ready." x:Name="StatusTextBlock"
-                 VerticalAlignment="Center"
-                 HorizontalAlignment="Center"
-                 FontSize="18" />
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <TextBlock Text="MainWindow is ready." x:Name="StatusTextBlock"
+                   TextWrapping="Wrap"
+                   VerticalAlignment="Center"
+                   HorizontalAlignment="Center"
+                   FontSize="18" />
+      </ScrollViewer>
     </Border>
 
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12" Margin="0,24,0,0">

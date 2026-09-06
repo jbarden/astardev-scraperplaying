@@ -24,10 +24,17 @@ public partial class App : Application, IDisposable
 
     public override void OnFrameworkInitializationCompleted()
     {
-        serviceProvider = BuildServices();
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = serviceProvider.GetRequiredService<Home.MainWindow>();
+            try
+            {
+                serviceProvider = BuildServices();
+                desktop.MainWindow = serviceProvider.GetRequiredService<Home.MainWindow>();
+            }
+            catch (Exception exception)
+            {
+                desktop.MainWindow = Home.MainWindow.CreateStartupError(exception);
+            }
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -36,11 +43,10 @@ public partial class App : Application, IDisposable
     private static ServiceProvider BuildServices()
     {
         var configuration = ApplicationConfigurationFactory.Build(AppContext.BaseDirectory);
-        var collection = new ServiceCollection().AddConfigurationServices(configuration).AddApplicationServices(configuration);
+        var collection = new ServiceCollection().AddConfigurationServices(configuration);
 
         var serviceProvider = collection
             .AddInfrastructureServices()
-            .AddDataServices()
             .AddApplicationServices(configuration)
             .AddLogging()
             .BuildServiceProvider();
