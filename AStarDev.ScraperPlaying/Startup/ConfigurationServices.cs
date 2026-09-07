@@ -6,7 +6,7 @@ namespace AStarDev.ScraperPlaying.Startup;
 /// <summary>
 /// Registers configuration bindings and configuration-derived services with the dependency injection container.
 /// </summary>
-public static class ConfigurationServiceCollectionExtensions
+public static class ConfigurationServices
 {
     /// <summary>
     /// Registers the application configuration, its strongly-typed option sections, and the export directory.

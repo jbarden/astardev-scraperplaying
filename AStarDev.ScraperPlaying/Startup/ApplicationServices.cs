@@ -9,7 +9,7 @@ using AStarDev.ScraperPlaying.SearchAPI;
 namespace AStarDev.ScraperPlaying.Startup;
 
 /// <summary>Registers the application's services with the dependency injection container.</summary>
-public static class ApplicationServicesExtensions
+public static class ApplicationServices
 {
     /// <summary>Registers configuration, infrastructure, scraping, and UI services with the dependency injection container.</summary>
     /// <param name="services">The service collection to register the application's services with.</param>
@@ -18,10 +18,12 @@ public static class ApplicationServicesExtensions
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration) =>
         services
             .AddSingleton<IApplicationDirectories, ApplicationDirectories>()
+            .AddSingleton<IScrapeService, ScrapeService>()
             .AddSingleton<IConfigurationFilePicker, ConfigurationFilePicker>()
             .AddSingleton<IScrapeConfigurationFileReader, ScrapeConfigurationFileReader>()
             .AddSingleton<IScrapeConfigurationImportService, ScrapeConfigurationImportService>()
             .AddSingleton<IScrapeConfigurationRepository, ScrapeConfigurationRepository>()
+            .AddSingleton<OperationCoordinator>()
             .AddSingleton<MainWindow>()
             .AddDbContextFactory<ControlDbContext>((serviceProvider, options) =>
                 options.UseSqlite($"Data Source={ApplicationMetadata.ApplicationNameHyphenated.ApplicationDirectory().CombinePath(Path.DirectorySeparatorChar.ToString()).CombinePath("data").CombinePath(Path.DirectorySeparatorChar.ToString()).CombinePath("astar-control.db")}"));
