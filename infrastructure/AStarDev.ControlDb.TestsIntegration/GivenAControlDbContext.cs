@@ -6,7 +6,7 @@ namespace AStarDev.ControlDb.TestsIntegration;
 
 public sealed class GivenAControlDbContext : IDisposable
 {
-    private readonly string databasePath = Path.Combine(Path.GetTempPath(), $"files-db-context-{Guid.NewGuid():N}.db");
+    private readonly string databasePath = Path.Combine(Path.GetTempPath(), $"astardev-controldb-context-{Guid.NewGuid():N}.db");
     private readonly ControlDbContext context;
     private bool disposed;
 
@@ -38,6 +38,19 @@ public sealed class GivenAControlDbContext : IDisposable
 
         reloaded.ShouldNotBeNull();
         reloaded.UserConfiguration.EmailAddress.ShouldBe(scrapeConfigurationEntity.UserConfiguration.EmailAddress);
+    }
+
+    [Fact]
+    public async Task when_the_database_is_created_then_a_file_detail_entity_with_related_details_can_be_saved_and_reloaded()
+    {
+        var fileDetailEntity = FileDetailEntityFactory.CreateFileDetailEntity();
+        await context.FileDetails.AddAsync(fileDetailEntity, TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var reloaded = await context.FileDetails.FindAsync([fileDetailEntity.Id], TestContext.Current.CancellationToken);
+
+        reloaded.ShouldNotBeNull();
+        reloaded.FileName.ShouldBe(fileDetailEntity.FileName);
     }
 
     public void Dispose()
