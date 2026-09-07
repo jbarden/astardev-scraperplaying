@@ -16,10 +16,9 @@ public static class ModelBuilderExtensions
 
     /// <summary>Applies the SQLite-friendly value conversions to every configured entity type that needs them.</summary>
     /// <param name="mb">The model builder to configure.</param>
-    /// <param name="targetEntities">The array of entity types to apply the conversions to.</param>
-    public static void UseSqliteFriendlyConversions(this ModelBuilder mb, Type[] targetEntities)
+    public static void UseSqliteFriendlyConversions(this ModelBuilder mb)
     {
-        foreach (var et in mb.Model.GetEntityTypes().Where(e => targetEntities.Contains(e.ClrType)))
+        foreach (var et in mb.Model.GetEntityTypes())
         {
             ConfigureEntity(mb, et);
         }
@@ -31,7 +30,14 @@ public static class ModelBuilderExtensions
 
         foreach (var property in entityType.ClrType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
-            if (entityType.FindNavigation(property.Name) is not null || entityType.FindSkipNavigation(property.Name) is not null) continue;
+            if (entityType.FindNavigation(property.Name) is not null
+                || entityType.FindSkipNavigation(property.Name) is not null
+                || !RequiresSqliteConversion(property.PropertyType))
+            {
+                continue;
+            }
+
+            if (entityType.FindProperty(property.Name)?.GetValueConverter() is not null) continue;
 
             var propertyBuilder = entityBuilder.Property(property.Name);
             ConfigureProperty(propertyBuilder, property.PropertyType, property.Name);
@@ -88,5 +94,17 @@ public static class ModelBuilderExtensions
             var converter = (ValueConverter)Activator.CreateInstance(converterType)!;
             _ = propertyBuilder.HasConversion(converter).HasColumnType(IntegerColumnType);
         }
+    }
+
+    private static bool RequiresSqliteConversion(Type propertyType)
+    {
+        var nullableType = Nullable.GetUnderlyingType(propertyType);
+        var type = nullableType ?? propertyType;
+
+        return type == typeof(DateTimeOffset)
+            || type == typeof(TimeSpan)
+            || type == typeof(Guid)
+            || type == typeof(decimal)
+            || type.IsEnum;
     }
 }

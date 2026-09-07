@@ -4,8 +4,8 @@ internal static class ScrapeSettingsImportMapper
 {
     public static ScrapeConfigurationImportDocument ToImportDocument(this ScrapeSettingsImportDocument source)
     {
-        var configurationId = Guid.NewGuid();
-        var searchConfigurationId = Guid.NewGuid();
+        var configurationId = Guid.CreateVersion7();
+        var searchConfigurationId = Guid.CreateVersion7();
         var userConfiguration = source.ScrapeConfiguration.UserConfiguration;
         var searchConfiguration = source.ScrapeConfiguration.SearchConfiguration;
         var directories = source.ScrapeConfiguration.ScrapeDirectories;
@@ -15,7 +15,7 @@ internal static class ScrapeSettingsImportMapper
             Id = configurationId,
             UserConfiguration = new UserConfigurationImportDocument
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.CreateVersion7(),
                 EmailAddress = userConfiguration.LoginEmailAddress,
                 Username = userConfiguration.Username,
                 Password = userConfiguration.Password
@@ -43,7 +43,7 @@ internal static class ScrapeSettingsImportMapper
             },
             ScrapeDirectories = new ScrapeDirectoriesImportDocument
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.CreateVersion7(),
                 RootDirectory = directories.BaseDirectory,
                 BaseSaveDirectory = directories.BaseSaveDirectory,
                 BaseDirectory = directories.BaseDirectory,

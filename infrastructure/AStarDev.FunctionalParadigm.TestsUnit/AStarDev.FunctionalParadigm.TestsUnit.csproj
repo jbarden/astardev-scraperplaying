@@ -4,6 +4,7 @@
     <EnableMicrosoftTestingPlatform>true</EnableMicrosoftTestingPlatform>
     <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
     <OutputType>Exe</OutputType>
+    <NoWarn>$(NoWarn);IDE1006</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Testing.Platform.MSBuild" />
@@ -13,5 +14,9 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../AStarDev.FunctionalParadigm/AStarDev.FunctionalParadigm.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+      <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage" />
   </ItemGroup>
 </Project>

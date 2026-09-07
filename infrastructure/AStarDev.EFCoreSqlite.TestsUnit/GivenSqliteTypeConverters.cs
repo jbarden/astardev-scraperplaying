@@ -34,7 +34,7 @@ public sealed class GivenSqliteTypeConverters
     [Fact]
     public void when_a_guid_is_converted_then_bytes_round_trip()
     {
-        var value = Guid.NewGuid();
+        var value = Guid.CreateVersion7();
 
         SqliteTypeConverters.GuidToBytes.ConvertFromProvider(
             SqliteTypeConverters.GuidToBytes.ConvertToProvider(value)).ShouldBe(value);
@@ -59,9 +59,6 @@ public sealed class GivenSqliteTypeConverters
     }
 
     [Fact]
-    public void when_an_option_is_empty_then_null_is_stored()
-    {
-        SqliteTypeConverters.OptionStringToNullableString
+    public void when_an_option_is_empty_then_null_is_stored() => SqliteTypeConverters.OptionStringToNullableString
             .ConvertToProvider(Option<string>.None.Instance).ShouldBeNull();
-    }
 }

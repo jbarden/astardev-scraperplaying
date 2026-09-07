@@ -8,23 +8,17 @@ namespace AStarDev.ControlDb.Migrations
     public partial class ControlDbAddApiKey : Migration
     {
         /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.AddColumn<string>(
+        protected override void Up(MigrationBuilder migrationBuilder) => migrationBuilder.AddColumn<string>(
                 name: "ApiKey",
                 table: "UserConfigurations",
                 type: "TEXT",
                 nullable: false,
                 defaultValue: "",
                 collation: "NOCASE");
-        }
 
         /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropColumn(
+        protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.DropColumn(
                 name: "ApiKey",
                 table: "UserConfigurations");
-        }
     }
 }

@@ -16,10 +16,7 @@ public partial class App : Application, IDisposable
     private bool disposed;
     private ServiceProvider? serviceProvider;
 
-    public override void Initialize()
-    {
-        AvaloniaXamlLoader.Load(this);
-    }
+    public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
     public override void OnFrameworkInitializationCompleted()
     {
