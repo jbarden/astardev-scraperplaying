@@ -23,10 +23,7 @@ public sealed class OperationCoordinator : IDisposable
         return true;
     }
 
-    public void Cancel()
-    {
-        cancellationTokenSource?.Cancel();
-    }
+    public void Cancel() => cancellationTokenSource?.Cancel();
 
     public void Complete()
     {

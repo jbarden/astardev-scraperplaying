@@ -204,10 +204,7 @@ public partial class MainWindow : Window, IDisposable
         } while (page <= pageResult.Meta.LastPage && page <= 4);
     }
 
-    public void CancelOperation(object? sender, RoutedEventArgs eventArgs)
-    {
-        operationCoordinator.Cancel();
-    }
+    public void CancelOperation(object? sender, RoutedEventArgs eventArgs) => operationCoordinator.Cancel();
 
     public void Dispose()
     {
@@ -283,19 +280,16 @@ public partial class MainWindow : Window, IDisposable
         CancelButton.IsEnabled = isOperationRunning;
     }
 
-    private void AppendStatusMessage(string message)
-    {
-        Dispatcher.UIThread.Post(() =>
-        {
-            statusMessages.Enqueue(message);
-            while (statusMessages.Count > MaximumStatusMessages)
-            {
-                statusMessages.Dequeue();
-            }
+    private void AppendStatusMessage(string message) => Dispatcher.UIThread.Post(() =>
+                                                             {
+                                                                 statusMessages.Enqueue(message);
+                                                                 while (statusMessages.Count > MaximumStatusMessages)
+                                                                 {
+                                                                     statusMessages.Dequeue();
+                                                                 }
 
-            StatusTextBlock.Text = string.Join(Environment.NewLine, statusMessages);
-            StatusScrollViewer.ScrollToEnd();
-        });
-    }
+                                                                 StatusTextBlock.Text = string.Join(Environment.NewLine, statusMessages);
+                                                                 StatusScrollViewer.ScrollToEnd();
+                                                             });
 }
 

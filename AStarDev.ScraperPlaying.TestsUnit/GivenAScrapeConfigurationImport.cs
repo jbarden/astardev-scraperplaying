@@ -150,7 +150,7 @@ public sealed class GivenAScrapeConfigurationImport
     {
         var document = new ScrapeConfigurationImportDocument
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             UserConfiguration = new() { Username = "user", Password = "secret" },
             SearchConfiguration = new() { SearchTerm = "cats", SearchCategories = [new() { Id = "1", Name = "General" }] },
             ScrapeDirectories = new() { RootDirectory = "/tmp" }

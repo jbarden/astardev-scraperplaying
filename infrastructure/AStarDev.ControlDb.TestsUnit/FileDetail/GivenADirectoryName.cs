@@ -1,14 +1,10 @@
-using AStarDev.Utilities;
-using static AStarDev.ControlDb.TestsUnit.Utilities.RegexHelpers;
+using AStarDev.ControlDb.FileDetail;
 
 namespace AStarDev.ControlDb.TestsUnit.FileDetail;
 
 public partial class GivenADirectoryName
 {
     [Fact]
-    public void when_properties_are_set_correctly_the_properties_are_assigned_as_expected()
-    {
-        string sut = DirectoryName.Create().ToJson();
-        sut.ShouldMatchApproved(c => c.WithScrubber(s => DateTimeFormatRegex().Replace(s, "<date>")));
-    }
+    public void when_create_is_called_then_the_value_is_set_correctly()
+        => DirectoryName.Create("directory-name").Value.ShouldBe("directory-name");
 }

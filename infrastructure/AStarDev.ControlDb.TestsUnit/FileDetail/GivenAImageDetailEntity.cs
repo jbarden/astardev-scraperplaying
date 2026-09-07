@@ -7,8 +7,5 @@ public partial class GivenAImageDetailEntity
 {
     [Fact]
     public void when_properties_are_set_correctly_the_properties_are_assigned_as_expected()
-    {
-        string sut = ImageDetailEntityFactory.CreateImageDetailEntity().ToJson() + Environment.NewLine;
-        sut.ShouldMatchApproved(c => c.WithScrubber(s => DateTimeFormatRegex().Replace(s, "<date>")));
-    }
+        => (ImageDetailEntityFactory.CreateImageDetailEntity().ToJson() + Environment.NewLine).ShouldMatchApproved(c => c.WithScrubber(s => DateTimeFormatRegex().Replace(s, "<date>")));
 }

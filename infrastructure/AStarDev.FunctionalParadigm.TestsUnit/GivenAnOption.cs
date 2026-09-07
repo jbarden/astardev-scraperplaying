@@ -31,10 +31,7 @@ public sealed class GivenAnOption
     }
 
     [Fact]
-    public void when_some_is_created_with_null_then_it_throws()
-    {
-        Should.Throw<ArgumentNullException>(() => new Some(null!));
-    }
+    public void when_some_is_created_with_null_then_it_throws() => Should.Throw<ArgumentNullException>(() => new Some(null!));
 
     [Fact]
     public void when_options_are_formatted_then_their_state_is_visible()

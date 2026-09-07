@@ -6,7 +6,7 @@ namespace AStarDev.ControlDb.TestsIntegration;
 
 public sealed class GivenAControlDbContext : IDisposable
 {
-    private readonly string databasePath = Path.Combine(Path.GetTempPath(), $"astardev-controldb-context-{Guid.NewGuid():N}.db");
+    private readonly string databasePath = Path.Combine(Path.GetTempPath(), $"astardev-controldb-context-{Guid.CreateVersion7():N}.db");
     private readonly ControlDbContext context;
     private bool disposed;
 
@@ -43,14 +43,14 @@ public sealed class GivenAControlDbContext : IDisposable
     [Fact]
     public async Task when_the_database_is_created_then_a_file_detail_entity_with_related_details_can_be_saved_and_reloaded()
     {
-        var fileDetailEntity = FileDetailEntityFactory.CreateFileDetailEntity();
-        await context.FileDetails.AddAsync(fileDetailEntity, TestContext.Current.CancellationToken);
+        var FileEntity = FileEntityFactory.CreateFileEntity();
+        await context.Files.AddAsync(FileEntity, TestContext.Current.CancellationToken);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var reloaded = await context.FileDetails.FindAsync([fileDetailEntity.Id], TestContext.Current.CancellationToken);
+        var reloaded = await context.Files.FindAsync([FileEntity.Id], TestContext.Current.CancellationToken);
 
         reloaded.ShouldNotBeNull();
-        reloaded.FileName.ShouldBe(fileDetailEntity.FileName);
+        reloaded.FileName.ShouldBe(FileEntity.FileName);
     }
 
     public void Dispose()

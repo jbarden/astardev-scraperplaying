@@ -1,3 +1,4 @@
+using AStarDev.ControlDb.FileDetail;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.EFCoreSqlite;
 using Microsoft.EntityFrameworkCore;
@@ -23,12 +24,26 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options) : DbCo
     /// </summary>
     public DbSet<ScrapeConfigurationEntity> ScrapeConfigurations => Set<ScrapeConfigurationEntity>();
 
+    public DbSet<FileEntity> Files => Set<FileEntity>();
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         _ = modelBuilder.ApplyConfigurationsFromAssembly(typeof(ControlDbContext).Assembly);
 
-        modelBuilder.UseSqliteFriendlyConversions([typeof(ScrapeConfigurationEntity), typeof(SearchCategoryEntity), typeof(UserConfigurationEntity), typeof(ScrapeDirectoriesEntity)]);
+        modelBuilder.UseSqliteFriendlyConversions(
+            [
+                typeof(ScrapeConfigurationEntity),
+                typeof(SearchCategoryEntity),
+                typeof(UserConfigurationEntity),
+                typeof(ScrapeDirectoriesEntity),
+                typeof(DeletionStatusEntity),
+                typeof(FileEntity),
+                typeof(FileAccessDetailEntity),
+                typeof(ImageDetailEntity),
+                typeof(FileName),
+                typeof(DirectoryName)
+            ]);
     }
 
     /// <inheritdoc />
