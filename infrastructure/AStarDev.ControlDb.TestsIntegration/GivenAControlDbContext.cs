@@ -1,8 +1,6 @@
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.ControlDb.TestsIntegration.TestDataFactories;
 using Microsoft.EntityFrameworkCore;
-using Shouldly;
-using Xunit;
 
 namespace AStarDev.ControlDb.TestsIntegration;
 
