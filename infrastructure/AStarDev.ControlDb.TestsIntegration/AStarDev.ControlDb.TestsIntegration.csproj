@@ -25,5 +25,8 @@
   <ItemGroup>
     <ProjectReference Include="../AStarDev.ControlDb/AStarDev.ControlDb.csproj" />
   </ItemGroup>
+  <ItemGroup>
+      <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage" />
+  </ItemGroup>
 
 </Project>

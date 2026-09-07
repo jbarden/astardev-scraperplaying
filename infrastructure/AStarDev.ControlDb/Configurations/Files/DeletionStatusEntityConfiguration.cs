@@ -2,7 +2,7 @@ using AStarDev.ControlDb.FileDetail;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace AStar.Dev.Infrastructure.AppDb.Configuration;
+namespace AStarDev.ControlDb.Configurations.Files;
 
 /// <summary>EF Core configuration for <see cref="DeletionStatusEntity"/>.</summary>
 public sealed class DeletionStatusEntityConfiguration : IEntityTypeConfiguration<DeletionStatusEntity>
@@ -12,6 +12,7 @@ public sealed class DeletionStatusEntityConfiguration : IEntityTypeConfiguration
     {
         _ = builder.ToTable("DeletionStatus");
         _ = builder.HasKey(status => status.Id);
+        _ = builder.Property(status => status.Id).HasConversion(id => id.Value, guid => new DeletionStatusId(guid));
         _ = builder.Property(status => status.FileId).HasConversion(fileId => fileId.Value, guid => new FileId(guid));
 
         _ = builder.HasOne(status => status.FileDetail)

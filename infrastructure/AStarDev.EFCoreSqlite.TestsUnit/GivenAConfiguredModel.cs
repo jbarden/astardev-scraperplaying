@@ -12,7 +12,7 @@ public sealed class GivenAConfiguredModel
         var modelBuilder = new ModelBuilder(new Microsoft.EntityFrameworkCore.Metadata.Conventions.ConventionSet());
         modelBuilder.Entity<ConversionEntity>();
 
-        modelBuilder.UseSqliteFriendlyConversions([typeof(ConversionEntity)]);
+        modelBuilder.UseSqliteFriendlyConversions();
 
         var entity = modelBuilder.Model.FindEntityType(typeof(ConversionEntity))!;
         entity.FindProperty(nameof(ConversionEntity.When))!.GetColumnName().ShouldBe("When_Ticks");

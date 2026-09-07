@@ -12,6 +12,7 @@ public sealed class FileAccessDetailEntityConfiguration : IEntityTypeConfigurati
     {
         _ = builder.ToTable("FileAccessDetail");
         _ = builder.HasKey(detail => detail.Id);
+        _ = builder.Property(detail => detail.Id).HasConversion(id => id.Value, guid => new FileAccessDetailId(guid));
         _ = builder.Property(detail => detail.FileId).HasConversion(fileId => fileId.Value, guid => new FileId(guid));
 
         _ = builder.HasOne(detail => detail.FileDetail)

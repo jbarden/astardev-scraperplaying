@@ -31,19 +31,7 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options) : DbCo
     {
         _ = modelBuilder.ApplyConfigurationsFromAssembly(typeof(ControlDbContext).Assembly);
 
-        modelBuilder.UseSqliteFriendlyConversions(
-            [
-                typeof(ScrapeConfigurationEntity),
-                typeof(SearchCategoryEntity),
-                typeof(UserConfigurationEntity),
-                typeof(ScrapeDirectoriesEntity),
-                typeof(DeletionStatusEntity),
-                typeof(FileEntity),
-                typeof(FileAccessDetailEntity),
-                typeof(ImageDetailEntity),
-                typeof(FileName),
-                typeof(DirectoryName)
-            ]);
+        modelBuilder.UseSqliteFriendlyConversions();
     }
 
     /// <inheritdoc />
