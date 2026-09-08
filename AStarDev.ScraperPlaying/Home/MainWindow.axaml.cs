@@ -1,5 +1,6 @@
 using System.Text.Json;
 using AStar.Dev.Logging.Extensions;
+using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.SearchAPI;
 using Avalonia.Controls;
 using Avalonia.Threading;
@@ -46,8 +47,7 @@ public partial class MainWindow : Window, IDisposable
 
         try
         {
-            var filePath = await configurationFilePicker.PickAsync(this);
-            await filePath.MatchAsync(
+            await configurationFilePicker.PickAsync(this).MatchAsync(
                 async path =>
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -74,7 +74,7 @@ public partial class MainWindow : Window, IDisposable
     public async void RunScraper(object? sender, RoutedEventArgs eventArgs)
     {
         var progress = new Progress<string>(AppendStatusMessage);
-        await this.scrapeService.RunScraperAsync(progress);
+        await scrapeService.RunScraperAsync(progress);
     }
 
     public void CancelOperation(object? sender, RoutedEventArgs eventArgs) => operationCoordinator.Cancel();
