@@ -32,6 +32,39 @@ public record Option<T>
         };
 
     /// <summary>
+    ///     Pattern matches on the option, awaiting the result of the matched branch.
+    /// </summary>
+    /// <typeparam name="TResult">The return type.</typeparam>
+    /// <param name="onSome">Asynchronous function to run when the value is present.</param>
+    /// <param name="onNone">Function to run when the value is absent.</param>
+    public Task<TResult> MatchAsync<TResult>(Func<T, Task<TResult>> onSome, Func<TResult> onNone) =>
+        this switch
+        {
+            Some some => onSome(some.Value),
+            None _ => Task.FromResult(onNone()),
+            _ => throw new InvalidOperationException("It should not be possible to reach this point.")
+        };
+
+    /// <summary>
+    ///     Pattern matches on the option for side effects, awaiting the matched branch.
+    /// </summary>
+    /// <param name="onSome">Asynchronous action to run when the value is present.</param>
+    /// <param name="onNone">Action to run when the value is absent.</param>
+    public Task MatchAsync(Func<T, Task> onSome, Action onNone) =>
+        this switch
+        {
+            Some some => onSome(some.Value),
+            None _ => RunSync(onNone),
+            _ => throw new InvalidOperationException("It should not be possible to reach this point.")
+        };
+
+    private static Task RunSync(Action action)
+    {
+        action();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     ///     Represents the presence of a value.
     /// </summary>
     public sealed record Some : Option<T>
