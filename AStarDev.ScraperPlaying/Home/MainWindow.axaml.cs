@@ -47,11 +47,15 @@ public partial class MainWindow : Window, IDisposable
         try
         {
             var filePath = await configurationFilePicker.PickAsync(this);
-            if (filePath is null) return;
-
-            cancellationToken.ThrowIfCancellationRequested();
-            await importService.ImportAsync(filePath, cancellationToken);
-            StatusTextBlock.Text = "Scrape configuration imported.";
+            await filePath.MatchAsync(
+                async path =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await importService.ImportAsync(path, cancellationToken);
+                    StatusTextBlock.Text = "Scrape configuration imported.";
+                },
+                () => StatusTextBlock.Text = "Scrape configuration import could not be completed."
+            );
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
