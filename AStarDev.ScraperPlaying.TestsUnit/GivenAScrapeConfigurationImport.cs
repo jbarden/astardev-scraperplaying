@@ -1,8 +1,5 @@
 using AStarDev.ScraperPlaying.SearchAPI;
-using NSubstitute;
-using Shouldly;
 using System.Text.Json;
-using Xunit;
 
 namespace AStarDev.ScraperPlaying.TestsUnit;
 
@@ -11,7 +8,7 @@ public sealed class GivenAScrapeConfigurationImport
     [Fact]
     public async Task when_a_file_is_imported_then_the_repository_receives_the_complete_document()
     {
-        var repository = Substitute.For<IScrapeConfigurationRepository>();
+        var repository = Substitute.For<IScrapeConfigurationImporter>();
         var reader = Substitute.For<IScrapeConfigurationFileReader>();
         var document = new ScrapeConfigurationImportDocument
         {
@@ -28,7 +25,7 @@ public sealed class GivenAScrapeConfigurationImport
     [Fact]
     public async Task when_import_is_cancelled_then_file_processing_does_not_start()
     {
-        var repository = Substitute.For<IScrapeConfigurationRepository>();
+        var repository = Substitute.For<IScrapeConfigurationImporter>();
         var reader = Substitute.For<IScrapeConfigurationFileReader>();
         var service = new ScrapeConfigurationImportService(repository, reader);
         using var cancellationTokenSource = new CancellationTokenSource();
@@ -43,7 +40,7 @@ public sealed class GivenAScrapeConfigurationImport
     [Fact]
     public async Task when_import_is_cancelled_while_reading_then_the_repository_is_not_updated()
     {
-        var repository = Substitute.For<IScrapeConfigurationRepository>();
+        var repository = Substitute.For<IScrapeConfigurationImporter>();
         var reader = Substitute.For<IScrapeConfigurationFileReader>();
         var document = new ScrapeConfigurationImportDocument();
         using var cancellationTokenSource = new CancellationTokenSource();

@@ -5,7 +5,7 @@ namespace AStarDev.ControlDb;
 /// <summary>
 /// Represents a repository for managing aggregates of type <typeparamref name="TAggregate"/> with keys of type <typeparamref name="TKey"/>.
 /// </summary>
-public interface IRepository<TAggregate, TKey>
+public interface IRepository<TAggregate, TKey> where TAggregate : IAggregateRoot
 {
     /// <summary>
     /// Tries to find an aggregate by its key. Returns an exceptional result containing an option of the aggregate if found, or an empty option if not found.
@@ -13,6 +13,18 @@ public interface IRepository<TAggregate, TKey>
     /// <param name="key">The key of the aggregate to find.</param>
     /// <returns>An exceptional result containing an option of the aggregate if found, or an empty option if not found.</returns>
     Task<Exceptional<Option<TAggregate>>> TryFindAsync(TKey key);
+
+    /// <summary>
+    /// Tries to get all aggregates from the repository. Returns an exceptional result containing an option of the aggregates if found, or an empty option if not found.
+    /// </summary>
+    /// <returns>An exceptional result containing an option of the aggregates if found, or an empty option if not found.</returns>
+    Task<Exceptional<Option<IEnumerable<TAggregate>>>> TryGetAllAsync();
+
+    /// <summary>
+    /// Tries to get the first aggregate from the repository. Returns an exceptional result containing an option of the aggregate if found, or an empty option if not found.
+    /// </summary>
+    /// <returns>An exceptional result containing an option of the aggregate if found, or an empty option if not found.</returns>
+    Task<Exceptional<Option<TAggregate>>> TryGetFirstAsync();
 
     /// <summary>
     /// Adds a new aggregate to the repository. Returns an exceptional result containing the added aggregate if successful.
@@ -36,16 +48,12 @@ public interface IRepository<TAggregate, TKey>
     public async Task<Exceptional<UnitFp>> DeleteAsync(TKey key)
         => (await TryFindAsync(key)).Match(
             findById => findById.Match(
-                aggregate => {
+                aggregate =>
+                {
                     return Delete(aggregate);
                 },
                 () => UnitFp.Instance
             ),
             ex => ex
         );
-}
-
-public interface IUnitOfWork
-{
-    IRepository<TAggregate, TKey> Repository<TAggregate, TKey>() where TAggregate : class;
 }

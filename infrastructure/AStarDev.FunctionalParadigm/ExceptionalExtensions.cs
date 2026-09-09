@@ -35,7 +35,7 @@ public static class ExceptionalExtensions
                 throw new InvalidOperationException(UnexpectedExceptionalTypeMessage);
         }
     }
-    
+
     /// <summary>
     ///     Pattern matches on the <see cref="Exceptional{T}" />, invoking the handler for the case present.
     /// </summary>

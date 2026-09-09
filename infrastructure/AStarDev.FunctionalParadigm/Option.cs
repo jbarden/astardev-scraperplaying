@@ -12,7 +12,7 @@ public record Option<T>
     ///     Implicitly converts a value to an <see cref="Option{T}" />.
     /// </summary>
     /// <param name="value">The value to wrap. Null becomes <see cref="None" />.</param>
-    public static implicit operator Option<T>(T value) =>
+    public static implicit operator Option<T>(T? value) =>
         value != null
             ? new Some(value)
             : None.Instance;

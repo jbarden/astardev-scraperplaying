@@ -1,16 +1,17 @@
 using System.Diagnostics;
 using System.Net.Http.Headers;
-using AStarDev.ScraperPlaying.SearchAPI;
 using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
 using System.Net.Http.Json;
 using System.Text.Json;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.SearchAPI.DetailResponse;
 using AStarDev.Utilities;
+using AStarDev.ControlDb.ScrapeConfiguration;
+using AStarDev.ControlDb;
 
 namespace AStarDev.ScraperPlaying.Home;
 
-public class ScrapeService(OperationCoordinator operationCoordinator, IScrapeConfigurationRepository scrapeConfigurationRepository) : IScrapeService
+public class ScrapeService(OperationCoordinator operationCoordinator, IUnitOfWork unitOfWork) : IScrapeService
 {
     private static readonly HttpClient client = CreateHttpClient();
     public async Task RunScraperAsync(IProgress<string> progress)
@@ -21,18 +22,21 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IScrapeCon
         try
         {
             progress.Report("Starting scrape operation.");
-            var configuration = (await scrapeConfigurationRepository.GetScrapeConfigurationAsync())
+            ScrapeConfigurationEntity configuration = (await unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().TryGetFirstAsync())
             .Match(
-                c => c,
-                _ => throw new InvalidOperationException("Scrape configuration not found")
+                scrapeConfigurationEntity => scrapeConfigurationEntity.Match<ScrapeConfigurationEntity>(scrapeConfig => scrapeConfig, () => throw new InvalidOperationException("Scrape configuration not found")),
+                _ => {
+                    progress.Report("Scrape configuration not found");
+                    return null!;
+                }
             )!;
 
             var apiKey = configuration.UserConfiguration.ApiKey;
             var sessionCookie = configuration.UserConfiguration.SessionCookie;
             var encodedApiKey = Uri.EscapeDataString(apiKey);
-            var topWallpapersUrl = configuration.TopWallpapersUrl.AbsoluteUri.Replace("%7BapiKey%7D", encodedApiKey);
-            var searchCategoriesUrl = configuration.SearchCategoriesUrl.AbsoluteUri.Replace("%7BapiKey%7D", encodedApiKey);
-            var searchCategories = configuration.SearchCategories;
+            var topWallpapersUrl = configuration.SearchConfiguration.TopWallpapers.Replace("%7BapiKey%7D", encodedApiKey);
+            var searchCategoriesUrl = configuration.SearchConfiguration.SearchStringPrefix.Replace("%7BapiKey%7D", encodedApiKey);
+            var searchCategories = configuration.SearchConfiguration.SearchCategories;
 
             progress.Report("Fetching top wallpapers.");
             await FetchAndProcessPagesAsync(

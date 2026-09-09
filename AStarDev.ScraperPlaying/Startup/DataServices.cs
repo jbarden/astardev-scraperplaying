@@ -6,15 +6,15 @@ using AStarDev.ScraperPlaying.SearchAPI;
 
 namespace AStarDev.ScraperPlaying.Startup;
 
-public static class DataServiceCollectionExtensions
+public static class DataServices
 {
     /// <summary>Registers the scrape configuration repository with the dependency injection container.</summary>
     /// <param name="services">The service collection to register the data services with.</param>
     /// <returns>The <paramref name="services" /> collection to allow further chaining.</returns>
     public static IServiceCollection AddDataServices(this IServiceCollection services)
     {
-        _ = services.AddDbContextFactory<ControlDbContext>(ConfigureDbContext, ServiceLifetime.Singleton);
-        services.AddScoped<IScrapeConfigurationRepository, ScrapeConfigurationRepository>();
+        _ = services.AddScoped<IScrapeConfigurationImporter, ScrapeConfigurationImporter>();
+        _ = services.AddScoped<IUnitOfWork, ControlDbContext>();
 
         return services;
     }

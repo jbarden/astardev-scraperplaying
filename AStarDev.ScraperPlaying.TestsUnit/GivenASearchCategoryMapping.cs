@@ -1,7 +1,5 @@
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.ScraperPlaying.SearchAPI;
-using Shouldly;
-using Xunit;
 
 namespace AStarDev.ScraperPlaying.TestsUnit;
 

@@ -8,7 +8,7 @@ public interface IScrapeConfigurationImportService
 }
 
 public sealed class ScrapeConfigurationImportService(
-    IScrapeConfigurationRepository repository,
+    IScrapeConfigurationImporter repository,
     IScrapeConfigurationFileReader fileReader) : IScrapeConfigurationImportService
 {
     public async Task ImportAsync(string filePath, CancellationToken cancellationToken = default)

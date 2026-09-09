@@ -22,7 +22,7 @@ public static class ApplicationServices
             .AddSingleton<IConfigurationFilePicker, ConfigurationFilePicker>()
             .AddSingleton<IScrapeConfigurationFileReader, ScrapeConfigurationFileReader>()
             .AddSingleton<IScrapeConfigurationImportService, ScrapeConfigurationImportService>()
-            .AddSingleton<IScrapeConfigurationRepository, ScrapeConfigurationRepository>()
+            .AddSingleton<IScrapeConfigurationImporter, ScrapeConfigurationImporter>()
             .AddSingleton<OperationCoordinator>()
             .AddSingleton<MainWindow>()
             .AddDbContextFactory<ControlDbContext>((serviceProvider, options) =>
