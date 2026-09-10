@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using AStarDev.ControlDb;
+using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.Utilities;
 using AStarDev.ScraperPlaying.SearchAPI;
 
@@ -14,6 +15,7 @@ public static class DataServices
     public static IServiceCollection AddDataServices(this IServiceCollection services)
     {
         _ = services.AddScoped<IScrapeConfigurationImporter, ScrapeConfigurationImporter>();
+        _ = services.AddScoped<IQuery<ScrapeConfigurationEntity>, ScrapeConfigurationQuery>();
         _ = services.AddScoped<IUnitOfWork, ControlDbContext>();
 
         return services;

@@ -13,15 +13,18 @@ namespace AStarDev.ControlDb;
 /// Initializes a new instance of the <see cref="ControlDbContext"/> class with the specified options.
 /// </remarks>
 /// <param name="options">The options to be used by the DbContext.</param>
-public class ControlDbContext(DbContextOptions<ControlDbContext> options) : DbContext(options), IUnitOfWork, IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>
+/// <param name="scrapeConfigurationQuery">The query used to auto-include the sub-entities required by a <see cref="ScrapeConfigurationEntity"/> aggregate.</param>
+public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery<ScrapeConfigurationEntity>? scrapeConfigurationQuery = null) : DbContext(options), IUnitOfWork, IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>
 {
+    private readonly IQuery<ScrapeConfigurationEntity> scrapeConfigurationQuery = scrapeConfigurationQuery ?? new ScrapeConfigurationQuery();
+
     /// <inheritdoc/>
     public IRepository<TAggregate, TKey> GetRepository<TAggregate, TKey>() where TAggregate : IAggregateRoot
     => (IRepository<TAggregate, TKey>)this;
 
     /// <inheritdoc/>
     Task<Exceptional<Option<ScrapeConfigurationEntity>>> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.TryFindAsync(ScrapeConfigurationId key) =>
-        Try.RunAsync(async () => (Option<ScrapeConfigurationEntity>)await ScrapeConfigurations.FindAsync(key));
+        Try.RunAsync(async () => (Option<ScrapeConfigurationEntity>)await this.scrapeConfigurationQuery.Apply(ScrapeConfigurations).FirstOrDefaultAsync(scrapeConfiguration => scrapeConfiguration.Id == key));
 
     /// <inheritdoc/>
     Exceptional<ScrapeConfigurationEntity> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.Add(ScrapeConfigurationEntity aggregate) =>
@@ -32,10 +35,10 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options) : DbCo
         });
 
     Task<Exceptional<Option<IEnumerable<ScrapeConfigurationEntity>>>> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.TryGetAllAsync()
-    => Try.RunAsync(async () => (Option<IEnumerable<ScrapeConfigurationEntity>>)(await ScrapeConfigurations.ToListAsync()));
+    => Try.RunAsync(async () => (Option<IEnumerable<ScrapeConfigurationEntity>>)(await this.scrapeConfigurationQuery.Apply(ScrapeConfigurations).ToListAsync()));
 
     Task<Exceptional<Option<ScrapeConfigurationEntity>>> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.TryGetFirstAsync()
-    => Try.RunAsync(async () => (Option<ScrapeConfigurationEntity>)(await ScrapeConfigurations.FirstOrDefaultAsync()));
+    => Try.RunAsync(async () => (Option<ScrapeConfigurationEntity>)(await this.scrapeConfigurationQuery.Apply(ScrapeConfigurations).FirstOrDefaultAsync()));
 
     /// <inheritdoc/>
     Exceptional<UnitFp> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.Delete(ScrapeConfigurationEntity aggregate) =>
@@ -44,11 +47,6 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options) : DbCo
             ScrapeConfigurations.Remove(aggregate);
             return UnitFp.Instance;
         });
-
-    /// <summary>
-    ///   Gets the repository for managing file entities in the database.
-    /// </summary>
-    public ControlDbContext() : this(new DbContextOptions<ControlDbContext>()) { }
 
     /// <summary>
     /// Gets the repository for managing scrape configuration entities in the database.

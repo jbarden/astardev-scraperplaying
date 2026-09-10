@@ -1,5 +1,6 @@
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.ControlDb.TestsIntegration.TestDataFactories;
+using AStarDev.FunctionalParadigm;
 using Microsoft.EntityFrameworkCore;
 
 namespace AStarDev.ControlDb.TestsIntegration;
@@ -38,6 +39,31 @@ public sealed class GivenAControlDbContext : IDisposable
 
         reloaded.ShouldNotBeNull();
         reloaded.UserConfiguration.EmailAddress.ShouldBe(scrapeConfigurationEntity.UserConfiguration.EmailAddress);
+    }
+
+    [Fact]
+    public async Task when_try_get_first_async_is_called_on_a_fresh_context_then_the_related_sub_entities_are_auto_included()
+    {
+        var scrapeConfigurationEntity = ScrapeConfigurationEntityFactory.CreateScrapeConfigurationEntity();
+        await context.ScrapeConfigurations.AddAsync(scrapeConfigurationEntity, TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var options = new DbContextOptionsBuilder<ControlDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+
+        using var untrackedContext = new ControlDbContext(options);
+        var repository = untrackedContext.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>();
+
+        var result = await repository.TryGetFirstAsync();
+
+        var reloaded = result.Match(option => option, exception => throw exception).Match(entity => entity, () => null!);
+
+        reloaded.ShouldNotBeNull();
+        reloaded.UserConfiguration.ShouldNotBeNull();
+        reloaded.SearchConfiguration.ShouldNotBeNull();
+        reloaded.SearchConfiguration.SearchCategories.ShouldNotBeNull();
+        reloaded.ScrapeDirectories.ShouldNotBeNull();
     }
 
     [Fact]
