@@ -68,4 +68,65 @@ public sealed class GivenAnExceptional
 
         result.ShouldBe(5);
     }
+
+    [Fact]
+    public void when_tapping_a_success_then_the_success_action_is_invoked_and_the_failure_action_is_not()
+    {
+        Exceptional<string> exceptional = new Success<string>("value");
+        var capturedSuccess = string.Empty;
+        var failureCalled = false;
+
+        var result = exceptional.Tap(value => capturedSuccess = value, _ => failureCalled = true);
+
+        capturedSuccess.ShouldBe("value");
+        failureCalled.ShouldBeFalse();
+        result.ShouldBeSameAs(exceptional);
+    }
+
+    [Fact]
+    public void when_tapping_a_failure_then_the_failure_action_is_invoked_and_the_success_action_is_not()
+    {
+        var exception = new InvalidOperationException("failure");
+        Exceptional<string> exceptional = new Failure<string>(exception);
+        Exception? capturedFailure = null;
+        var successCalled = false;
+
+        var result = exceptional.Tap(_ => successCalled = true, ex => capturedFailure = ex);
+
+        capturedFailure.ShouldBeSameAs(exception);
+        successCalled.ShouldBeFalse();
+        result.ShouldBeSameAs(exceptional);
+    }
+
+    [Fact]
+    public void when_tapping_a_failure_without_a_failure_action_then_no_exception_is_thrown()
+    {
+        Exceptional<string> exceptional = new Failure<string>(new InvalidOperationException("failure"));
+
+        Should.NotThrow(() => exceptional.Tap(_ => { }));
+    }
+
+    [Fact]
+    public async Task when_tapping_async_a_success_then_the_success_action_is_invoked()
+    {
+        Exceptional<string> exceptional = new Success<string>("value");
+        var capturedSuccess = string.Empty;
+
+        var result = await Task.FromResult(exceptional).TapAsync(value => capturedSuccess = value);
+
+        capturedSuccess.ShouldBe("value");
+        result.Match(value => value, _ => "failure").ShouldBe("value");
+    }
+
+    [Fact]
+    public async Task when_tapping_async_a_failure_then_the_failure_action_is_invoked()
+    {
+        var exception = new InvalidOperationException("failure");
+        Exceptional<string> exceptional = new Failure<string>(exception);
+        Exception? capturedFailure = null;
+
+        await Task.FromResult(exceptional).TapAsync(_ => { }, ex => capturedFailure = ex);
+
+        capturedFailure.ShouldBeSameAs(exception);
+    }
 }

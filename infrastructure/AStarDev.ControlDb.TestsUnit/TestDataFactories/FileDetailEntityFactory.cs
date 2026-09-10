@@ -13,6 +13,7 @@ internal static class FileEntityFactory
         FileSize = 12345,
         IsImage = true,
         FileAccessDetail = FileAccessDetailEntityFactory.CreateFileAccessDetailEntity(),
-        DeletionStatus = DeletionStatusEntityFactory.CreateDeletionStatusEntity()
+        DeletionStatus = DeletionStatusEntityFactory.CreateDeletionStatusEntity(),
+        FileType = "image/png"
     };
 }
