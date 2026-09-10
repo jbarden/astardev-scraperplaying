@@ -56,9 +56,9 @@ public partial class MainWindow : Window, IDisposable
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     await importService.ImportAsync(path, cancellationToken);
-                    StatusTextBlock.Text = "Scrape configuration imported.";
+                    SetStatusText("Scrape configuration imported.");
                 },
-                () => StatusTextBlock.Text = "Scrape configuration import could not be completed."
+                () => SetStatusText("Scrape configuration import could not be completed.")
             );
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -86,11 +86,11 @@ public partial class MainWindow : Window, IDisposable
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     var exported = await exportService.ExportAsync(path, cancellationToken);
-                    StatusTextBlock.Text = exported
+                    SetStatusText(exported
                         ? "Scrape configuration exported."
-                        : "No scrape configuration was found to export.";
+                        : "No scrape configuration was found to export.");
                 },
-                () => StatusTextBlock.Text = "Scrape configuration export could not be completed."
+                () => SetStatusText("Scrape configuration export could not be completed.")
             );
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -147,6 +147,8 @@ public partial class MainWindow : Window, IDisposable
         RunScraperButton.IsEnabled = !isOperationRunning;
         CancelButton.IsEnabled = isOperationRunning;
     }
+
+    private void SetStatusText(string message) => Dispatcher.UIThread.Post(() => StatusTextBlock.Text = message);
 
     private void AppendStatusMessage(string message) => Dispatcher.UIThread.Post(() =>
                                                              {
