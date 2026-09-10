@@ -5,7 +5,7 @@ using Testably.Abstractions;
 namespace AStarDev.ScraperPlaying.Startup;
 
 /// <summary>Registers file system, database, and clock infrastructure services with the dependency injection container.</summary>
-public static class InfrastructureServiceCollectionExtensions
+public static class InfrastructureServices
 {
     /// <summary>Registers the file system abstraction, the database context factory, and the system clock delegate.</summary>
     /// <param name="services">The service collection to register the infrastructure services with.</param>

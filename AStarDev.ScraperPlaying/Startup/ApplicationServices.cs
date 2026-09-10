@@ -1,8 +1,5 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
-using AStarDev.ControlDb;
-using AStarDev.Utilities;
 using AStarDev.ScraperPlaying.Home;
 using AStarDev.ScraperPlaying.SearchAPI;
 

@@ -4,7 +4,6 @@ using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
 using System.Net.Http.Json;
 using System.Text.Json;
 using AStarDev.FunctionalParadigm;
-using AStarDev.Utilities;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
@@ -114,7 +113,6 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IUnitOfWor
             {
                 progress.Report($"Fetching {logLabel} page {page}.");
                 pageResult = (await GetFromJsonAsync<SearchResponse>(pageUrlFactory(page), client, cancellationToken))!;
-                await File.WriteAllTextAsync(pageFileNameFactory(page), pageResult.ToJson(), cancellationToken);
                 await Task.Delay(2_000, cancellationToken);
                 foreach (var wallpaper in pageResult.Data)
                 {
@@ -129,7 +127,7 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IUnitOfWor
                                 await Task.Delay(2_000, cancellationToken);
                                 await DownloadImageAsync(wallpaper.Id, wallpaper.Path, progress, client, cancellationToken);
                                 progress.Report($"Downloaded image data for wallpaper {wallpaper.Id}");
-                                // SaveImageData(wallpaper.Id, imageData, "TBC", progress);
+
                                 return UnitFp.Instance;
                             }).MatchAsync(
                                 _ => Task.CompletedTask,
