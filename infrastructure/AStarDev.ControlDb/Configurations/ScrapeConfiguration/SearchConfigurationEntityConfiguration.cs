@@ -1,4 +1,5 @@
 using AStarDev.ControlDb.ScrapeConfiguration;
+using AStarDev.EFCoreSqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -18,6 +19,7 @@ public sealed class SearchConfigurationEntityConfiguration : IEntityTypeConfigur
 
         builder.Property(sc => sc.Id).ValueGeneratedOnAdd();
         builder.Property(d => d.Id).HasConversion(id => id.Value, value => new SearchConfigurationId(value));
+        builder.Property(sc => sc.Id).HasValueGenerator((_, _) => new StrongGuidIdValueGenerator<SearchConfigurationId>(value => new SearchConfigurationId(value)));
         builder.HasOne<ScrapeConfigurationEntity>()
             .WithOne(scrapeConfiguration => scrapeConfiguration.SearchConfiguration)
             .HasForeignKey<SearchConfigurationEntity>(searchConfiguration => searchConfiguration.ScrapeConfigurationId)

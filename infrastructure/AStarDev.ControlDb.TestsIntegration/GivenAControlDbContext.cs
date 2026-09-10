@@ -42,6 +42,40 @@ public sealed class GivenAControlDbContext : IDisposable
     }
 
     [Fact]
+    public async Task when_a_scrape_configuration_is_added_with_empty_ids_then_they_are_generated_and_related_rows_stay_linked()
+    {
+        var scrapeConfigurationEntity = ScrapeConfigurationEntityFactory.CreateScrapeConfigurationEntity();
+        await context.ScrapeConfigurations.AddAsync(scrapeConfigurationEntity, TestContext.Current.CancellationToken);
+
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        scrapeConfigurationEntity.Id.Value.ShouldNotBe(Guid.Empty);
+        scrapeConfigurationEntity.UserConfiguration.Id.Value.ShouldNotBe(Guid.Empty);
+        scrapeConfigurationEntity.SearchConfiguration.Id.Value.ShouldNotBe(Guid.Empty);
+        scrapeConfigurationEntity.ScrapeDirectories.Id.Value.ShouldNotBe(Guid.Empty);
+        scrapeConfigurationEntity.UserConfiguration.ScrapeConfigurationEntityId.ShouldBe(scrapeConfigurationEntity.Id);
+        scrapeConfigurationEntity.SearchConfiguration.ScrapeConfigurationId.ShouldBe(scrapeConfigurationEntity.Id);
+        scrapeConfigurationEntity.ScrapeDirectories.ScrapeConfigurationEntityId.ShouldBe(scrapeConfigurationEntity.Id);
+    }
+
+    [Fact]
+    public async Task when_a_scrape_configuration_is_added_with_explicit_ids_then_they_are_preserved()
+    {
+        var explicitId = new ScrapeConfigurationId(Guid.CreateVersion7());
+        var scrapeConfigurationEntity = new ScrapeConfigurationEntity(explicitId)
+        {
+            UserConfiguration = new UserConfigurationEntity(new UserConfigurationId(Guid.CreateVersion7()), explicitId, "user@example.com", "username", "password", "session-cookie", "apiKey"),
+            SearchConfiguration = new SearchConfigurationEntity(new SearchConfigurationId(Guid.CreateVersion7()), explicitId, "search-config", 10, []),
+            ScrapeDirectories = new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.CreateVersion7()), explicitId, "scrape-directory", "base-save-directory", "base-directory", "base-directory-famous", "sub-directory-name")
+        };
+        await context.ScrapeConfigurations.AddAsync(scrapeConfigurationEntity, TestContext.Current.CancellationToken);
+
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        scrapeConfigurationEntity.Id.ShouldBe(explicitId);
+    }
+
+    [Fact]
     public async Task when_try_get_first_async_is_called_on_a_fresh_context_then_the_related_sub_entities_are_auto_included()
     {
         var scrapeConfigurationEntity = ScrapeConfigurationEntityFactory.CreateScrapeConfigurationEntity();

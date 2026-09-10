@@ -1,4 +1,5 @@
 using AStarDev.ControlDb.ScrapeConfiguration;
+using AStarDev.EFCoreSqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -18,6 +19,7 @@ public sealed class ScrapeDirectoriesEntityConfiguration : IEntityTypeConfigurat
 
         builder.Property(sc => sc.Id).ValueGeneratedOnAdd();
         builder.Property(d => d.Id).HasConversion(id => id.Value, value => new ScrapeDirectoriesId(value));
+        builder.Property(sc => sc.Id).HasValueGenerator((_, _) => new StrongGuidIdValueGenerator<ScrapeDirectoriesId>(value => new ScrapeDirectoriesId(value)));
         builder.HasOne<ScrapeConfigurationEntity>()
             .WithOne(scrapeConfiguration => scrapeConfiguration.ScrapeDirectories)
             .HasForeignKey<ScrapeDirectoriesEntity>(scrapeDirectories => scrapeDirectories.ScrapeConfigurationEntityId)
