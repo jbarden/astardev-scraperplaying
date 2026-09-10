@@ -25,5 +25,6 @@ public static class ApplicationServices
             .AddSingleton<IScrapeConfigurationImporter, ScrapeConfigurationImporter>()
             .AddSingleton<OperationCoordinator>()
             .AddSingleton<Func<DateTimeOffset>>(_ => () => DateTimeOffset.UtcNow)
-            .AddSingleton<MainWindow>();
+            .AddSingleton<MainWindow>()
+            .AddHttpClient();
 }

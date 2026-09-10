@@ -11,10 +11,9 @@ using AStarDev.ControlDb.FileDetail;
 
 namespace AStarDev.ScraperPlaying.Home;
 
-public class ScrapeService(OperationCoordinator operationCoordinator, IUnitOfWork unitOfWork, IFilesQuery filesQuery, Func<DateTimeOffset> clock) : IScrapeService
+public class ScrapeService(OperationCoordinator operationCoordinator, IUnitOfWork unitOfWork, IFilesQuery filesQuery, Func<DateTimeOffset> clock, IHttpClientFactory httpClientFactory) : IScrapeService
 {
-        private const string BaseUrl = "https://wallhaven.cc/";
-        private static HttpClient client = default!;
+    private const string BaseUrl = "https://wallhaven.cc/";
 
     public async Task RunScraperAsync(IProgress<string> progress)
     {
@@ -35,7 +34,7 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IUnitOfWor
             )!;
 
             var apiKey = configuration.UserConfiguration.ApiKey;
-            client = CreateHttpClient(apiKey);
+            var client = CreateHttpClient(apiKey);
             var sessionCookie = configuration.UserConfiguration.SessionCookie;
             var encodedApiKey = Uri.EscapeDataString(apiKey);
             var topWallpapersUrl = configuration.SearchConfiguration.TopWallpapers.Replace("apiKey={apiKey}&", string.Empty);
@@ -80,7 +79,7 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IUnitOfWor
         }
     }
 
-    private static async Task<T?> GetFromJsonAsync<T>(string url, CancellationToken cancellationToken)
+    private static async Task<T?> GetFromJsonAsync<T>(string url, HttpClient client, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         using var response = await client.SendAsync(request, cancellationToken);
@@ -104,6 +103,7 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IUnitOfWor
 
     private async Task FetchAndProcessPagesAsync(string logLabel, Func<int, string> pageUrlFactory, Func<int, string> pageFileNameFactory, string sessionCookie, IProgress<string> progress, CancellationToken cancellationToken)
     {
+        var client = CreateHttpClient(sessionCookie);
         try
         {
             var page = 1;
@@ -113,7 +113,7 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IUnitOfWor
             do
             {
                 progress.Report($"Fetching {logLabel} page {page}.");
-                pageResult = (await GetFromJsonAsync<SearchResponse>(pageUrlFactory(page), cancellationToken))!;
+                pageResult = (await GetFromJsonAsync<SearchResponse>(pageUrlFactory(page), client, cancellationToken))!;
                 await File.WriteAllTextAsync(pageFileNameFactory(page), pageResult.ToJson(), cancellationToken);
                 await Task.Delay(2_000, cancellationToken);
                 foreach (var wallpaper in pageResult.Data)
@@ -127,7 +127,7 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IUnitOfWor
                                 progress.Report($"No existing file found for wallpaper {wallpaper.Id}.");
                                 await ProcessTheImageAsync(progress, fileRepository, wallpaper, cancellationToken);
                                 await Task.Delay(2_000, cancellationToken);
-                                await DownloadImageAsync(wallpaper.Id, wallpaper.Path, progress, cancellationToken);
+                                await DownloadImageAsync(wallpaper.Id, wallpaper.Path, progress, client, cancellationToken);
                                 progress.Report($"Downloaded image data for wallpaper {wallpaper.Id}");
                                 // SaveImageData(wallpaper.Id, imageData, "TBC", progress);
                                 return UnitFp.Instance;
@@ -197,7 +197,7 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IUnitOfWor
         }
     }
 
-    private static async Task DownloadImageAsync(string wallpaperId, string imageUri, IProgress<string> progress, CancellationToken cancellationToken)
+    private static async Task DownloadImageAsync(string wallpaperId, string imageUri, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
     {
         await Task.Delay(2_000, cancellationToken);
 
@@ -213,9 +213,10 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IUnitOfWor
         await downloadStream.CopyToAsync(fileStream, cancellationToken);
     }
 
-    private static HttpClient CreateHttpClient(string apiKey)
+    private HttpClient CreateHttpClient(string apiKey)
     {
-        var httpClient = new HttpClient() { BaseAddress = new Uri(BaseUrl) };
+        var httpClient = httpClientFactory.CreateClient();
+        httpClient.BaseAddress = new Uri(BaseUrl);
         httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(
             "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
             "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36");
