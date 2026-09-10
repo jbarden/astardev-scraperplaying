@@ -35,7 +35,7 @@ public static class ExceptionalExtensions
                 throw new InvalidOperationException(UnexpectedExceptionalTypeMessage);
         }
     }
-    
+
     /// <summary>
     ///     Pattern matches on the <see cref="Exceptional{T}" />, invoking the handler for the case present.
     /// </summary>
@@ -46,4 +46,51 @@ public static class ExceptionalExtensions
             Failure<T> failure => onFailure(failure.Exception),
             _ => throw new InvalidOperationException(UnexpectedExceptionalTypeMessage + $" Type: {exceptional.GetType().FullName}")
         };
+
+    /// <summary>
+    ///     Asynchronously awaits and pattern matches on the <see cref="Exceptional{T}" />.
+    /// </summary>
+    public static async Task<TOut> MatchAsync<TOut, T>(this Task<Exceptional<T>> exceptionalTask, Func<T, TOut> onSuccess, Func<Exception, TOut> onFailure)
+    {
+        var exceptional = await exceptionalTask.ConfigureAwait(false);
+
+        return exceptional.Match(onSuccess, onFailure);
+    }
+
+    /// <summary>
+    ///     Asynchronously pattern matches on the <see cref="Exceptional{T}" />, invoking the handler for the case present.
+    /// </summary>
+    public static async Task<TOut> MatchAsync<TOut, T>(this Task<Exceptional<T>> exceptionalTask, Func<T, Task<TOut>> onSuccess, Func<Exception, TOut> onFailure)
+    {
+        var exceptional = await exceptionalTask.ConfigureAwait(false);
+
+        return exceptional switch
+        {
+            Success<T> success => await onSuccess(success.Value).ConfigureAwait(false),
+            Failure<T> failure => onFailure(failure.Exception),
+            _ => throw new InvalidOperationException(UnexpectedExceptionalTypeMessage + $" Type: {exceptional.GetType().FullName}")
+        };
+    }
+
+    /// <summary>
+    ///     Asynchronously pattern matches on the <see cref="Exceptional{T}" /> for side effects.
+    /// </summary>
+    public static async Task MatchAsync<T>(this Task<Exceptional<T>> exceptionalTask, Func<T, Task> onSuccess, Func<Exception, T> onFailure)
+    {
+        var exceptional = await exceptionalTask.ConfigureAwait(false);
+
+        switch (exceptional)
+        {
+            case Success<T> success:
+                await onSuccess(success.Value).ConfigureAwait(false);
+
+                break;
+            case Failure<T> failure:
+                onFailure(failure.Exception);
+
+                break;
+            default:
+                throw new InvalidOperationException(UnexpectedExceptionalTypeMessage + $" Type: {exceptional.GetType().FullName}");
+        }
+    }
 }

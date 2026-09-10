@@ -1,18 +1,20 @@
 using System.Diagnostics;
 using System.Net.Http.Headers;
-using AStarDev.ScraperPlaying.SearchAPI;
 using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
 using System.Net.Http.Json;
 using System.Text.Json;
 using AStarDev.FunctionalParadigm;
-using AStarDev.ScraperPlaying.SearchAPI.DetailResponse;
 using AStarDev.Utilities;
+using AStarDev.ControlDb.ScrapeConfiguration;
+using AStarDev.ControlDb;
+using AStarDev.ControlDb.FileDetail;
 
 namespace AStarDev.ScraperPlaying.Home;
 
-public class ScrapeService(OperationCoordinator operationCoordinator, IScrapeConfigurationRepository scrapeConfigurationRepository) : IScrapeService
+public class ScrapeService(OperationCoordinator operationCoordinator, IUnitOfWork unitOfWork, IFilesQuery filesQuery, Func<DateTimeOffset> clock, IHttpClientFactory httpClientFactory) : IScrapeService
 {
-    private static readonly HttpClient client = CreateHttpClient();
+    private const string BaseUrl = "https://wallhaven.cc/";
+
     public async Task RunScraperAsync(IProgress<string> progress)
     {
         if (!operationCoordinator.TryStart(out var cancellationToken)) return;
@@ -21,18 +23,23 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IScrapeCon
         try
         {
             progress.Report("Starting scrape operation.");
-            var configuration = (await scrapeConfigurationRepository.GetScrapeConfigurationAsync())
-            .Match(
-                c => c,
-                _ => throw new InvalidOperationException("Scrape configuration not found")
+            ScrapeConfigurationEntity configuration = (await unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().TryGetFirstAsync())
+                .Match(scrapeConfigurationEntity => scrapeConfigurationEntity
+                    .Match(scrapeConfig => scrapeConfig, () => throw new InvalidOperationException("Scrape configuration not found")),
+                    _ =>
+                    {
+                        progress.Report("Scrape configuration not found");
+                        return null!;
+                    }
             )!;
 
             var apiKey = configuration.UserConfiguration.ApiKey;
+            var client = CreateHttpClient(apiKey);
             var sessionCookie = configuration.UserConfiguration.SessionCookie;
             var encodedApiKey = Uri.EscapeDataString(apiKey);
-            var topWallpapersUrl = configuration.TopWallpapersUrl.AbsoluteUri.Replace("%7BapiKey%7D", encodedApiKey);
-            var searchCategoriesUrl = configuration.SearchCategoriesUrl.AbsoluteUri.Replace("%7BapiKey%7D", encodedApiKey);
-            var searchCategories = configuration.SearchCategories;
+            var topWallpapersUrl = configuration.SearchConfiguration.TopWallpapers.Replace("apiKey={apiKey}&", string.Empty);
+            var searchCategoriesUrl = configuration.SearchConfiguration.SearchStringPrefix.Replace("apiKey={apiKey}&", string.Empty);
+            var searchCategories = configuration.SearchConfiguration.SearchCategories;
 
             progress.Report("Fetching top wallpapers.");
             await FetchAndProcessPagesAsync(
@@ -72,15 +79,9 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IScrapeCon
         }
     }
 
-    private static async Task<T?> GetFromJsonAsync<T>(string url, string? sessionCookie, CancellationToken cancellationToken)
+    private static async Task<T?> GetFromJsonAsync<T>(string url, HttpClient client, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        var cookieHeader = NormalizeCookieHeader(sessionCookie);
-        if (cookieHeader is not null)
-        {
-            request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
-        }
-
         using var response = await client.SendAsync(request, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -100,69 +101,129 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IScrapeCon
         }
     }
 
-    private static async Task FetchAndProcessPagesAsync(string logLabel, Func<int, string> pageUrlFactory, Func<int, string> pageFileNameFactory, string sessionCookie, IProgress<string> progress, CancellationToken cancellationToken)
+    private async Task FetchAndProcessPagesAsync(string logLabel, Func<int, string> pageUrlFactory, Func<int, string> pageFileNameFactory, string sessionCookie, IProgress<string> progress, CancellationToken cancellationToken)
     {
-        var page = 1;
-        SearchResponse pageResult;
-        do
+        var client = CreateHttpClient(sessionCookie);
+        try
         {
-            progress.Report($"Fetching {logLabel} page {page}.");
-            pageResult = (await GetFromJsonAsync<SearchResponse>(pageUrlFactory(page), sessionCookie, cancellationToken))!;
-            await File.WriteAllTextAsync(pageFileNameFactory(page), pageResult.ToJson(), cancellationToken);
-            await Task.Delay(1000, cancellationToken);
-            foreach (var wallpaper in pageResult.Data)
+            var page = 1;
+            var fileRepository = unitOfWork.GetRepository<FileEntity, FileId>();
+            SearchResponse pageResult;
+            await Task.Delay(2_000, cancellationToken);
+            do
             {
-                await GetImageDetails(sessionCookie, wallpaper.Id, progress, cancellationToken);
-            }
-            page++;
-        } while (page <= pageResult.Meta.LastPage && page <= 4);
-    }
+                progress.Report($"Fetching {logLabel} page {page}.");
+                pageResult = (await GetFromJsonAsync<SearchResponse>(pageUrlFactory(page), client, cancellationToken))!;
+                await File.WriteAllTextAsync(pageFileNameFactory(page), pageResult.ToJson(), cancellationToken);
+                await Task.Delay(2_000, cancellationToken);
+                foreach (var wallpaper in pageResult.Data)
+                {
+                    _ = (await filesQuery.CheckExistsByNameAsync(new FileName(wallpaper.Id), cancellationToken))
+                    .Match(
+                        async notFound =>
+                        {
+                            await Try.RunAsync(async () =>
+                            {
+                                progress.Report($"No existing file found for wallpaper {wallpaper.Id}.");
+                                await ProcessTheImageAsync(progress, fileRepository, wallpaper, cancellationToken);
+                                await Task.Delay(2_000, cancellationToken);
+                                await DownloadImageAsync(wallpaper.Id, wallpaper.Path, progress, client, cancellationToken);
+                                progress.Report($"Downloaded image data for wallpaper {wallpaper.Id}");
+                                // SaveImageData(wallpaper.Id, imageData, "TBC", progress);
+                                return UnitFp.Instance;
+                            }).MatchAsync(
+                                _ => Task.CompletedTask,
+                                y =>
+                                {
+                                    progress.Report($"Failed to process image for wallpaper {wallpaper.Id}: {y.Message}");
+                                    return UnitFp.Instance;
+                                }
+                            );
 
-    private static async Task GetImageDetails(string sessionCookie, string wallpaperId, IProgress<string> progress, CancellationToken cancellationToken)
-    {
-        string detailUrl = $"{BaseUrl}/w/{wallpaperId}";
-        progress.Report($"Fetching details for wallpaper {wallpaperId}.");
-        var detailResponse = await GetFromJsonAsync<DetailResponse>(detailUrl, sessionCookie, cancellationToken);
+                        },
+                         async _ =>
+                         {
+                             progress.Report($"The file details already exist for wallpaper {wallpaper.Id} - no need to fetch again.");
+                         }
+                    );
+                }
 
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-        progress.Report($"Detail response for wallpaper {wallpaperId}: {detailResponse.Data}");
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-        await Task.Delay(1000, cancellationToken);
-
-        await GetTags(wallpaperId, detailResponse, progress, cancellationToken);
-
-        var imageResponse = await client.GetAsync(detailResponse.Data.Path, cancellationToken);
-        imageResponse.EnsureSuccessStatusCode();
-        progress.Report($"Fetched image for wallpaper {wallpaperId}.");
-        var imageData = await imageResponse.Content.ReadAsByteArrayAsync(cancellationToken);
-        progress.Report($"Downloaded image data for wallpaper {wallpaperId}, size: {imageData.Length} bytes.");
-        SaveImageData(wallpaperId, imageData, progress);
-    }
-
-    private static void SaveImageData(string wallpaperId, byte[] imageData, IProgress<string> progress)
-    {
-        progress.Report($"Saving image data for wallpaper {wallpaperId}, size: {imageData.Length} bytes.");
-        File.WriteAllBytes($"{wallpaperId}.jpg", imageData);
-    }
-
-    private static async Task GetTags(string wallpaperId, DetailResponse detailResponse, IProgress<string> progress, CancellationToken cancellationToken)
-    {
-        foreach (var tag in detailResponse.Data.Tags)
+                await Task.Delay(2_000, cancellationToken);
+                page++;
+            } while (page <= pageResult.Meta.LastPage && page <= 4);
+        }
+        catch (System.Exception ex)
         {
-            progress.Report($"Tag for wallpaper {wallpaperId}: {tag}");
-            await Task.Delay(100, cancellationToken);
+            progress.Report($"An error occurred during the fetching and processing of pages: {ex.Message}");
+            throw;
         }
     }
-    private const string BaseUrl = "https://wallhaven.cc/api/v1";
 
-    private static HttpClient CreateHttpClient()
+    private async Task ProcessTheImageAsync(IProgress<string> progress, IRepository<FileEntity, FileId> fileRepository, SearchAPI.SearchResponse.Data wallpaper, CancellationToken cancellationToken)
     {
-        var httpClient = new HttpClient();
+        try
+        {
+            var fileName = new FileName(wallpaper.Id);
+            var fileEntity = new FileEntity
+            {
+                Id = FileId.Empty,
+                FileName = fileName,
+                DirectoryName = DirectoryName.Create("TBC"),
+                FileAccessDetail = new FileAccessDetailEntity
+                {
+                    DetailsLastUpdated = clock().UtcDateTime,
+                    Id = FileAccessDetailId.Empty,
+                    FileId = FileId.Empty
+                },
+                FileSize = wallpaper.FileSize,
+                FileHandle = FileHandle.Create(wallpaper.Id),
+                FileType = wallpaper.FileType,
+                ImageDetail = new ImageDetailEntity
+                {
+                    Id = ImageId.Empty,
+                    FileId = FileId.Empty,
+                    Width = wallpaper.DimensionX,
+                    Height = wallpaper.DimensionY,
+                }
+            };
+
+            // fileRepository.Add(fileEntity);
+            // await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            progress.Report($"Failed to process image for wallpaper {wallpaper.Id}: {ex.Message}");
+            throw;
+        }
+    }
+
+    private static async Task DownloadImageAsync(string wallpaperId, string imageUri, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
+    {
+        await Task.Delay(2_000, cancellationToken);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, imageUri);
+
+        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        progress.Report($"Downloading image for wallpaper {wallpaperId} from {imageUri}");
+        using Stream downloadStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+
+        using FileStream fileStream = new($"{wallpaperId}.jpg", FileMode.Create, FileAccess.Write, FileShare.None);
+
+        await downloadStream.CopyToAsync(fileStream, cancellationToken);
+    }
+
+    private HttpClient CreateHttpClient(string apiKey)
+    {
+        var httpClient = httpClientFactory.CreateClient();
+        httpClient.BaseAddress = new Uri(BaseUrl);
         httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(
             "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
             "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36");
         httpClient.DefaultRequestHeaders.Accept.Add(
             new MediaTypeWithQualityHeaderValue("application/json"));
+        httpClient.DefaultRequestHeaders.Add("X-API-Key", apiKey);
+        httpClient.DefaultRequestHeaders.Referrer = new Uri(BaseUrl);
         return httpClient;
     }
 

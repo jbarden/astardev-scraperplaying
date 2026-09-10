@@ -42,10 +42,12 @@ public partial class App : Application, IDisposable
         var collection = new ServiceCollection().AddConfigurationServices(configuration);
 
         var serviceProvider = collection
+            .AddDataServices()
             .AddInfrastructureServices()
             .AddApplicationServices(configuration)
             .AddLogging()
             .BuildServiceProvider();
+
         var applicationDirectories = serviceProvider.GetRequiredService<IApplicationDirectories>();
         applicationDirectories.CreateIfRequired();
         var logger = serviceProvider.GetRequiredService<ILogger<App>>();

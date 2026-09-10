@@ -15,7 +15,8 @@
         "git add": true,
         "git commit": true,
         "git push": true,
-        "sqlite3": true
+        "sqlite3": true,
+        "timeout": true
     },
     "cSpell.words": [
         "Avalonia",

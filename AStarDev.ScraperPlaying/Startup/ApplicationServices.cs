@@ -22,9 +22,9 @@ public static class ApplicationServices
             .AddSingleton<IConfigurationFilePicker, ConfigurationFilePicker>()
             .AddSingleton<IScrapeConfigurationFileReader, ScrapeConfigurationFileReader>()
             .AddSingleton<IScrapeConfigurationImportService, ScrapeConfigurationImportService>()
-            .AddSingleton<IScrapeConfigurationRepository, ScrapeConfigurationRepository>()
+            .AddSingleton<IScrapeConfigurationImporter, ScrapeConfigurationImporter>()
             .AddSingleton<OperationCoordinator>()
+            .AddSingleton<Func<DateTimeOffset>>(_ => () => DateTimeOffset.UtcNow)
             .AddSingleton<MainWindow>()
-            .AddDbContextFactory<ControlDbContext>((serviceProvider, options) =>
-                options.UseSqlite($"Data Source={ApplicationMetadata.ApplicationNameHyphenated.ApplicationDirectory().CombinePath(Path.DirectorySeparatorChar.ToString()).CombinePath("data").CombinePath(Path.DirectorySeparatorChar.ToString()).CombinePath("astar-control.db")}"));
+            .AddHttpClient();
 }

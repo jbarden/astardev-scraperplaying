@@ -1,8 +1,6 @@
 using System.Text.Json;
 using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
 using TagResponse = AStarDev.ScraperPlaying.SearchAPI.TagResponse.TagResponse;
-using Shouldly;
-using Xunit;
 
 namespace AStarDev.ScraperPlaying.TestsUnit;
 

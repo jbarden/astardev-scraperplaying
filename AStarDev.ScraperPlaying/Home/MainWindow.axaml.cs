@@ -36,7 +36,8 @@ public partial class MainWindow : Window, IDisposable
 
     public static MainWindow CreateStartupError(Exception exception)
     {
-        var window = new MainWindow(NullLogger<MainWindow>.Instance, null!, null!, null!, null!);
+        // operationCoordinator must be non-null: the constructor subscribes to its StateChanged event
+        var window = new MainWindow(NullLogger<MainWindow>.Instance, null!, null!, null!, new OperationCoordinator());
         window.AppendStatusMessage($"Startup failed: {exception.GetType().Name}: {exception.Message}");
         return window;
     }

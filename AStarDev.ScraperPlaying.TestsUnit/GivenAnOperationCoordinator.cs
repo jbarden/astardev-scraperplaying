@@ -1,6 +1,4 @@
 using AStarDev.ScraperPlaying.Home;
-using Shouldly;
-using Xunit;
 
 namespace AStarDev.ScraperPlaying.TestsUnit;
 

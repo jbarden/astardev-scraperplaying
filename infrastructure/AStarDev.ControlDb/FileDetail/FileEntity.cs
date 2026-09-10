@@ -1,7 +1,7 @@
 namespace AStarDev.ControlDb.FileDetail;
 
 /// <summary>A file discovered and tracked by the scraper.</summary>
-public sealed class FileEntity
+public sealed class FileEntity : IAggregateRoot
 {
     /// <summary>Primary key.</summary>
     public FileId Id { get; set; } = new(Guid.CreateVersion7());
@@ -29,4 +29,7 @@ public sealed class FileEntity
 
     /// <summary>Navigation property to the owned deletion status.</summary>
     public DeletionStatusEntity? DeletionStatus { get; set; }
+
+    /// <summary> The file's MIME type or extension, indicating its format.</summary>
+    public string FileType { get; set; } = string.Empty;
 }
