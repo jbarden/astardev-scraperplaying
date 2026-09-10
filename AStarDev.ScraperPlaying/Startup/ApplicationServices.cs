@@ -1,8 +1,5 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
-using AStarDev.ControlDb;
-using AStarDev.Utilities;
 using AStarDev.ScraperPlaying.Home;
 using AStarDev.ScraperPlaying.SearchAPI;
 
@@ -23,6 +20,9 @@ public static class ApplicationServices
             .AddSingleton<IScrapeConfigurationFileReader, ScrapeConfigurationFileReader>()
             .AddSingleton<IScrapeConfigurationImportService, ScrapeConfigurationImportService>()
             .AddSingleton<IScrapeConfigurationImporter, ScrapeConfigurationImporter>()
+            .AddSingleton<IScrapeConfigurationFileWriter, ScrapeConfigurationFileWriter>()
+            .AddSingleton<IScrapeConfigurationExportService, ScrapeConfigurationExportService>()
+            .AddSingleton<IScrapeConfigurationExporter, ScrapeConfigurationExporter>()
             .AddSingleton<OperationCoordinator>()
             .AddSingleton<Func<DateTimeOffset>>(_ => () => DateTimeOffset.UtcNow)
             .AddSingleton<MainWindow>()

@@ -15,16 +15,18 @@ public partial class MainWindow : Window, IDisposable
     private const int MaximumStatusMessages = 100;
     private readonly Queue<string> statusMessages = new();
     private readonly IScrapeConfigurationImportService importService;
+    private readonly IScrapeConfigurationExportService exportService;
     private readonly IConfigurationFilePicker configurationFilePicker;
     private readonly IScrapeService scrapeService;
     private readonly ILogger<MainWindow> logger;
     private readonly OperationCoordinator operationCoordinator;
     private bool isDisposing;
 
-    public MainWindow(ILogger<MainWindow> logger, IScrapeConfigurationImportService importService, IConfigurationFilePicker configurationFilePicker, IScrapeService scrapeService, OperationCoordinator operationCoordinator)
+    public MainWindow(ILogger<MainWindow> logger, IScrapeConfigurationImportService importService, IScrapeConfigurationExportService exportService, IConfigurationFilePicker configurationFilePicker, IScrapeService scrapeService, OperationCoordinator operationCoordinator)
     {
         InitializeComponent();
         this.importService = importService;
+        this.exportService = exportService;
         this.configurationFilePicker = configurationFilePicker;
         this.scrapeService = scrapeService;
         this.logger = logger;
@@ -37,8 +39,9 @@ public partial class MainWindow : Window, IDisposable
     public static MainWindow CreateStartupError(Exception exception)
     {
         // operationCoordinator must be non-null: the constructor subscribes to its StateChanged event
-        var window = new MainWindow(NullLogger<MainWindow>.Instance, null!, null!, null!, new OperationCoordinator());
+        var window = new MainWindow(NullLogger<MainWindow>.Instance, null!, null!, null!, null!, new OperationCoordinator());
         window.AppendStatusMessage($"Startup failed: {exception.GetType().Name}: {exception.Message}");
+
         return window;
     }
 
@@ -65,6 +68,38 @@ public partial class MainWindow : Window, IDisposable
         catch (Exception exception) when (exception is IOException or JsonException or InvalidOperationException)
         {
             LogError("Unable to import scrape configuration.", exception);
+        }
+        finally
+        {
+            operationCoordinator.Complete();
+        }
+    }
+
+    public async void ExportConfiguration(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (!operationCoordinator.TryStart(out var cancellationToken)) return;
+
+        try
+        {
+            await configurationFilePicker.PickSaveAsync(this).MatchAsync(
+                async path =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var exported = await exportService.ExportAsync(path, cancellationToken);
+                    StatusTextBlock.Text = exported
+                        ? "Scrape configuration exported."
+                        : "No scrape configuration was found to export.";
+                },
+                () => StatusTextBlock.Text = "Scrape configuration export could not be completed."
+            );
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            AppendStatusMessage("Scrape configuration export cancelled.");
+        }
+        catch (Exception exception) when (exception is IOException or InvalidOperationException)
+        {
+            LogError("Unable to export scrape configuration.", exception);
         }
         finally
         {
@@ -108,6 +143,7 @@ public partial class MainWindow : Window, IDisposable
     {
         var isOperationRunning = operationCoordinator.IsOperationRunning;
         ImportConfigurationButton.IsEnabled = !isOperationRunning;
+        ExportConfigurationButton.IsEnabled = !isOperationRunning;
         RunScraperButton.IsEnabled = !isOperationRunning;
         CancelButton.IsEnabled = isOperationRunning;
     }

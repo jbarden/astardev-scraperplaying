@@ -17,4 +17,17 @@ public sealed class ConfigurationFilePicker : IConfigurationFilePicker
 
         return files.Count == 0 ? null! : files[0].Path.LocalPath;
     }
+
+    public async Task<Option<string>> PickSaveAsync(Window owner)
+    {
+        var file = await owner.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Export scrape configuration",
+            SuggestedFileName = "scrape-configuration.json",
+            DefaultExtension = "json",
+            FileTypeChoices = [new FilePickerFileType("JSON configuration") { Patterns = ["*.json"] }]
+        });
+
+        return file is null ? null! : file.Path.LocalPath;
+    }
 }
