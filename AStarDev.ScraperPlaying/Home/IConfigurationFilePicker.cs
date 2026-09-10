@@ -6,4 +6,6 @@ namespace AStarDev.ScraperPlaying.Home;
 public interface IConfigurationFilePicker
 {
     Task<Option<string>> PickAsync(Window owner);
+
+    Task<Option<string>> PickSaveAsync(Window owner);
 }

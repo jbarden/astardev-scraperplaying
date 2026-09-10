@@ -16,6 +16,7 @@
                 Spacing="12"
                 Margin="0,24,0,0">
       <Button x:Name="ImportConfigurationButton" Content="Import configuration" Click="ImportConfiguration" />
+      <Button x:Name="ExportConfigurationButton" Content="Export configuration" Click="ExportConfiguration" />
       <Button x:Name="RunScraperButton" Content="Run Scraper" Click="RunScraper" />
       <Button x:Name="CancelButton" Content="Cancel" Click="CancelOperation" IsEnabled="False" />
     </StackPanel>
