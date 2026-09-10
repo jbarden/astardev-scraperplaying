@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using AStarDev.ControlDb;
+using AStarDev.ControlDb.FileDetail;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.Utilities;
 using AStarDev.ScraperPlaying.SearchAPI;
@@ -14,16 +15,22 @@ public static class DataServices
     /// <returns>The <paramref name="services" /> collection to allow further chaining.</returns>
     public static IServiceCollection AddDataServices(this IServiceCollection services)
     {
-        _ = services.AddScoped<IScrapeConfigurationImporter, ScrapeConfigurationImporter>();
-        _ = services.AddScoped<IQuery<ScrapeConfigurationEntity>, ScrapeConfigurationQuery>();
-        _ = services.AddScoped<IUnitOfWork, ControlDbContext>();
+        string dbPath = BuildDbPath();
+
+        _ = services.AddScoped<IScrapeConfigurationImporter, ScrapeConfigurationImporter>()
+            .AddScoped<IQuery<ScrapeConfigurationEntity>, ScrapeConfigurationQuery>()
+            .AddScoped<IQuery<FileEntity>, FileQuery>()
+            .AddScoped<IUnitOfWork, ControlDbContext>()
+            .AddScoped<IFilesQuery, FilesQuery>()
+            .AddDbContextFactory<ControlDbContext>((serviceProvider, options) => options.UseSqlite($"Data Source={dbPath}"));
 
         return services;
     }
 
-    private static void ConfigureDbContext(DbContextOptionsBuilder builder)
-    {
-        string dbPath = ApplicationMetadata.ApplicationNameHyphenated.ApplicationDirectory().CombinePath(Path.DirectorySeparatorChar.ToString()).CombinePath("data").CombinePath(Path.DirectorySeparatorChar.ToString()).CombinePath("astar-control.db");
-        _ = builder.UseSqlite($"Data Source={dbPath}");
-    }
+    private static string BuildDbPath()
+        => ApplicationMetadata.ApplicationNameHyphenated.ApplicationDirectory()
+                .CombinePath(Path.DirectorySeparatorChar.ToString())
+                .CombinePath("data")
+                .CombinePath(Path.DirectorySeparatorChar.ToString())
+                .CombinePath("astar-control.db");
 }

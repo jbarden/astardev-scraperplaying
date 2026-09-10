@@ -24,7 +24,6 @@ public static class ApplicationServices
             .AddSingleton<IScrapeConfigurationImportService, ScrapeConfigurationImportService>()
             .AddSingleton<IScrapeConfigurationImporter, ScrapeConfigurationImporter>()
             .AddSingleton<OperationCoordinator>()
-            .AddSingleton<MainWindow>()
-            .AddDbContextFactory<ControlDbContext>((serviceProvider, options) =>
-                options.UseSqlite($"Data Source={ApplicationMetadata.ApplicationNameHyphenated.ApplicationDirectory().CombinePath(Path.DirectorySeparatorChar.ToString()).CombinePath("data").CombinePath(Path.DirectorySeparatorChar.ToString()).CombinePath("astar-control.db")}"));
+            .AddSingleton<Func<DateTimeOffset>>(_ => () => DateTimeOffset.UtcNow)
+            .AddSingleton<MainWindow>();
 }

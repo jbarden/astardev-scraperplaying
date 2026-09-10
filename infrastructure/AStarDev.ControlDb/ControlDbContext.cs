@@ -14,9 +14,12 @@ namespace AStarDev.ControlDb;
 /// </remarks>
 /// <param name="options">The options to be used by the DbContext.</param>
 /// <param name="scrapeConfigurationQuery">The query used to auto-include the sub-entities required by a <see cref="ScrapeConfigurationEntity"/> aggregate.</param>
-public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery<ScrapeConfigurationEntity>? scrapeConfigurationQuery = null) : DbContext(options), IUnitOfWork, IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>
+/// <param name="filesQuery">The query used to auto-include the sub-entities required by a <see cref="FileEntity"/> aggregate.</param>
+public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery<ScrapeConfigurationEntity>? scrapeConfigurationQuery = null, IQuery<FileEntity>? filesQuery = null)
+    : DbContext(options), IUnitOfWork, IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>, IRepository<FileEntity, FileId>
 {
     private readonly IQuery<ScrapeConfigurationEntity> scrapeConfigurationQuery = scrapeConfigurationQuery ?? new ScrapeConfigurationQuery();
+    private readonly IQuery<FileEntity> filesQuery = filesQuery ?? new FileQuery();
 
     /// <inheritdoc/>
     public IRepository<TAggregate, TKey> GetRepository<TAggregate, TKey>() where TAggregate : IAggregateRoot
@@ -35,16 +38,44 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
         });
 
     Task<Exceptional<Option<IEnumerable<ScrapeConfigurationEntity>>>> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.TryGetAllAsync()
-    => Try.RunAsync(async () => (Option<IEnumerable<ScrapeConfigurationEntity>>)(await this.scrapeConfigurationQuery.Apply(ScrapeConfigurations).ToListAsync()));
+    => Try.RunAsync(async () => (Option<IEnumerable<ScrapeConfigurationEntity>>)await this.scrapeConfigurationQuery.Apply(ScrapeConfigurations).ToListAsync());
 
     Task<Exceptional<Option<ScrapeConfigurationEntity>>> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.TryGetFirstAsync()
-    => Try.RunAsync(async () => (Option<ScrapeConfigurationEntity>)(await this.scrapeConfigurationQuery.Apply(ScrapeConfigurations).FirstOrDefaultAsync()));
+    => Try.RunAsync(async () => (Option<ScrapeConfigurationEntity>)await this.scrapeConfigurationQuery.Apply(ScrapeConfigurations).FirstOrDefaultAsync());
 
     /// <inheritdoc/>
     Exceptional<UnitFp> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.Delete(ScrapeConfigurationEntity aggregate) =>
         Try.Run(() =>
         {
             ScrapeConfigurations.Remove(aggregate);
+            return UnitFp.Instance;
+        });
+
+    /// <inheritdoc/>
+    Task<Exceptional<Option<FileEntity>>> IRepository<FileEntity, FileId>.TryFindAsync(FileId key) =>
+        Try.RunAsync(async () => (Option<FileEntity>)await this.filesQuery.Apply(Files).FirstOrDefaultAsync(file => file.Id == key));
+
+    /// <inheritdoc/>
+    Task<Exceptional<Option<IEnumerable<FileEntity>>>> IRepository<FileEntity, FileId>.TryGetAllAsync()
+    => Try.RunAsync(async () => (Option<IEnumerable<FileEntity>>)await this.filesQuery.Apply(Files).ToListAsync());
+
+    /// <inheritdoc/>
+    Task<Exceptional<Option<FileEntity>>> IRepository<FileEntity, FileId>.TryGetFirstAsync()
+    => Try.RunAsync(async () => (Option<FileEntity>)await this.filesQuery.Apply(Files).FirstOrDefaultAsync());
+
+    /// <inheritdoc/>
+    Exceptional<FileEntity> IRepository<FileEntity, FileId>.Add(FileEntity aggregate) =>
+        Try.Run(() =>
+        {
+            Files.Add(aggregate);
+            return aggregate;
+        });
+
+    /// <inheritdoc/>
+    Exceptional<UnitFp> IRepository<FileEntity, FileId>.Delete(FileEntity aggregate) =>
+        Try.Run(() =>
+        {
+            Files.Remove(aggregate);
             return UnitFp.Instance;
         });
 
@@ -71,8 +102,12 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
-        string tempDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        if (!optionsBuilder.IsConfigured) _ = optionsBuilder.UseSqlite($"Data Source={tempDir}/Scraper/files.db");
+
+        if (!optionsBuilder.IsConfigured)
+        {
+            string tempDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            _ = optionsBuilder.UseSqlite($"Data Source={tempDir}/Scraper/files.db");
+        }
 
         optionsBuilder
             .UseAsyncSeeding(async (context, _, cancellationToken) =>

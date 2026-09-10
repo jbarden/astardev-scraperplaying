@@ -12,3 +12,4 @@ public interface IQuery<TAggregate> where TAggregate : IAggregateRoot
     /// <returns>The queryable with the required includes applied.</returns>
     IQueryable<TAggregate> Apply(IQueryable<TAggregate> query);
 }
+
