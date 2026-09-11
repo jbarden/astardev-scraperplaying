@@ -449,7 +449,7 @@
             seconds when under a minute, minutes when under an hour, otherwise hours.
             </summary>
             <param name="elapsed">The time span to format.</param>
-            <returns>A human-readable duration, e.g. "42 seconds", "3 minutes", or "2.5 hours".</returns>
+            <returns>A human-readable duration, e.g. "42 seconds", "1 minute", or "2.5 hours".</returns>
         </member>
         <member name="T:System.Text.RegularExpressions.Generated.LowercaseLettersRegex_0">
             <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the LowercaseLettersRegex method.</summary>

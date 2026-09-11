@@ -38,11 +38,19 @@ public static class TimeSpanExtensions
     /// seconds when under a minute, minutes when under an hour, otherwise hours.
     /// </summary>
     /// <param name="elapsed">The time span to format.</param>
-    /// <returns>A human-readable duration, e.g. "42 seconds", "3 minutes", or "2.5 hours".</returns>
+    /// <returns>A human-readable duration, e.g. "42 seconds", "1 minute", or "2.5 hours".</returns>
     public static string ToDurationString(this TimeSpan elapsed)
-    => elapsed.TotalSeconds < 60
-        ? $"{elapsed.TotalSeconds:0.##} seconds"
-        : elapsed.TotalMinutes < 60
-            ? $"{elapsed.TotalMinutes:0.##} minutes"
-            : $"{elapsed.TotalHours:0.##} hours";
+    {
+        if (elapsed.TotalSeconds < 60) return FormatUnit(elapsed.TotalSeconds, "second");
+        if (elapsed.TotalMinutes < 60) return FormatUnit(elapsed.TotalMinutes, "minute");
+
+        return FormatUnit(elapsed.TotalHours, "hour");
+    }
+
+    private static string FormatUnit(double value, string unit)
+    {
+        var rounded = Math.Round(value, 2);
+
+        return $"{rounded:0.##} {unit}{(rounded == 1 ? string.Empty : "s")}";
+    }
 }
