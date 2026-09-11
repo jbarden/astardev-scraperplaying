@@ -5,7 +5,7 @@ using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
 namespace AStarDev.ScraperPlaying.Home;
 
 /// <inheritdoc/>
-public class ImageProcessor(Func<DateTimeOffset> clock, IUnitOfWork unitOfWork) : IImageProcessor
+public class ImageProcessor(Func<DateTimeOffset> clock) : IImageProcessor
 {
     /// <inheritdoc/>
     public async Task DownloadImageAsync(string id, string imageUri, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
@@ -25,7 +25,7 @@ public class ImageProcessor(Func<DateTimeOffset> clock, IUnitOfWork unitOfWork) 
     }
 
     /// <inheritdoc/>
-    public async Task ProcessTheImageAsync(IProgress<string> progress, IRepository<FileEntity, FileId> fileRepository, Data wallpaper, CancellationToken cancellationToken)
+    public Task ProcessTheImageAsync(IProgress<string> progress, IRepository<FileEntity, FileId> fileRepository, Data wallpaper, CancellationToken cancellationToken)
     {
         try
         {
@@ -54,7 +54,8 @@ public class ImageProcessor(Func<DateTimeOffset> clock, IUnitOfWork unitOfWork) 
             };
 
             fileRepository.Add(fileEntity);
-            await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return Task.CompletedTask;
         }
         catch (Exception ex)
         {
