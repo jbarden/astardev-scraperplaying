@@ -47,7 +47,7 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
                 await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Id}", page => BuildCategoryUrl(page, searchCategoriesUrl, category), apiKey, sessionCookie, baseUrl, progress, cancellationToken);
             }
 
-            progress.Report($"Search completed in: {Stopwatch.GetElapsedTime(startTime).TotalMinutes} total minutes.");
+            progress.Report($"Search completed in: {FormatElapsedTime(Stopwatch.GetElapsedTime(startTime))}.");
         }
         catch (HttpRequestException e)
         {
@@ -67,4 +67,11 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
     => page == 1
         ? searchCategoriesUrl.Replace("%7Bid%7D", category.Id)
         : searchCategoriesUrl.Replace("%7Bid%7D", category.Id) + page;
+
+    internal static string FormatElapsedTime(TimeSpan elapsed)
+    => elapsed.TotalSeconds < 60
+        ? $"{elapsed.TotalSeconds:0.##} seconds"
+        : elapsed.TotalMinutes < 60
+            ? $"{elapsed.TotalMinutes:0.##} minutes"
+            : $"{elapsed.TotalHours:0.##} hours";
 }
