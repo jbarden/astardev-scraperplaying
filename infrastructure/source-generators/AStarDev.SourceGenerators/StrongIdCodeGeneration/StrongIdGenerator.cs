@@ -14,7 +14,7 @@ namespace AStarDev.SourceGenerators.StrongIdCodeGeneration;
 public class StrongIdGenerator : IIncrementalGenerator
 {
     /// <summary>
-    /// The <see cref="Initialize" /> method is called by the compiler to register the source generation steps. It sets up a syntax provider to find all partial record structs with attributes and generates source code for those annotated with the <see cref="AStarDev.SourceGeneratorAttributes.StrongIdAttribute" />.
+    /// The <see cref="Initialize" /> method is called by the compiler to register the source generation steps. It sets up a syntax provider to find all partial record structs with attributes and generates source code for those annotated with the <see cref="SourceGeneratorAttributes.StrongIdAttribute" />.
     /// </summary>
     /// <param name="context"></param>
     public void Initialize(IncrementalGeneratorInitializationContext context)

@@ -1,4 +1,4 @@
-using global::Velopack;
+using Velopack;
 
 namespace AStar.Dev.Velopack.Publishing;
 

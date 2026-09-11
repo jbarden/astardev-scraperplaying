@@ -1,7 +1,7 @@
 using AStar.Dev.Logging.Extensions;
-using global::Velopack;
-using global::Velopack.Locators;
-using global::Velopack.Sources;
+using Velopack;
+using Velopack.Locators;
+using Velopack.Sources;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 

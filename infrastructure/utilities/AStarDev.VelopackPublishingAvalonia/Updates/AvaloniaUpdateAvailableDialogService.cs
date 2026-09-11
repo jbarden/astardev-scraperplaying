@@ -1,6 +1,6 @@
-using global::Avalonia;
-using global::Avalonia.Controls.ApplicationLifetimes;
-using global::Avalonia.Threading;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Threading;
 
 namespace AStar.Dev.Velopack.Publishing.Avalonia.Updates;
 

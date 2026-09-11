@@ -49,7 +49,7 @@ public sealed class GivenAnExceptional
         Exceptional<string> exceptional = new Success<string>("value");
         var captured = string.Empty;
 
-        await Task.FromResult(exceptional).MatchAsync<string>(value =>
+        await Task.FromResult(exceptional).MatchAsync(value =>
         {
             captured = value;
 

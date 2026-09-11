@@ -59,8 +59,8 @@ public partial class App : Application, IDisposable
 
     private static void MigrateDatabase(ServiceProvider serviceProvider) =>
         DatabaseMigrator.MigrateAsync(
-            serviceProvider.GetRequiredService<IDbContextFactory<AStarDev.ControlDb.ControlDbContext>>(),
-            serviceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<App>>()).GetAwaiter().GetResult();
+            serviceProvider.GetRequiredService<IDbContextFactory<ControlDb.ControlDbContext>>(),
+            serviceProvider.GetRequiredService<ILogger<App>>()).GetAwaiter().GetResult();
 
 
     /// <summary>Releases the resources held by the application's dependency injection container.</summary>
