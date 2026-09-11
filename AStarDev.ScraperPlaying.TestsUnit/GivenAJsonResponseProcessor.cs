@@ -19,7 +19,20 @@ public sealed class GivenAJsonResponseProcessor
 
         var result = await processor.GetFromJsonAsync<TestPayload>("https://example.test/search", client, CancellationToken.None);
 
-        result.Match(value => value?.Name, ex => ex.Message).ShouldBe("cats");
+        result.Match(option => option.Match(value => value.Name, () => (string?)null), ex => ex.Message).ShouldBe("cats");
+    }
+
+    [Fact]
+    public async Task when_the_response_is_successful_and_the_body_deserializes_to_null_then_a_success_wrapping_none_is_returned()
+    {
+        using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("null", Encoding.UTF8, "application/json")
+        });
+
+        var result = await processor.GetFromJsonAsync<TestPayload>("https://example.test/search", client, CancellationToken.None);
+
+        result.Match(option => option.Match(_ => false, () => true), _ => false).ShouldBeTrue();
     }
 
     [Fact]

@@ -16,10 +16,10 @@ public interface IJsonResponseProcessor
     /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
     /// <returns>
     /// A task representing the asynchronous operation, containing an <see cref="Exceptional{T}"/>: a success
-    /// wrapping the deserialized object (or null only if the response was successful but its body deserializes
-    /// to null), or a failure wrapping an <see cref="HttpRequestException"/> when the response status code does
-    /// not indicate success, or an <see cref="InvalidOperationException"/> when the successful response body
-    /// could not be deserialized as <typeparamref name="T"/>.
+    /// wrapping an <see cref="Option{T}"/> of the deserialized object (absent only if the response was successful
+    /// but its body deserializes to null), or a failure wrapping an <see cref="HttpRequestException"/> when the
+    /// response status code does not indicate success, or an <see cref="InvalidOperationException"/> when the
+    /// successful response body could not be deserialized as <typeparamref name="T"/>.
     /// </returns>
-    Task<Exceptional<T?>> GetFromJsonAsync<T>(string url, HttpClient client, CancellationToken cancellationToken);
+    Task<Exceptional<Option<T>>> GetFromJsonAsync<T>(string url, HttpClient client, CancellationToken cancellationToken);
 }
