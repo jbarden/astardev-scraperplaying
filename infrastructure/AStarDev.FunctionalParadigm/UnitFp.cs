@@ -10,4 +10,3 @@ public record UnitFp
     /// </summary>
     public static readonly UnitFp Instance = new();
 }
-#pragma warning restore CA1031 // Do not catch general exception types

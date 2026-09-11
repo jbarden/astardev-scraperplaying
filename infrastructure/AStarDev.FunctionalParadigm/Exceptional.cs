@@ -1,29 +1,23 @@
 namespace AStarDev.FunctionalParadigm;
-#pragma warning restore CA1031 // Do not catch general exception types
 
 /// <summary>
-///     Represents the outcome of an operation that may either succeed with a
-///     <typeparamref name="T" /> value or fail with a captured <see cref="Exception" />.
-///     Use the <see cref="Exceptional" /> factory class to construct instances.
+///     Factory methods for constructing <see cref="Exceptional{T}" /> instances.
 /// </summary>
-/// <typeparam name="T">The type of the success value.</typeparam>
-public abstract record Exceptional<T>
+public static class Exceptional
 {
     /// <summary>
-    ///     Restricts derivation of <see cref="Exceptional{T}" /> to <see cref="Success{T}" /> and
-    ///     <see cref="Failure{T}" />, both declared in this assembly.
+    ///    Creates a <see cref="Success{T}" /> instance from a value of type <typeparamref name="T" />.
     /// </summary>
-    private protected Exceptional()
-    {
-    }
+    /// <typeparam name="T">The type of the success value.</typeparam>
+    /// <param name="value">The success value.</param>
+    /// <returns>An <see cref="Exceptional{T}" /> in the <see cref="Success{T}" /> state.</returns>
+    public static Exceptional<T> Success<T>(T value) => new Success<T>(value);
 
     /// <summary>
-    ///     Implicitly lifts a success value into an <see cref="Exceptional{T}" />.
+    ///    Creates a <see cref="Failure{T}" /> instance from a captured <see cref="Exception" />.
     /// </summary>
-    public static implicit operator Exceptional<T>(T value) => new Success<T>(value);
-
-    /// <summary>
-    ///     Implicitly lifts a captured exception into an <see cref="Exceptional{T}" />.
-    /// </summary>
-    public static implicit operator Exceptional<T>(Exception exception) => new Failure<T>(exception);
+    /// <typeparam name="T">The type of the success value.</typeparam>
+    /// <param name="exception">The captured exception.</param>
+    /// <returns>An <see cref="Exceptional{T}" /> in the <see cref="Failure{T}" /> state.</returns>
+    public static Exceptional<T> Failure<T>(Exception exception) => new Failure<T>(exception);
 }
