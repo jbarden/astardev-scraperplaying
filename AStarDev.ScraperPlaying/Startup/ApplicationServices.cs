@@ -29,6 +29,7 @@ public static class ApplicationServices
             .AddScoped<IJsonResponseProcessor, JsonResponseProcessor>()
             .AddScoped<IImageProcessor, ImageProcessor>()
             .AddSingleton<Func<DateTimeOffset>>(_ => () => DateTimeOffset.UtcNow)
+            .AddSingleton<Func<TimeSpan>>(_ => () => TimeSpan.FromSeconds(2))
             .AddSingleton<MainWindow>()
             .AddHttpClient(ApplicationConstants.WallhavenHttpClientName, client =>
             {

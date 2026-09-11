@@ -22,7 +22,7 @@ public sealed class GivenAPagesProcessor
         httpClientFactory.CreateClient(ApplicationConstants.WallhavenHttpClientName).Returns(_ => new HttpClient());
         unitOfWork.GetRepository<FileEntity, FileId>().Returns(fileRepository);
         unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
-        processor = new(httpClientFactory, unitOfWork, filesQuery, jsonResponseProcessor, imageProcessor);
+        processor = new(httpClientFactory, unitOfWork, filesQuery, jsonResponseProcessor, imageProcessor, () => TimeSpan.FromMilliseconds(1));
     }
 
     [Fact]

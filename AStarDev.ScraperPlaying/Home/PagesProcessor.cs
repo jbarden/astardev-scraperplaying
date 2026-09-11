@@ -6,7 +6,7 @@ using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
 namespace AStarDev.ScraperPlaying.Home;
 
 /// <inheritdoc/>
-public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork unitOfWork, IFilesQuery filesQuery, IJsonResponseProcessor jsonResponseProcessor, IImageProcessor imageProcessor) : IPagesProcessor
+public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork unitOfWork, IFilesQuery filesQuery, IJsonResponseProcessor jsonResponseProcessor, IImageProcessor imageProcessor, Func<TimeSpan> pacingDelay) : IPagesProcessor
 {
     /// <inheritdoc/>
     public async Task FetchAndProcessPagesAsync(string logLabel, Func<int, string> pageUrlFactory, string apiKey, string sessionCookie, Uri baseUrl, IProgress<string> progress, CancellationToken cancellationToken)
@@ -17,7 +17,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
             var page = 1;
             var fileRepository = unitOfWork.GetRepository<FileEntity, FileId>();
             SearchResponse pageResult;
-            await Task.Delay(2_000, cancellationToken);
+            await Task.Delay(pacingDelay(), cancellationToken);
             do
             {
                 progress.Report($"Fetching {logLabel} page {page}.");
@@ -25,7 +25,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
                     .Match(
                         option => option.Match(value => value, () => throw new InvalidOperationException($"No response body received for {pageUrlFactory(page)}.")),
                         exception => throw exception);
-                await Task.Delay(2_000, cancellationToken);
+                await Task.Delay(pacingDelay(), cancellationToken);
                 foreach (var wallpaper in pageResult.Data)
                 {
                     await (await filesQuery.CheckExistsByNameAsync(new FileName(wallpaper.Id), cancellationToken))
@@ -44,7 +44,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
                                 progress.Report($"No existing file found for wallpaper {wallpaper.Id}.");
                                 await imageProcessor.DownloadImageAsync(wallpaper.Id, wallpaper.Path, progress, client, cancellationToken);
                                 progress.Report($"Downloaded image data for wallpaper {wallpaper.Id}");
-                                await Task.Delay(2_000, cancellationToken);
+                                await Task.Delay(pacingDelay(), cancellationToken);
 
                                 return (await imageProcessor.ProcessTheImageAsync(fileRepository, wallpaper, cancellationToken))
                                     .Match(_ => UnitFp.Instance, ex => throw ex);
@@ -68,7 +68,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
                 }
 
                 await unitOfWork.SaveChangesAsync(cancellationToken);
-                await Task.Delay(2_000, cancellationToken);
+                await Task.Delay(pacingDelay(), cancellationToken);
                 page++;
             } while (page <= pageResult.Meta.LastPage && page <= 4);
         }
