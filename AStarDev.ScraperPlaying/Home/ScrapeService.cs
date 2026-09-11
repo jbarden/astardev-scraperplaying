@@ -22,16 +22,11 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
             var pagesProcessor = scope.ServiceProvider.GetRequiredService<IPagesProcessor>();
 
             progress.Report("Starting scrape operation.");
-            ScrapeConfigurationEntity configuration = (await unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().TryGetFirstAsync())
-                .Match(scrapeConfigurationEntity => scrapeConfigurationEntity
-                    .Match(scrapeConfig => scrapeConfig, () => throw new InvalidOperationException("Scrape configuration not found")),
-                    _ =>
-                    {
-                        progress.Report("Scrape configuration not found");
-
-                        return null!;
-                    }
-            )!;
+            var configuration = (await unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().TryGetFirstAsync())
+                .Match(
+                    option => option.Match(scrapeConfig => scrapeConfig, () => throw new InvalidOperationException("Scrape configuration not found")),
+                    exception => throw exception
+                );
 
             var baseUrl = configuration.SearchConfiguration.BaseUrl;
             var apiKey = configuration.UserConfiguration.ApiKey;
