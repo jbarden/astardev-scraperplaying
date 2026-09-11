@@ -35,7 +35,6 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
             var baseUrl = configuration.SearchConfiguration.BaseUrl;
             var apiKey = configuration.UserConfiguration.ApiKey;
             var sessionCookie = configuration.UserConfiguration.SessionCookie;
-            var encodedApiKey = Uri.EscapeDataString(apiKey);
             var topWallpapersUrl = configuration.SearchConfiguration.TopWallpapers.Replace("apiKey={apiKey}&", string.Empty);
             var searchCategoriesUrl = configuration.SearchConfiguration.SearchStringPrefix.Replace("apiKey={apiKey}&", string.Empty);
             var searchCategories = configuration.SearchConfiguration.SearchCategories;
