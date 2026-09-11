@@ -1,4 +1,4 @@
-using global::Avalonia.Controls;
+using Avalonia.Controls;
 
 namespace AStar.Dev.Velopack.Publishing.Avalonia.Updates;
 

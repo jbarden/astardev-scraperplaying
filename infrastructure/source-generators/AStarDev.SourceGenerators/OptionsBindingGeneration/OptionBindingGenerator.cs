@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace AStarDev.SourceGenerators.OptionsBindingGeneration;
 
 /// <summary>
-///   The <see cref="OptionsBindingGenerator" /> class is a source generator that produces code for registering options classes annotated with the <see cref="AStarDev.SourceGeneratorAttributes.AutoRegisterOptionsAttribute" />.
+///   The <see cref="OptionsBindingGenerator" /> class is a source generator that produces code for registering options classes annotated with the <see cref="SourceGeneratorAttributes.AutoRegisterOptionsAttribute" />.
 /// </summary>
 [Generator]
 [System.Diagnostics.CodeAnalysis.SuppressMessage("MicrosoftCodeAnalysisCorrectness", "RS1038:Compiler extensions should be implemented in assemblies with compiler-provided references", Justification = "<Pending>")]
@@ -13,7 +13,7 @@ public sealed partial class OptionsBindingGenerator : IIncrementalGenerator
     private const string AttrFqn = "AStarDev.SourceGeneratorAttributes.AutoRegisterOptionsAttribute";
 
     /// <summary>
-    ///  The <see cref="Initialize" /> method is called by the compiler to register the source generation steps. It sets up a syntax provider to find all classes or structs annotated with the <see cref="AStarDev.SourceGeneratorAttributes.AutoRegisterOptionsAttribute" /> and generates source code for them.
+    ///  The <see cref="Initialize" /> method is called by the compiler to register the source generation steps. It sets up a syntax provider to find all classes or structs annotated with the <see cref="SourceGeneratorAttributes.AutoRegisterOptionsAttribute" /> and generates source code for them.
     /// </summary>
     /// <param name="context"></param>
     public void Initialize(IncrementalGeneratorInitializationContext context)

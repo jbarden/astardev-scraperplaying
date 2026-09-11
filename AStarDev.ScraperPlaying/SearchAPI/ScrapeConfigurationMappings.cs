@@ -11,7 +11,7 @@ public static class ScrapeConfigurationMappings
             new Uri(config.SearchConfiguration.BaseUrl.AbsoluteUri + config.SearchConfiguration.Subscriptions),
             config.SearchConfiguration.SearchCategories.ToDtos(), config.UserConfiguration.ToDto());
 
-    public static UserConfiguration ToDto(this AStarDev.ControlDb.ScrapeConfiguration.UserConfigurationEntity config)
+    public static UserConfiguration ToDto(this UserConfigurationEntity config)
         => new(
             config.Id.ToString(),
             config.ScrapeConfigurationEntityId.ToString(),
