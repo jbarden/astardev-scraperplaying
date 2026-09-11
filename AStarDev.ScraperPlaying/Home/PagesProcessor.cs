@@ -28,10 +28,17 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
                 await Task.Delay(2_000, cancellationToken);
                 foreach (var wallpaper in pageResult.Data)
                 {
-                    _ = (await filesQuery.CheckExistsByNameAsync(new FileName(wallpaper.Id), cancellationToken))
+                    await (await filesQuery.CheckExistsByNameAsync(new FileName(wallpaper.Id), cancellationToken))
                     .Match(
-                        async notFound =>
+                        async exists =>
                         {
+                            if (exists)
+                            {
+                                progress.Report($"The file details already exist for wallpaper {wallpaper.Id} - no need to fetch again.");
+
+                                return;
+                            }
+
                             await Try.RunAsync(async () =>
                             {
                                 progress.Report($"No existing file found for wallpaper {wallpaper.Id}.");
@@ -50,12 +57,13 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
                                     return UnitFp.Instance;
                                 }
                             );
-
                         },
-                         async _ =>
-                         {
-                             progress.Report($"The file details already exist for wallpaper {wallpaper.Id} - no need to fetch again.");
-                         }
+                        exception =>
+                        {
+                            progress.Report($"Failed to check whether the file details already exist for wallpaper {wallpaper.Id}: {exception.Message}");
+
+                            return Task.CompletedTask;
+                        }
                     );
                 }
 
