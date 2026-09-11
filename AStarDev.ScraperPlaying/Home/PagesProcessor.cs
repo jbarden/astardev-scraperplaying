@@ -8,10 +8,6 @@ namespace AStarDev.ScraperPlaying.Home;
 /// <inheritdoc/>
 public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork unitOfWork, IFilesQuery filesQuery, IJsonResponseProcessor jsonResponseProcessor, IImageProcessor imageProcessor) : IPagesProcessor
 {
-    /// <summary>The named <see cref="HttpClient"/> configured with the scraper's static headers via <c>AddHttpClient</c>.</summary>
-    public const string HttpClientName = "Wallhaven";
-
-
     /// <inheritdoc/>
     public async Task FetchAndProcessPagesAsync(string logLabel, Func<int, string> pageUrlFactory, string apiKey, string sessionCookie, Uri baseUrl, IProgress<string> progress, CancellationToken cancellationToken)
     {
@@ -74,7 +70,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
 
     private HttpClient CreateHttpClient(string apiKey, string sessionCookie, Uri baseUrl)
     {
-        var httpClient = httpClientFactory.CreateClient(HttpClientName);
+        var httpClient = httpClientFactory.CreateClient(ApplicationConstants.WallhavenHttpClientName);
         httpClient.BaseAddress = baseUrl;
         httpClient.DefaultRequestHeaders.Add("X-API-Key", apiKey);
         if (!string.IsNullOrWhiteSpace(sessionCookie)) httpClient.DefaultRequestHeaders.Add("Cookie", sessionCookie);
