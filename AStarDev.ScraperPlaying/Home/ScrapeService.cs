@@ -2,10 +2,11 @@ using System.Diagnostics;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.ControlDb;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AStarDev.ScraperPlaying.Home;
 
-public class ScrapeService(OperationCoordinator operationCoordinator, IUnitOfWork unitOfWork, IPagesProcessor pagesProcessor) : IScrapeService
+public class ScrapeService(OperationCoordinator operationCoordinator, IServiceScopeFactory scopeFactory) : IScrapeService
 {
     /// <inheritdoc/>
     public async Task RunScraperAsync(IProgress<string> progress)
@@ -15,6 +16,10 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IUnitOfWor
         var startTime = Stopwatch.GetTimestamp();
         try
         {
+            using var scope = scopeFactory.CreateScope();
+            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+            var pagesProcessor = scope.ServiceProvider.GetRequiredService<IPagesProcessor>();
+
             progress.Report("Starting scrape operation.");
             ScrapeConfigurationEntity configuration = (await unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().TryGetFirstAsync())
                 .Match(scrapeConfigurationEntity => scrapeConfigurationEntity
