@@ -71,7 +71,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
     private HttpClient CreateHttpClient(string apiKey, string sessionCookie, Uri baseUrl)
     {
         var httpClient = httpClientFactory.CreateClient();
-        httpClient.BaseAddress = new Uri(baseUrl.AbsoluteUri);
+        httpClient.BaseAddress = baseUrl;
         httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36");
         httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         httpClient.DefaultRequestHeaders.Add("X-API-Key", apiKey);
