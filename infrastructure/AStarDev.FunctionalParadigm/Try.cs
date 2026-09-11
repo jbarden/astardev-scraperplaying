@@ -10,9 +10,7 @@ namespace AStarDev.FunctionalParadigm;
 ///     survive.
 /// </remarks>
 #pragma warning disable CA1031 // Do not catch general exception types - this is the point of the methods
-#pragma warning disable CA1716 // Identifiers should not match keywords
 public static class Try
-#pragma warning restore CA1716 // Identifiers should not match keywords
 {
     /// <summary>
     ///     Runs the specified operation, capturing any thrown exception (other than
@@ -94,3 +92,4 @@ public static class Try
         return result;
     }
 }
+#pragma warning restore CA1031 // Do not catch general exception types
