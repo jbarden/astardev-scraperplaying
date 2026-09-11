@@ -1,4 +1,3 @@
-using System.Net.Http.Headers;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
@@ -71,10 +70,8 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
 
     private HttpClient CreateHttpClient(string apiKey, string sessionCookie, Uri baseUrl)
     {
-        var httpClient = httpClientFactory.CreateClient();
+        var httpClient = httpClientFactory.CreateClient(ApplicationConstants.WallhavenHttpClientName);
         httpClient.BaseAddress = baseUrl;
-        httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36");
-        httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         httpClient.DefaultRequestHeaders.Add("X-API-Key", apiKey);
         if (!string.IsNullOrWhiteSpace(sessionCookie)) httpClient.DefaultRequestHeaders.Add("Cookie", sessionCookie);
 
