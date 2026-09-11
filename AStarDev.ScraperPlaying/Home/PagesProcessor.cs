@@ -6,7 +6,7 @@ using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
 namespace AStarDev.ScraperPlaying.Home;
 
 /// <inheritdoc/>
-public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork unitOfWork, IFilesQuery filesQuery, IJsonResponseProcessor jsonResponseProcessor, IImageProcessor imageProcessor, Func<TimeSpan> pacingDelay) : IPagesProcessor
+public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork unitOfWork, IFilesQuery filesQuery, IJsonResponseProcessor jsonResponseProcessor, IImageProcessor imageProcessor, ITagsProcessor tagsProcessor, Func<TimeSpan> pacingDelay) : IPagesProcessor
 {
     /// <inheritdoc/>
     public async Task FetchAndProcessPagesAsync(string logLabel, Func<int, string> pageUrlFactory, string apiKey, string sessionCookie, Uri baseUrl, IProgress<string> progress, CancellationToken cancellationToken)
@@ -70,8 +70,22 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
                     progress.Report($"Downloaded image data for wallpaper {wallpaper.Id}");
                     await Task.Delay(pacingDelay(), cancellationToken);
 
-                    return (await imageProcessor.ProcessTheImageAsync(fileRepository, wallpaper, cancellationToken))
-                        .Match(_ => UnitFp.Instance, ex => throw ex);
+                    var fileEntity = (await imageProcessor.ProcessTheImageAsync(fileRepository, wallpaper, cancellationToken))
+                        .Match(entity => entity, ex => throw ex);
+
+                    await Task.Delay(pacingDelay(), cancellationToken);
+                    await tagsProcessor.FetchAndLinkTagsAsync(wallpaper.Id, fileEntity.Id, client, progress, cancellationToken)
+                        .MatchAsync(
+                            _ => Task.CompletedTask,
+                            ex =>
+                            {
+                                progress.Report($"Failed to fetch tags for wallpaper {wallpaper.Id}: {ex.Message}");
+
+                                return UnitFp.Instance;
+                            }
+                        );
+
+                    return UnitFp.Instance;
                 }).MatchAsync(
                     _ => Task.CompletedTask,
                     y =>
