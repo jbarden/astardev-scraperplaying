@@ -21,7 +21,7 @@ public sealed class GivenAnImageProcessor
     public async Task when_processing_a_wallpaper_then_a_matching_file_entity_is_added_and_returned()
     {
         fileRepository.Add(Arg.Any<FileEntity>()).Returns(call => (Exceptional<FileEntity>)call.Arg<FileEntity>());
-        var wallpaper = CreateWallpaper(id: "wallpaper-1", fileSize: 1234, fileType: "image/jpeg", dimensionX: 1920, dimensionY: 1080);
+        var wallpaper = CreateWallpaper(id: "wallpaper-1", fileSize: 1234, fileType: "image/jpeg", dimensionX: 1920, dimensionY: 1080, path: "https://example.test/full/wallpaper-1.jpg");
 
         var result = await processor.ProcessTheImageAsync(fileRepository, wallpaper, CancellationToken.None);
 
@@ -31,9 +31,23 @@ public sealed class GivenAnImageProcessor
         addedEntity.FileHandle.Value.ShouldBe("wallpaper-1");
         addedEntity.FileSize.ShouldBe(1234);
         addedEntity.FileType.ShouldBe("image/jpeg");
+        addedEntity.IsImage.ShouldBeTrue();
         addedEntity.ImageDetail!.Width.ShouldBe(1920);
         addedEntity.ImageDetail!.Height.ShouldBe(1080);
         addedEntity.FileAccessDetail.DetailsLastUpdated.ShouldBe(now.UtcDateTime);
+    }
+
+    [Fact]
+    public async Task when_the_wallpaper_path_does_not_have_an_image_extension_then_is_image_is_false()
+    {
+        fileRepository.Add(Arg.Any<FileEntity>()).Returns(call => (Exceptional<FileEntity>)call.Arg<FileEntity>());
+        var wallpaper = CreateWallpaper(id: "wallpaper-5", path: "https://example.test/full/wallpaper-5.txt");
+
+        var result = await processor.ProcessTheImageAsync(fileRepository, wallpaper, CancellationToken.None);
+
+        var addedEntity = result.Match(entity => entity, _ => (FileEntity?)null);
+        addedEntity.ShouldNotBeNull();
+        addedEntity.IsImage.ShouldBeFalse();
     }
 
     [Fact]
@@ -75,8 +89,8 @@ public sealed class GivenAnImageProcessor
         fileSystem.File.Exists("wallpaper-4.jpg").ShouldBeFalse();
     }
 
-    private static Data CreateWallpaper(string id, int fileSize = 0, string fileType = "", int dimensionX = 0, int dimensionY = 0)
-        => new(id, "", "", 0, 0, "", "", "", dimensionX, dimensionY, "", "", fileSize, fileType, "", [], "", new Thumbs("", "", ""));
+    private static Data CreateWallpaper(string id, int fileSize = 0, string fileType = "", int dimensionX = 0, int dimensionY = 0, string path = "")
+        => new(id, "", "", 0, 0, "", "", "", dimensionX, dimensionY, "", "", fileSize, fileType, "", [], path, new Thumbs("", "", ""));
 
     private static HttpClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> responder)
         => new(new StubHttpMessageHandler(responder));

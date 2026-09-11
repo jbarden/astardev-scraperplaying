@@ -3,6 +3,7 @@ using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
+using AStarDev.Utilities;
 
 namespace AStarDev.ScraperPlaying.Home;
 
@@ -45,6 +46,7 @@ public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, 
             FileSize = wallpaper.FileSize,
             FileHandle = FileHandle.Create(wallpaper.Id),
             FileType = wallpaper.FileType,
+            IsImage = wallpaper.Path.IsImage(),
             ImageDetail = new ImageDetailEntity
             {
                 Id = ImageId.Empty,
