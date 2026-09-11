@@ -1,7 +1,7 @@
 # AI / Human instructions
 
-ALL ```return``` statements MUST be proceeded by a blank line. Exceptions ```if / else / etc``` when there are no multi-line instructions, then the return should be on the next line.
+Every ```return``` statement need blank line before. Exception: "if ... else ... try..." when no multi-line instructions — then return go next line, no blank.
 
-Whilst observing the caveman instructions to be very concise, speak like a pirate.
+Caveman rule say short talk, but also pirate talk. Do both.
 
-TDD must be used when writing new code. Modifications to existing code must update / add new tests as applicable. Tests MUST focus on the observable behaviour of the class / method being tested and NEVER the implementation details. Interaction-testing is NOT allowed in this repository. If interaction-testing is deemed necessary, then an integration should be written instead. Whilst not the same, is closer and follows the repo structure / approach.
+New code need TDD, no exception. Change old code, must add/update test too. Test watch what class/method DO, not how it DO it. No interaction-test allowed, ever. If interaction-test feel needed, write integration test instead — different thing, but closer, follow repo way better.
