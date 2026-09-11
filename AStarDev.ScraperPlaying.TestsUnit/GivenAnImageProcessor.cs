@@ -15,7 +15,7 @@ public sealed class GivenAnImageProcessor
     private readonly MockFileSystem fileSystem = new();
     private readonly ImageProcessor processor;
 
-    public GivenAnImageProcessor() => processor = new(() => now, fileSystem);
+    public GivenAnImageProcessor() => processor = new(() => now, fileSystem, () => TimeSpan.FromMilliseconds(1));
 
     [Fact]
     public async Task when_processing_a_wallpaper_then_a_matching_file_entity_is_added_and_returned()

@@ -7,12 +7,12 @@ using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
 namespace AStarDev.ScraperPlaying.Home;
 
 /// <inheritdoc/>
-public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem) : IImageProcessor
+public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, Func<TimeSpan> pacingDelay) : IImageProcessor
 {
     /// <inheritdoc/>
     public async Task DownloadImageAsync(string id, string imageUri, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
     {
-        await Task.Delay(2_000, cancellationToken);
+        await Task.Delay(pacingDelay(), cancellationToken);
 
         using var request = new HttpRequestMessage(HttpMethod.Get, imageUri);
 
