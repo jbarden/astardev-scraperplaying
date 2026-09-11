@@ -28,6 +28,7 @@ public static class ApplicationServices
             .AddScoped<IPagesProcessor, PagesProcessor>()
             .AddScoped<IJsonResponseProcessor, JsonResponseProcessor>()
             .AddScoped<IImageProcessor, ImageProcessor>()
+            .AddScoped<ITagsProcessor, TagsProcessor>()
             .AddSingleton<Func<DateTimeOffset>>(_ => () => DateTimeOffset.UtcNow)
             .AddSingleton<Func<TimeSpan>>(_ => () => TimeSpan.FromSeconds(2))
             .AddSingleton<MainWindow>()
