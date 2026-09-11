@@ -21,6 +21,7 @@ public class JsonResponseProcessor : IJsonResponseProcessor
 
         try
         {
+
             return await response.Content.ReadFromJsonAsync<T>(cancellationToken: cancellationToken);
         }
         catch (Exception exception) when (exception is JsonException or InvalidOperationException)
