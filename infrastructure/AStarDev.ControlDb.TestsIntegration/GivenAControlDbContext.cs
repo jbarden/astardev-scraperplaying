@@ -1,4 +1,6 @@
+using AStarDev.ControlDb.FileDetail;
 using AStarDev.ControlDb.ScrapeConfiguration;
+using AStarDev.ControlDb.TagDetail;
 using AStarDev.ControlDb.TestsIntegration.TestDataFactories;
 using AStarDev.FunctionalParadigm;
 using Microsoft.EntityFrameworkCore;
@@ -111,6 +113,42 @@ public sealed class GivenAControlDbContext : IDisposable
 
         reloaded.ShouldNotBeNull();
         reloaded.FileName.ShouldBe(FileEntity.FileName);
+    }
+
+    [Fact]
+    public void when_accessed_the_tags_and_file_tags_repositories_should_be_dbsets()
+    {
+        context.Tags.ShouldBeAssignableTo<DbSet<TagEntity>>();
+        context.FileTags.ShouldBeAssignableTo<DbSet<FileTagEntity>>();
+    }
+
+    [Fact]
+    public async Task when_one_tag_is_linked_to_two_files_then_it_is_stored_once_with_two_links()
+    {
+        var firstFile = FileEntityFactory.CreateFileEntity();
+        var secondFileId = FileId.Create();
+        var secondFile = new FileEntity
+        {
+            Id = secondFileId,
+            FileName = FileName.Create("second-file"),
+            DirectoryName = DirectoryName.Create("directory-name"),
+            FileHandle = FileHandle.Create("second-file-handle"),
+            FileSize = 54321,
+            FileAccessDetail = new FileAccessDetailEntity { Id = FileAccessDetailId.Create(), FileId = secondFileId }
+        };
+        var tagEntity = TagEntityFactory.CreateTagEntity();
+        await context.Files.AddRangeAsync([firstFile, secondFile], TestContext.Current.CancellationToken);
+        await context.Tags.AddAsync(tagEntity, TestContext.Current.CancellationToken);
+        await context.FileTags.AddRangeAsync(
+        [
+            new FileTagEntity { FileId = firstFile.Id, TagId = tagEntity.Id },
+            new FileTagEntity { FileId = secondFile.Id, TagId = tagEntity.Id }
+        ], TestContext.Current.CancellationToken);
+
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        (await context.Tags.CountAsync(TestContext.Current.CancellationToken)).ShouldBe(1);
+        (await context.FileTags.CountAsync(fileTag => fileTag.TagId == tagEntity.Id, TestContext.Current.CancellationToken)).ShouldBe(2);
     }
 
     public void Dispose()

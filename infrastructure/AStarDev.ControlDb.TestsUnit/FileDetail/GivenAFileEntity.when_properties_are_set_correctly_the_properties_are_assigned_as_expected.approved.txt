@@ -1,4 +1,4 @@
-﻿{
+{
   "id": {
     "value": "00000000-0000-0000-0000-000000000000"
   },
@@ -38,5 +38,6 @@
     "softDeletePending": "<date>",
     "hardDeletePending": "<date>"
   },
-  "fileType": "image/png"
+  "fileType": "image/png",
+  "fileTags": []
 }
