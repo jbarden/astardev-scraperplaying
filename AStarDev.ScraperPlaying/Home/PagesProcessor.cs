@@ -21,7 +21,8 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
             do
             {
                 progress.Report($"Fetching {logLabel} page {page}.");
-                pageResult = (await jsonResponseProcessor.GetFromJsonAsync<SearchResponse>(pageUrlFactory(page), client, cancellationToken))!;
+                pageResult = (await jsonResponseProcessor.GetFromJsonAsync<SearchResponse>(pageUrlFactory(page), client, cancellationToken))
+                    .Match(value => value, exception => throw exception)!;
                 await Task.Delay(2_000, cancellationToken);
                 foreach (var wallpaper in pageResult.Data)
                 {
