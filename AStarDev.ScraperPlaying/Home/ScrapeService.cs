@@ -35,11 +35,11 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IUnitOfWor
             var searchCategories = configuration.SearchConfiguration.SearchCategories;
 
             progress.Report("Fetching top wallpapers.");
-            await pagesProcessor.FetchAndProcessPagesAsync("top wallpapers", page => topWallpapersUrl + page, sessionCookie, baseUrl, progress, cancellationToken);
+            await pagesProcessor.FetchAndProcessPagesAsync("top wallpapers", page => topWallpapersUrl + page, apiKey, sessionCookie, baseUrl, progress, cancellationToken);
 
             foreach (var category in searchCategories.Take(3))
             {
-                await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Id}", page => BuildCategoryUrl(page, searchCategoriesUrl, category), sessionCookie, baseUrl, progress, cancellationToken);
+                await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Id}", page => BuildCategoryUrl(page, searchCategoriesUrl, category), apiKey, sessionCookie, baseUrl, progress, cancellationToken);
             }
 
             progress.Report($"Search completed in: {Stopwatch.GetElapsedTime(startTime).TotalMinutes} total minutes.");
