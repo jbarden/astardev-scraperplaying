@@ -21,7 +21,10 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
             do
             {
                 progress.Report($"Fetching {logLabel} page {page}.");
-                pageResult = (await jsonResponseProcessor.GetFromJsonAsync<SearchResponse>(pageUrlFactory(page), client, cancellationToken))!;
+                pageResult = (await jsonResponseProcessor.GetFromJsonAsync<SearchResponse>(pageUrlFactory(page), client, cancellationToken))
+                    .Match(
+                        option => option.Match(value => value, () => throw new InvalidOperationException($"No response body received for {pageUrlFactory(page)}.")),
+                        exception => throw exception);
                 await Task.Delay(2_000, cancellationToken);
                 foreach (var wallpaper in pageResult.Data)
                 {
