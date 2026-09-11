@@ -13,10 +13,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="AStarDev.ScraperPlaying.TestsUnit" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Avalonia.Controls.DataGrid" />
