@@ -24,9 +24,9 @@ public static class ApplicationServices
             .AddSingleton<IScrapeConfigurationExportService, ScrapeConfigurationExportService>()
             .AddSingleton<IScrapeConfigurationExporter, ScrapeConfigurationExporter>()
             .AddSingleton<OperationCoordinator>()
-            .AddSingleton<IPagesProcessor, PagesProcessor>()
-            .AddSingleton<IJsonResponseProcessor, JsonResponseProcessor>()
-            .AddSingleton<IImageProcessor, ImageProcessor>()
+            .AddScoped<IPagesProcessor, PagesProcessor>()
+            .AddScoped<IJsonResponseProcessor, JsonResponseProcessor>()
+            .AddScoped<IImageProcessor, ImageProcessor>()
             .AddSingleton<Func<DateTimeOffset>>(_ => () => DateTimeOffset.UtcNow)
             .AddSingleton<MainWindow>()
             .AddHttpClient();
