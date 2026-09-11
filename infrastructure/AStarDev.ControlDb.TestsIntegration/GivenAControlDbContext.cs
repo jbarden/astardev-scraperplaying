@@ -116,6 +116,29 @@ public sealed class GivenAControlDbContext : IDisposable
     }
 
     [Fact]
+    public async Task when_two_new_file_entities_are_added_with_empty_ids_in_the_same_batch_then_both_are_tracked_and_generated_distinct_ids()
+    {
+        var firstFile = FileEntityFactory.CreateFileEntity();
+        var secondFile = new FileEntity
+        {
+            Id = FileId.Empty,
+            FileName = FileName.Create("second-file"),
+            DirectoryName = DirectoryName.Create("directory-name"),
+            FileHandle = FileHandle.Create("second-file-handle"),
+            FileSize = 54321,
+            FileAccessDetail = new FileAccessDetailEntity { Id = FileAccessDetailId.Create(), FileId = FileId.Empty }
+        };
+
+        await context.Files.AddAsync(firstFile, TestContext.Current.CancellationToken);
+        await context.Files.AddAsync(secondFile, TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        firstFile.Id.Value.ShouldNotBe(Guid.Empty);
+        secondFile.Id.Value.ShouldNotBe(Guid.Empty);
+        firstFile.Id.ShouldNotBe(secondFile.Id);
+    }
+
+    [Fact]
     public void when_accessed_the_tags_and_file_tags_repositories_should_be_dbsets()
     {
         context.Tags.ShouldBeAssignableTo<DbSet<TagEntity>>();
