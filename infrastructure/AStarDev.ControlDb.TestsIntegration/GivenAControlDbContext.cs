@@ -118,16 +118,8 @@ public sealed class GivenAControlDbContext : IDisposable
     [Fact]
     public async Task when_two_new_file_entities_are_added_with_empty_ids_in_the_same_batch_then_both_are_tracked_and_generated_distinct_ids()
     {
-        var firstFile = FileEntityFactory.CreateFileEntity();
-        var secondFile = new FileEntity
-        {
-            Id = FileId.Empty,
-            FileName = FileName.Create("second-file"),
-            DirectoryName = DirectoryName.Create("directory-name"),
-            FileHandle = FileHandle.Create("second-file-handle"),
-            FileSize = 54321,
-            FileAccessDetail = new FileAccessDetailEntity { Id = FileAccessDetailId.Create(), FileId = FileId.Empty }
-        };
+        var firstFile = CreateNewFileEntityWithEmptyIds("first-file-handle");
+        var secondFile = CreateNewFileEntityWithEmptyIds("second-file-handle");
 
         await context.Files.AddAsync(firstFile, TestContext.Current.CancellationToken);
         await context.Files.AddAsync(secondFile, TestContext.Current.CancellationToken);
@@ -136,7 +128,30 @@ public sealed class GivenAControlDbContext : IDisposable
         firstFile.Id.Value.ShouldNotBe(Guid.Empty);
         secondFile.Id.Value.ShouldNotBe(Guid.Empty);
         firstFile.Id.ShouldNotBe(secondFile.Id);
+
+        firstFile.FileAccessDetail.Id.Value.ShouldNotBe(Guid.Empty);
+        secondFile.FileAccessDetail.Id.Value.ShouldNotBe(Guid.Empty);
+        firstFile.FileAccessDetail.Id.ShouldNotBe(secondFile.FileAccessDetail.Id);
+
+        firstFile.ImageDetail.ShouldNotBeNull();
+        secondFile.ImageDetail.ShouldNotBeNull();
+        firstFile.ImageDetail.Id.Value.ShouldNotBe(Guid.Empty);
+        secondFile.ImageDetail.Id.Value.ShouldNotBe(Guid.Empty);
+        firstFile.ImageDetail.Id.ShouldNotBe(secondFile.ImageDetail.Id);
     }
+
+    /// <summary>Mirrors exactly how ImageProcessor.ProcessTheImageAsync builds a new FileEntity - every id set to its Empty sentinel, relying on EF to generate a real one on insert.</summary>
+    private static FileEntity CreateNewFileEntityWithEmptyIds(string fileHandle)
+        => new()
+        {
+            Id = FileId.Empty,
+            FileName = FileName.Create(fileHandle),
+            DirectoryName = DirectoryName.Create("directory-name"),
+            FileHandle = FileHandle.Create(fileHandle),
+            FileSize = 12345,
+            FileAccessDetail = new FileAccessDetailEntity { Id = FileAccessDetailId.Empty, FileId = FileId.Empty },
+            ImageDetail = new ImageDetailEntity { Id = ImageId.Empty, FileId = FileId.Empty, Width = 1920, Height = 1080 }
+        };
 
     [Fact]
     public void when_accessed_the_tags_and_file_tags_repositories_should_be_dbsets()
