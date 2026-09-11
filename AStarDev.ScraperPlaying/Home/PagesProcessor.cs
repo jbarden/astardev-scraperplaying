@@ -38,9 +38,9 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
                                 await imageProcessor.DownloadImageAsync(wallpaper.Id, wallpaper.Path, progress, client, cancellationToken);
                                 progress.Report($"Downloaded image data for wallpaper {wallpaper.Id}");
                                 await Task.Delay(2_000, cancellationToken);
-                                await imageProcessor.ProcessTheImageAsync(progress, fileRepository, wallpaper, cancellationToken);
 
-                                return UnitFp.Instance;
+                                return (await imageProcessor.ProcessTheImageAsync(fileRepository, wallpaper, cancellationToken))
+                                    .Match(_ => UnitFp.Instance, ex => throw ex);
                             }).MatchAsync(
                                 _ => Task.CompletedTask,
                                 y =>
