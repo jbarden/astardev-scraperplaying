@@ -22,26 +22,9 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
             var pagesProcessor = scope.ServiceProvider.GetRequiredService<IPagesProcessor>();
 
             progress.Report("Starting scrape operation.");
-            var configuration = (await unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().TryGetFirstAsync())
-                .Match(
-                    option => option.Match(scrapeConfig => scrapeConfig, () => throw new InvalidOperationException("Scrape configuration not found")),
-                    exception => throw exception
-                );
+            var configuration = await LoadConfigurationAsync(unitOfWork);
 
-            var baseUrl = configuration.SearchConfiguration.BaseUrl;
-            var apiKey = configuration.UserConfiguration.ApiKey;
-            var sessionCookie = configuration.UserConfiguration.SessionCookie;
-            var topWallpapersUrl = configuration.SearchConfiguration.TopWallpapers;
-            var searchCategoriesUrl = configuration.SearchConfiguration.SearchStringPrefix;
-            var searchCategories = configuration.SearchConfiguration.SearchCategories;
-
-            progress.Report("Fetching top wallpapers.");
-            await pagesProcessor.FetchAndProcessPagesAsync("top wallpapers", page => topWallpapersUrl + page, apiKey, sessionCookie, baseUrl, progress, cancellationToken);
-
-            foreach (var category in searchCategories.Take(3))
-            {
-                await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Id}", page => BuildCategoryUrl(page, searchCategoriesUrl, category), apiKey, sessionCookie, baseUrl, progress, cancellationToken);
-            }
+            await RunSearchesAsync(pagesProcessor, configuration, progress, cancellationToken);
 
             progress.Report($"Search completed in: {Stopwatch.GetElapsedTime(startTime).ToDurationString()}.");
         }
@@ -56,6 +39,31 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
         finally
         {
             operationCoordinator.Complete();
+        }
+    }
+
+    private static async Task<ScrapeConfigurationEntity> LoadConfigurationAsync(IUnitOfWork unitOfWork)
+        => (await unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().TryGetFirstAsync())
+            .Match(
+                option => option.Match(scrapeConfig => scrapeConfig, () => throw new InvalidOperationException("Scrape configuration not found")),
+                exception => throw exception
+            );
+
+    private static async Task RunSearchesAsync(IPagesProcessor pagesProcessor, ScrapeConfigurationEntity configuration, IProgress<string> progress, CancellationToken cancellationToken)
+    {
+        var baseUrl = configuration.SearchConfiguration.BaseUrl;
+        var apiKey = configuration.UserConfiguration.ApiKey;
+        var sessionCookie = configuration.UserConfiguration.SessionCookie;
+        var topWallpapersUrl = configuration.SearchConfiguration.TopWallpapers;
+        var searchCategoriesUrl = configuration.SearchConfiguration.SearchStringPrefix;
+        var searchCategories = configuration.SearchConfiguration.SearchCategories;
+
+        progress.Report("Fetching top wallpapers.");
+        await pagesProcessor.FetchAndProcessPagesAsync("top wallpapers", page => topWallpapersUrl + page, apiKey, sessionCookie, baseUrl, progress, cancellationToken);
+
+        foreach (var category in searchCategories.Take(3))
+        {
+            await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Id}", page => BuildCategoryUrl(page, searchCategoriesUrl, category), apiKey, sessionCookie, baseUrl, progress, cancellationToken);
         }
     }
 
