@@ -70,6 +70,32 @@ public sealed class GivenATagsProcessor
     }
 
     [Fact]
+    public async Task when_two_different_wallpapers_introduce_the_same_new_tag_then_it_is_created_once_and_cached_across_calls()
+    {
+        var tag = CreateTag(wallhavenTagId: 4, name: "shared");
+        jsonResponseProcessor.GetFromJsonAsync<DetailResponse>($"{ApplicationConstants.WallhavenDetailPathTemplate}wallpaper-a", Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
+            .Returns((Exceptional<Option<DetailResponse>>)(Option<DetailResponse>)CreateDetailResponse(tag));
+        jsonResponseProcessor.GetFromJsonAsync<DetailResponse>($"{ApplicationConstants.WallhavenDetailPathTemplate}wallpaper-b", Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
+            .Returns((Exceptional<Option<DetailResponse>>)(Option<DetailResponse>)CreateDetailResponse(tag));
+        // Simulates the production race: neither call's DB lookup sees the other's not-yet-saved insert, so both return "not found".
+        tagsQuery.TryFindByWallhavenIdAsync(4, Arg.Any<CancellationToken>()).Returns((Exceptional<Option<TagEntity>>)Option<TagEntity>.None.Instance);
+        var createdTag = new TagEntity { Id = TagId.Create(), WallhavenTagId = 4, Name = "shared" };
+        tagRepository.Add(Arg.Any<TagEntity>()).Returns((Exceptional<TagEntity>)createdTag);
+        fileTagRepository.Add(Arg.Any<FileTagEntity>()).Returns(call => (Exceptional<FileTagEntity>)call.Arg<FileTagEntity>());
+        var firstFileId = FileId.Create();
+        var secondFileId = FileId.Create();
+
+        var firstResult = await processor.FetchAndLinkTagsAsync("wallpaper-a", firstFileId, new HttpClient(), progress, CancellationToken.None);
+        var secondResult = await processor.FetchAndLinkTagsAsync("wallpaper-b", secondFileId, new HttpClient(), progress, CancellationToken.None);
+
+        firstResult.Match(_ => true, ex => throw ex).ShouldBeTrue();
+        secondResult.Match(_ => true, ex => throw ex).ShouldBeTrue();
+        tagRepository.Received(1).Add(Arg.Is<TagEntity>(t => t.WallhavenTagId == 4));
+        fileTagRepository.Received(1).Add(Arg.Is<FileTagEntity>(fileTag => fileTag.FileId == firstFileId && fileTag.TagId == createdTag.Id));
+        fileTagRepository.Received(1).Add(Arg.Is<FileTagEntity>(fileTag => fileTag.FileId == secondFileId && fileTag.TagId == createdTag.Id));
+    }
+
+    [Fact]
     public async Task when_the_detail_fetch_fails_then_the_failure_is_returned_not_thrown()
     {
         var exception = new HttpRequestException("boom");
