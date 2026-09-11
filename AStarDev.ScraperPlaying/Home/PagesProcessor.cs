@@ -20,51 +20,12 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
             await Task.Delay(pacingDelay(), cancellationToken);
             do
             {
-                progress.Report($"Fetching {logLabel} page {page}.");
-                pageResult = (await jsonResponseProcessor.GetFromJsonAsync<SearchResponse>(pageUrlFactory(page), client, cancellationToken))
-                    .Match(
-                        option => option.Match(value => value, () => throw new InvalidOperationException($"No response body received for {pageUrlFactory(page)}.")),
-                        exception => throw exception);
+                pageResult = await FetchPageAsync(logLabel, pageUrlFactory, page, client, progress, cancellationToken);
                 await Task.Delay(pacingDelay(), cancellationToken);
+
                 foreach (var wallpaper in pageResult.Data)
                 {
-                    await (await filesQuery.CheckExistsByNameAsync(new FileName(wallpaper.Id), cancellationToken))
-                    .Match(
-                        async exists =>
-                        {
-                            if (exists)
-                            {
-                                progress.Report($"The file details already exist for wallpaper {wallpaper.Id} - no need to fetch again.");
-
-                                return;
-                            }
-
-                            await Try.RunAsync(async () =>
-                            {
-                                progress.Report($"No existing file found for wallpaper {wallpaper.Id}.");
-                                await imageProcessor.DownloadImageAsync(wallpaper.Id, wallpaper.Path, progress, client, cancellationToken);
-                                progress.Report($"Downloaded image data for wallpaper {wallpaper.Id}");
-                                await Task.Delay(pacingDelay(), cancellationToken);
-
-                                return (await imageProcessor.ProcessTheImageAsync(fileRepository, wallpaper, cancellationToken))
-                                    .Match(_ => UnitFp.Instance, ex => throw ex);
-                            }).MatchAsync(
-                                _ => Task.CompletedTask,
-                                y =>
-                                {
-                                    progress.Report($"Failed to process image for wallpaper {wallpaper.Id}: {y.Message}");
-
-                                    return UnitFp.Instance;
-                                }
-                            );
-                        },
-                        exception =>
-                        {
-                            progress.Report($"Failed to check whether the file details already exist for wallpaper {wallpaper.Id}: {exception.Message}");
-
-                            return Task.CompletedTask;
-                        }
-                    );
+                    await ProcessWallpaperAsync(wallpaper, client, fileRepository, progress, cancellationToken);
                 }
 
                 await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -77,6 +38,57 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
             progress.Report($"An error occurred during the fetching and processing of pages: {ex.Message}");
             throw;
         }
+    }
+
+    private async Task<SearchResponse> FetchPageAsync(string logLabel, Func<int, string> pageUrlFactory, int page, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
+    {
+        progress.Report($"Fetching {logLabel} page {page}.");
+
+        return (await jsonResponseProcessor.GetFromJsonAsync<SearchResponse>(pageUrlFactory(page), client, cancellationToken))
+            .Match(
+                option => option.Match(value => value, () => throw new InvalidOperationException($"No response body received for {pageUrlFactory(page)}.")),
+                exception => throw exception);
+    }
+
+    private async Task ProcessWallpaperAsync(Data wallpaper, HttpClient client, IRepository<FileEntity, FileId> fileRepository, IProgress<string> progress, CancellationToken cancellationToken)
+    {
+        await (await filesQuery.CheckExistsByNameAsync(new FileName(wallpaper.Id), cancellationToken))
+        .Match(
+            async exists =>
+            {
+                if (exists)
+                {
+                    progress.Report($"The file details already exist for wallpaper {wallpaper.Id} - no need to fetch again.");
+
+                    return;
+                }
+
+                await Try.RunAsync(async () =>
+                {
+                    progress.Report($"No existing file found for wallpaper {wallpaper.Id}.");
+                    await imageProcessor.DownloadImageAsync(wallpaper.Id, wallpaper.Path, progress, client, cancellationToken);
+                    progress.Report($"Downloaded image data for wallpaper {wallpaper.Id}");
+                    await Task.Delay(pacingDelay(), cancellationToken);
+
+                    return (await imageProcessor.ProcessTheImageAsync(fileRepository, wallpaper, cancellationToken))
+                        .Match(_ => UnitFp.Instance, ex => throw ex);
+                }).MatchAsync(
+                    _ => Task.CompletedTask,
+                    y =>
+                    {
+                        progress.Report($"Failed to process image for wallpaper {wallpaper.Id}: {y.Message}");
+
+                        return UnitFp.Instance;
+                    }
+                );
+            },
+            exception =>
+            {
+                progress.Report($"Failed to check whether the file details already exist for wallpaper {wallpaper.Id}: {exception.Message}");
+
+                return Task.CompletedTask;
+            }
+        );
     }
 
     private HttpClient CreateHttpClient(string apiKey, string sessionCookie, Uri baseUrl)
