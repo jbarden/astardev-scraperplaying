@@ -8,15 +8,15 @@ namespace AStarDev.ScraperPlaying.Home;
 public class ImageProcessor(Func<DateTimeOffset> clock, IUnitOfWork unitOfWork) : IImageProcessor
 {
     /// <inheritdoc/>
-    public async Task DownloadImageAsync(string id, string path, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
+    public async Task DownloadImageAsync(string id, string imageUri, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
     {
         await Task.Delay(2_000, cancellationToken);
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, path);
+        using var request = new HttpRequestMessage(HttpMethod.Get, imageUri);
 
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         response.EnsureSuccessStatusCode();
-        progress.Report($"Downloading image for wallpaper {id} from {path}");
+        progress.Report($"Downloading image for wallpaper {id} from {imageUri}");
         using Stream downloadStream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
         using FileStream fileStream = new($"{id}.jpg", FileMode.Create, FileAccess.Write, FileShare.None);
