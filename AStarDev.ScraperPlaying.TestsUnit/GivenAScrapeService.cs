@@ -1,0 +1,149 @@
+using AStarDev.ControlDb;
+using AStarDev.ControlDb.ScrapeConfiguration;
+using AStarDev.FunctionalParadigm;
+using AStarDev.ScraperPlaying.Home;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace AStarDev.ScraperPlaying.TestsUnit;
+
+public sealed class GivenAScrapeService : IDisposable
+{
+    private readonly OperationCoordinator operationCoordinator = new();
+    private readonly IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> repository = Substitute.For<IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>>();
+    private readonly IPagesProcessor pagesProcessor = Substitute.For<IPagesProcessor>();
+    private readonly CapturingProgress progress = new();
+    private readonly ScrapeService service;
+
+    public GivenAScrapeService()
+    {
+        unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().Returns(repository);
+        pagesProcessor.FetchAndProcessPagesAsync(Arg.Any<string>(), Arg.Any<Func<int, string>>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Uri>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+
+        var services = new ServiceCollection();
+        services.AddSingleton(unitOfWork);
+        services.AddSingleton(pagesProcessor);
+        var scopeFactory = services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
+
+        service = new(operationCoordinator, scopeFactory);
+    }
+
+    [Fact]
+    public async Task when_a_configuration_exists_then_top_wallpapers_and_up_to_three_categories_are_processed_and_completion_is_reported()
+    {
+        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration(categoryCount: 5));
+
+        await Run();
+
+        progress.Messages.ShouldContain("Starting scrape operation.");
+        progress.Messages.ShouldContain("Fetching top wallpapers.");
+        progress.Messages.ShouldContain(message => message.StartsWith("Search completed in:"));
+        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("top wallpapers", Arg.Any<Func<int, string>>(), "api-key", "cookie", new Uri("https://example.test"), progress, Arg.Any<CancellationToken>());
+        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category cat1", Arg.Any<Func<int, string>>(), "api-key", "cookie", new Uri("https://example.test"), progress, Arg.Any<CancellationToken>());
+        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category cat2", Arg.Any<Func<int, string>>(), "api-key", "cookie", new Uri("https://example.test"), progress, Arg.Any<CancellationToken>());
+        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category cat3", Arg.Any<Func<int, string>>(), "api-key", "cookie", new Uri("https://example.test"), progress, Arg.Any<CancellationToken>());
+        await pagesProcessor.DidNotReceive().FetchAndProcessPagesAsync("search category cat4", Arg.Any<Func<int, string>>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Uri>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
+        await pagesProcessor.DidNotReceive().FetchAndProcessPagesAsync("search category cat5", Arg.Any<Func<int, string>>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Uri>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
+        operationCoordinator.IsOperationRunning.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task when_no_configuration_row_exists_then_it_throws_and_still_completes_the_operation()
+    {
+        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)Option<ScrapeConfigurationEntity>.None.Instance);
+
+        await Should.ThrowAsync<InvalidOperationException>(Run);
+
+        progress.Messages.ShouldContain("Starting scrape operation.");
+        progress.Messages.ShouldNotContain(message => message.Contains("Fetching top wallpapers"));
+        operationCoordinator.IsOperationRunning.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task when_looking_up_the_configuration_fails_then_the_failure_is_rethrown_and_the_operation_still_completes()
+    {
+        var exception = new InvalidOperationException("query failed");
+        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)exception);
+
+        var thrown = await Should.ThrowAsync<InvalidOperationException>(Run);
+
+        thrown.ShouldBeSameAs(exception);
+        progress.Messages.ShouldNotContain(message => message.Contains("not found"));
+        operationCoordinator.IsOperationRunning.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task when_fetching_pages_raises_a_request_error_then_it_is_reported_not_thrown()
+    {
+        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration());
+        pagesProcessor.FetchAndProcessPagesAsync(Arg.Any<string>(), Arg.Any<Func<int, string>>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Uri>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
+            .Returns(_ => throw new HttpRequestException("boom"));
+
+        await Run();
+
+        progress.Messages.ShouldContain("Request error: boom");
+        operationCoordinator.IsOperationRunning.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task when_the_operation_is_cancelled_while_fetching_pages_then_cancellation_is_reported_not_thrown()
+    {
+        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration());
+        pagesProcessor.FetchAndProcessPagesAsync(Arg.Any<string>(), Arg.Any<Func<int, string>>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Uri>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                operationCoordinator.Cancel();
+
+                throw new OperationCanceledException();
+            });
+
+        await Run();
+
+        progress.Messages.ShouldContain("Search cancelled.");
+        operationCoordinator.IsOperationRunning.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task when_an_operation_is_already_running_then_a_second_call_is_a_no_op()
+    {
+        operationCoordinator.TryStart(out _);
+
+        await Run();
+
+        progress.Messages.ShouldBeEmpty();
+        await pagesProcessor.DidNotReceive().FetchAndProcessPagesAsync(Arg.Any<string>(), Arg.Any<Func<int, string>>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Uri>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
+        operationCoordinator.IsOperationRunning.ShouldBeTrue();
+    }
+
+    public void Dispose() => operationCoordinator.Dispose();
+
+    private Task Run() => service.RunScraperAsync(progress);
+
+    private static ScrapeConfigurationEntity CreateConfiguration(int categoryCount = 1)
+    {
+        var scrapeConfigurationId = new ScrapeConfigurationId(Guid.CreateVersion7());
+        var searchConfigurationId = new SearchConfigurationId(Guid.CreateVersion7());
+        var categories = Enumerable.Range(1, categoryCount)
+            .Select(i => new SearchCategoryEntity { SearchConfigurationId = searchConfigurationId, Id = $"cat{i}" })
+            .ToList();
+
+        return new ScrapeConfigurationEntity(scrapeConfigurationId)
+        {
+            UserConfiguration = new UserConfigurationEntity(new UserConfigurationId(Guid.CreateVersion7()), scrapeConfigurationId, "user@example.test", "user", "secret", "cookie", "api-key"),
+            SearchConfiguration = new SearchConfigurationEntity(searchConfigurationId, scrapeConfigurationId, "cats", 10, categories)
+            {
+                BaseUrl = new Uri("https://example.test"),
+                TopWallpapers = "top/",
+                SearchStringPrefix = "search/%7Bid%7D/"
+            }
+        };
+    }
+
+    private sealed class CapturingProgress : IProgress<string>
+    {
+        public List<string> Messages { get; } = [];
+
+        public void Report(string value) => Messages.Add(value);
+    }
+}
