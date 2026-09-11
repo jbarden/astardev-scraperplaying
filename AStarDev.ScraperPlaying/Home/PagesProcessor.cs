@@ -33,10 +33,10 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
                             await Try.RunAsync(async () =>
                             {
                                 progress.Report($"No existing file found for wallpaper {wallpaper.Id}.");
-                                await imageProcessor.ProcessTheImageAsync(progress, fileRepository, wallpaper, cancellationToken);
-                                await Task.Delay(2_000, cancellationToken);
                                 await imageProcessor.DownloadImageAsync(wallpaper.Id, wallpaper.Path, progress, client, cancellationToken);
                                 progress.Report($"Downloaded image data for wallpaper {wallpaper.Id}");
+                                await Task.Delay(2_000, cancellationToken);
+                                await imageProcessor.ProcessTheImageAsync(progress, fileRepository, wallpaper, cancellationToken);
 
                                 return UnitFp.Instance;
                             }).MatchAsync(
