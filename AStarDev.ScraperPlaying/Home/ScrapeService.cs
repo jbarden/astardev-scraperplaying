@@ -2,6 +2,7 @@ using System.Diagnostics;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.ControlDb;
+using AStarDev.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AStarDev.ScraperPlaying.Home;
@@ -47,7 +48,7 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
                 await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Id}", page => BuildCategoryUrl(page, searchCategoriesUrl, category), apiKey, sessionCookie, baseUrl, progress, cancellationToken);
             }
 
-            progress.Report($"Search completed in: {Stopwatch.GetElapsedTime(startTime).TotalMinutes} total minutes.");
+            progress.Report($"Search completed in: {Stopwatch.GetElapsedTime(startTime).ToDurationString()}.");
         }
         catch (HttpRequestException e)
         {
