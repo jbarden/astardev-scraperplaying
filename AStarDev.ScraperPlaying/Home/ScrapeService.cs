@@ -27,6 +27,7 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
                     _ =>
                     {
                         progress.Report("Scrape configuration not found");
+
                         return null!;
                     }
             )!;

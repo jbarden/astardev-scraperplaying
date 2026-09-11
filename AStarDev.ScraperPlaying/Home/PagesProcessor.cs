@@ -44,6 +44,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
                                 y =>
                                 {
                                     progress.Report($"Failed to process image for wallpaper {wallpaper.Id}: {y.Message}");
+
                                     return UnitFp.Instance;
                                 }
                             );
