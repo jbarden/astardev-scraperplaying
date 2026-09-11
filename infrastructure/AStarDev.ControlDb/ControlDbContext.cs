@@ -1,5 +1,6 @@
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.ControlDb.ScrapeConfiguration;
+using AStarDev.ControlDb.TagDetail;
 using AStarDev.EFCoreSqlite;
 using AStarDev.FunctionalParadigm;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +17,7 @@ namespace AStarDev.ControlDb;
 /// <param name="scrapeConfigurationQuery">The query used to auto-include the sub-entities required by a <see cref="ScrapeConfigurationEntity"/> aggregate.</param>
 /// <param name="filesQuery">The query used to auto-include the sub-entities required by a <see cref="FileEntity"/> aggregate.</param>
 public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery<ScrapeConfigurationEntity>? scrapeConfigurationQuery = null, IQuery<FileEntity>? filesQuery = null)
-    : DbContext(options), IUnitOfWork, IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>, IRepository<FileEntity, FileId>
+    : DbContext(options), IUnitOfWork, IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>, IRepository<FileEntity, FileId>, IRepository<TagEntity, TagId>
 {
     private readonly IQuery<ScrapeConfigurationEntity> scrapeConfigurationQuery = scrapeConfigurationQuery ?? new ScrapeConfigurationQuery();
     private readonly IQuery<FileEntity> filesQuery = filesQuery ?? new FileQuery();
@@ -79,12 +80,44 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
             return UnitFp.Instance;
         });
 
+    /// <inheritdoc/>
+    Task<Exceptional<Option<TagEntity>>> IRepository<TagEntity, TagId>.TryFindAsync(TagId key) =>
+        Try.RunAsync(async () => (Option<TagEntity>)await Tags.FirstOrDefaultAsync(tag => tag.Id == key));
+
+    /// <inheritdoc/>
+    Task<Exceptional<Option<IEnumerable<TagEntity>>>> IRepository<TagEntity, TagId>.TryGetAllAsync()
+    => Try.RunAsync(async () => (Option<IEnumerable<TagEntity>>)await Tags.ToListAsync());
+
+    /// <inheritdoc/>
+    Task<Exceptional<Option<TagEntity>>> IRepository<TagEntity, TagId>.TryGetFirstAsync()
+    => Try.RunAsync(async () => (Option<TagEntity>)await Tags.FirstOrDefaultAsync());
+
+    /// <inheritdoc/>
+    Exceptional<TagEntity> IRepository<TagEntity, TagId>.Add(TagEntity aggregate) =>
+        Try.Run(() =>
+        {
+            Tags.Add(aggregate);
+            return aggregate;
+        });
+
+    /// <inheritdoc/>
+    Exceptional<UnitFp> IRepository<TagEntity, TagId>.Delete(TagEntity aggregate) =>
+        Try.Run(() =>
+        {
+            Tags.Remove(aggregate);
+            return UnitFp.Instance;
+        });
+
     /// <summary>
     /// Gets the repository for managing scrape configuration entities in the database.
     /// </summary>
     public DbSet<ScrapeConfigurationEntity> ScrapeConfigurations => Set<ScrapeConfigurationEntity>();
 
     public DbSet<FileEntity> Files => Set<FileEntity>();
+
+    public DbSet<TagEntity> Tags => Set<TagEntity>();
+
+    public DbSet<FileTagEntity> FileTags => Set<FileTagEntity>();
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)

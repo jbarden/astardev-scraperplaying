@@ -1,3 +1,5 @@
+using AStarDev.ControlDb.TagDetail;
+
 namespace AStarDev.ControlDb.FileDetail;
 
 /// <summary>A file discovered and tracked by the scraper.</summary>
@@ -32,4 +34,7 @@ public sealed class FileEntity : IAggregateRoot
 
     /// <summary> The file's MIME type or extension, indicating its format.</summary>
     public string FileType { get; set; } = string.Empty;
+
+    /// <summary>Navigation property to the tags linked to this file.</summary>
+    public ICollection<FileTagEntity> FileTags { get; set; } = [];
 }
