@@ -14,6 +14,7 @@ public sealed class GivenAPagesProcessor
     private readonly IFilesQuery filesQuery = Substitute.For<IFilesQuery>();
     private readonly IJsonResponseProcessor jsonResponseProcessor = Substitute.For<IJsonResponseProcessor>();
     private readonly IImageProcessor imageProcessor = Substitute.For<IImageProcessor>();
+    private readonly ITagsProcessor tagsProcessor = Substitute.For<ITagsProcessor>();
     private readonly CapturingProgress progress = new();
     private readonly PagesProcessor processor;
 
@@ -22,7 +23,9 @@ public sealed class GivenAPagesProcessor
         httpClientFactory.CreateClient(ApplicationConstants.WallhavenHttpClientName).Returns(_ => new HttpClient());
         unitOfWork.GetRepository<FileEntity, FileId>().Returns(fileRepository);
         unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
-        processor = new(httpClientFactory, unitOfWork, filesQuery, jsonResponseProcessor, imageProcessor, () => TimeSpan.FromMilliseconds(1));
+        tagsProcessor.FetchAndLinkTagsAsync(Arg.Any<string>(), Arg.Any<FileId>(), Arg.Any<HttpClient>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
+            .Returns((Exceptional<UnitFp>)UnitFp.Instance);
+        processor = new(httpClientFactory, unitOfWork, filesQuery, jsonResponseProcessor, imageProcessor, tagsProcessor, () => TimeSpan.FromMilliseconds(1));
     }
 
     [Fact]
@@ -37,6 +40,7 @@ public sealed class GivenAPagesProcessor
         progress.Messages.ShouldContain("The file details already exist for wallpaper existing-wallpaper - no need to fetch again.");
         progress.Messages.ShouldNotContain(message => message.Contains("Downloaded image data"));
         await imageProcessor.DidNotReceive().DownloadImageAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<IProgress<string>>(), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>());
+        await tagsProcessor.DidNotReceive().FetchAndLinkTagsAsync(Arg.Any<string>(), Arg.Any<FileId>(), Arg.Any<HttpClient>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -55,6 +59,7 @@ public sealed class GivenAPagesProcessor
         progress.Messages.ShouldContain("Downloaded image data for wallpaper new-wallpaper");
         progress.Messages.ShouldNotContain(message => message.Contains("Failed"));
         await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        await tagsProcessor.Received(1).FetchAndLinkTagsAsync("new-wallpaper", fileEntity.Id, Arg.Any<HttpClient>(), progress, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -70,6 +75,7 @@ public sealed class GivenAPagesProcessor
 
         progress.Messages.ShouldContain("Failed to process image for wallpaper failing-download: download failed");
         await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        await tagsProcessor.DidNotReceive().FetchAndLinkTagsAsync(Arg.Any<string>(), Arg.Any<FileId>(), Arg.Any<HttpClient>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -86,6 +92,7 @@ public sealed class GivenAPagesProcessor
 
         progress.Messages.ShouldContain("Failed to process image for wallpaper failing-process: process failed");
         await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        await tagsProcessor.DidNotReceive().FetchAndLinkTagsAsync(Arg.Any<string>(), Arg.Any<FileId>(), Arg.Any<HttpClient>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -100,6 +107,27 @@ public sealed class GivenAPagesProcessor
 
         progress.Messages.ShouldContain("Failed to check whether the file details already exist for wallpaper check-fails: query failed");
         await imageProcessor.DidNotReceive().DownloadImageAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<IProgress<string>>(), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>());
+        await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        await tagsProcessor.DidNotReceive().FetchAndLinkTagsAsync(Arg.Any<string>(), Arg.Any<FileId>(), Arg.Any<HttpClient>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task when_fetching_tags_for_a_new_wallpaper_fails_then_the_failure_is_reported_distinctly_and_the_page_completes()
+    {
+        var wallpaper = CreateWallpaper("failing-tags");
+        SetUpPage(1, CreateSearchResponse(lastPage: 1, wallpaper));
+        filesQuery.CheckExistsByNameAsync(Arg.Any<FileName>(), Arg.Any<CancellationToken>()).Returns((Exceptional<bool>)false);
+        imageProcessor.DownloadImageAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<IProgress<string>>(), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
+        var fileEntity = new FileEntity { FileName = new("failing-tags"), DirectoryName = new(""), FileHandle = new(""), FileSize = 0 };
+        imageProcessor.ProcessTheImageAsync(Arg.Any<IRepository<FileEntity, FileId>>(), Arg.Any<Data>(), Arg.Any<CancellationToken>()).Returns((Exceptional<FileEntity>)fileEntity);
+        var exception = new InvalidOperationException("tag fetch failed");
+        tagsProcessor.FetchAndLinkTagsAsync(Arg.Any<string>(), Arg.Any<FileId>(), Arg.Any<HttpClient>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
+            .Returns((Exceptional<UnitFp>)exception);
+
+        await Run();
+
+        progress.Messages.ShouldContain("Failed to fetch tags for wallpaper failing-tags: tag fetch failed");
+        progress.Messages.ShouldNotContain(message => message.Contains("Failed to process image"));
         await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
