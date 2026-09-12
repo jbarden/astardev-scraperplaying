@@ -11,4 +11,10 @@ public interface IScrapeService
     /// <param name="progress">The progress reporter to report the scraping progress.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     Task RunScraperAsync(IProgress<string> progress);
+
+    /// <summary>
+    /// Checks whether the current scrape configuration's root directory exists on disk.
+    /// </summary>
+    /// <returns><see langword="true"/> if the root directory exists; otherwise, <see langword="false"/>.</returns>
+    Task<bool> RootDirectoryExistsAsync();
 }

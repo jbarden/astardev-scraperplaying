@@ -3,6 +3,7 @@ using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Home;
 using Microsoft.Extensions.DependencyInjection;
+using Testably.Abstractions.Testing;
 
 namespace AStarDev.ScraperPlaying.TestsUnit;
 
@@ -12,6 +13,7 @@ public sealed class GivenAScrapeService : IDisposable
     private readonly IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> repository = Substitute.For<IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>>();
     private readonly IPagesProcessor pagesProcessor = Substitute.For<IPagesProcessor>();
+    private readonly MockFileSystem fileSystem = new();
     private readonly CapturingProgress progress = new();
     private readonly ScrapeService service;
 
@@ -26,7 +28,7 @@ public sealed class GivenAScrapeService : IDisposable
         services.AddSingleton(pagesProcessor);
         var scopeFactory = services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
 
-        service = new(operationCoordinator, scopeFactory);
+        service = new(operationCoordinator, scopeFactory, fileSystem);
     }
 
     [Fact]
@@ -116,11 +118,32 @@ public sealed class GivenAScrapeService : IDisposable
         operationCoordinator.IsOperationRunning.ShouldBeTrue();
     }
 
+    [Fact]
+    public async Task when_the_root_directory_exists_on_disk_then_root_directory_exists_async_returns_true()
+    {
+        fileSystem.Directory.CreateDirectory("/scrapes/root");
+        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration(rootDirectory: "/scrapes/root"));
+
+        var exists = await service.RootDirectoryExistsAsync();
+
+        exists.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task when_the_root_directory_does_not_exist_on_disk_then_root_directory_exists_async_returns_false()
+    {
+        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration(rootDirectory: "/scrapes/missing"));
+
+        var exists = await service.RootDirectoryExistsAsync();
+
+        exists.ShouldBeFalse();
+    }
+
     public void Dispose() => operationCoordinator.Dispose();
 
     private Task Run() => service.RunScraperAsync(progress);
 
-    private static ScrapeConfigurationEntity CreateConfiguration(int categoryCount = 1)
+    private static ScrapeConfigurationEntity CreateConfiguration(int categoryCount = 1, string rootDirectory = "/scrapes/root")
     {
         var scrapeConfigurationId = new ScrapeConfigurationId(Guid.CreateVersion7());
         var searchConfigurationId = new SearchConfigurationId(Guid.CreateVersion7());
@@ -137,7 +160,8 @@ public sealed class GivenAScrapeService : IDisposable
                 BaseUrl = new Uri("https://example.test"),
                 TopWallpapers = "top/",
                 SearchStringPrefix = "search/%7Bid%7D/"
-            }
+            },
+            ScrapeDirectories = new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.CreateVersion7()), scrapeConfigurationId, rootDirectory, "famous", "sub")
         };
     }
 
