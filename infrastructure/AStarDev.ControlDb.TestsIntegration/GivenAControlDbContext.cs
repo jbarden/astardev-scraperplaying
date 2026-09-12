@@ -44,6 +44,35 @@ public sealed class GivenAControlDbContext : IDisposable
     }
 
     [Fact]
+    public async Task when_a_scrape_configuration_with_scrape_level_properties_is_saved_then_they_are_reloaded_unchanged()
+    {
+        var scrapeConfigurationEntity = ScrapeConfigurationEntityFactory.CreateScrapeConfigurationEntity();
+        await context.ScrapeConfigurations.AddAsync(scrapeConfigurationEntity, TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var reloaded = await context.ScrapeConfigurations.FindAsync([scrapeConfigurationEntity.Id], TestContext.Current.CancellationToken);
+
+        reloaded.ShouldNotBeNull();
+        reloaded.BaseUrl.ShouldBe(scrapeConfigurationEntity.BaseUrl);
+        reloaded.ApiKey.ShouldBe(scrapeConfigurationEntity.ApiKey);
+        reloaded.SearchString.ShouldBe(scrapeConfigurationEntity.SearchString);
+        reloaded.TopWallpapers.ShouldBe(scrapeConfigurationEntity.TopWallpapers);
+        reloaded.SearchStringPrefix.ShouldBe(scrapeConfigurationEntity.SearchStringPrefix);
+        reloaded.SearchStringSuffix.ShouldBe(scrapeConfigurationEntity.SearchStringSuffix);
+        reloaded.Subscriptions.ShouldBe(scrapeConfigurationEntity.Subscriptions);
+        reloaded.ImagePauseInSeconds.ShouldBe(scrapeConfigurationEntity.ImagePauseInSeconds);
+        reloaded.StartingPageNumber.ShouldBe(scrapeConfigurationEntity.StartingPageNumber);
+        reloaded.TotalPages.ShouldBe(scrapeConfigurationEntity.TotalPages);
+        reloaded.SubscriptionsStartingPageNumber.ShouldBe(scrapeConfigurationEntity.SubscriptionsStartingPageNumber);
+        reloaded.SubscriptionsTotalPages.ShouldBe(scrapeConfigurationEntity.SubscriptionsTotalPages);
+        reloaded.TopWallpapersStartingPageNumber.ShouldBe(scrapeConfigurationEntity.TopWallpapersStartingPageNumber);
+        reloaded.TopWallpapersTotalPages.ShouldBe(scrapeConfigurationEntity.TopWallpapersTotalPages);
+        reloaded.LoginUrl.ShouldBe(scrapeConfigurationEntity.LoginUrl);
+        reloaded.UseHeadless.ShouldBe(scrapeConfigurationEntity.UseHeadless);
+        reloaded.SlowMotionDelay.ShouldBe(scrapeConfigurationEntity.SlowMotionDelay);
+    }
+
+    [Fact]
     public async Task when_a_scrape_configuration_is_added_with_empty_ids_then_they_are_generated_and_related_rows_stay_linked()
     {
         var scrapeConfigurationEntity = ScrapeConfigurationEntityFactory.CreateScrapeConfigurationEntity();

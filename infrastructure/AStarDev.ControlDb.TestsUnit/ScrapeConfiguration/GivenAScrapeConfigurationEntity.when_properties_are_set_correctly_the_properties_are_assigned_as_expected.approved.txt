@@ -54,5 +54,22 @@
     "rootDirectory": "root-save-directory",
     "rootDirectoryFamous": "root-directory-famous",
     "subDirectoryName": "sub-directory-name"
-  }
+  },
+  "baseUrl": "https://example.com/scrape",
+  "apiKey": "scrape-api-key",
+  "searchString": "search-string",
+  "topWallpapers": "top-wallpapers",
+  "searchStringPrefix": "prefix-",
+  "searchStringSuffix": "-suffix",
+  "subscriptions": "subscriptions",
+  "imagePauseInSeconds": 5,
+  "startingPageNumber": 1,
+  "totalPages": 20,
+  "subscriptionsStartingPageNumber": 2,
+  "subscriptionsTotalPages": 30,
+  "topWallpapersStartingPageNumber": 3,
+  "topWallpapersTotalPages": 40,
+  "loginUrl": "https://example.com/scrape/login",
+  "useHeadless": true,
+  "slowMotionDelay": 250.0
 }
