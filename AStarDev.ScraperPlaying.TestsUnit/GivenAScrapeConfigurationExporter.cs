@@ -20,11 +20,11 @@ public sealed class GivenAScrapeConfigurationExporter
         var searchConfigurationId = new SearchConfigurationId(Guid.CreateVersion7());
         var existing = new ScrapeConfigurationEntity(scrapeConfigurationId)
         {
-            UserConfiguration = new UserConfigurationEntity(new UserConfigurationId(Guid.CreateVersion7()), scrapeConfigurationId, "user@example.test", "user", "secret", "cookie", "api-key"),
+            UserConfiguration = new UserConfigurationEntity(new UserConfigurationId(Guid.CreateVersion7()), scrapeConfigurationId, "user@example.test", "user", "secret", "api-key"),
             SearchConfiguration = new SearchConfigurationEntity(searchConfigurationId, scrapeConfigurationId, "cats", 10, [
                 new SearchCategoryEntity { SearchConfigurationId = searchConfigurationId, Id = "1", Name = "General" }
             ]),
-            ScrapeDirectories = new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.CreateVersion7()), scrapeConfigurationId, "/tmp", "Pictures", "Pictures/Wallhaven", "Pictures/Famous", "Wallhaven")
+            ScrapeDirectories = new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.CreateVersion7()), scrapeConfigurationId, "Pictures", "Pictures/Famous", "Wallhaven")
         };
         repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)existing);
         var exporter = new ScrapeConfigurationExporter(unitOfWork);

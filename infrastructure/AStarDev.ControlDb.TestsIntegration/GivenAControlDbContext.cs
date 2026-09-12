@@ -66,9 +66,9 @@ public sealed class GivenAControlDbContext : IDisposable
         var explicitId = new ScrapeConfigurationId(Guid.CreateVersion7());
         var scrapeConfigurationEntity = new ScrapeConfigurationEntity(explicitId)
         {
-            UserConfiguration = new UserConfigurationEntity(new UserConfigurationId(Guid.CreateVersion7()), explicitId, "user@example.com", "username", "password", "session-cookie", "apiKey"),
+            UserConfiguration = new UserConfigurationEntity(new UserConfigurationId(Guid.CreateVersion7()), explicitId, "user@example.com", "username", "password", "apiKey"),
             SearchConfiguration = new SearchConfigurationEntity(new SearchConfigurationId(Guid.CreateVersion7()), explicitId, "search-config", 10, []),
-            ScrapeDirectories = new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.CreateVersion7()), explicitId, "scrape-directory", "base-save-directory", "base-directory", "base-directory-famous", "sub-directory-name")
+            ScrapeDirectories = new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.CreateVersion7()), explicitId, "root-save-directory", "root-directory-famous", "sub-directory-name")
         };
         await context.ScrapeConfigurations.AddAsync(scrapeConfigurationEntity, TestContext.Current.CancellationToken);
 

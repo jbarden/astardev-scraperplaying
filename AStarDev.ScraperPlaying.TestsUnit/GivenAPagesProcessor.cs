@@ -174,7 +174,6 @@ public sealed class GivenAPagesProcessor
             "wallpapers",
             page => $"https://example.test/page/{page}",
             "api-key",
-            "session-cookie",
             new Uri("https://example.test"),
             progress,
             CancellationToken.None);

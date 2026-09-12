@@ -12,9 +12,9 @@ internal static class ScrapeConfigurationEntityFactory
         var scrapeDirectoriesId = new ScrapeDirectoriesId(Guid.Empty);
         var scrapeConfiguration = new ScrapeConfigurationEntity(scrapeConfigurationId)
         {
-            UserConfiguration = new UserConfigurationEntity(userConfigurationId, scrapeConfigurationId, "user@example.com", "username", "password", "session-cookie",  "apiKey"),
+            UserConfiguration = new UserConfigurationEntity(userConfigurationId, scrapeConfigurationId, "user@example.com", "username", "password", "apiKey"),
             SearchConfiguration = new SearchConfigurationEntity(searchConfigurationId, scrapeConfigurationId, "search-config", 10, []),
-            ScrapeDirectories = new ScrapeDirectoriesEntity(scrapeDirectoriesId, scrapeConfigurationId, "scrape-directory", "base-save-directory", "base-directory", "base-directory-famous", "sub-directory-name")
+            ScrapeDirectories = new ScrapeDirectoriesEntity(scrapeDirectoriesId, scrapeConfigurationId, "root-save-directory", "root-directory-famous", "sub-directory-name")
         };
 
         return scrapeConfiguration;

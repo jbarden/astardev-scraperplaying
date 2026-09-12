@@ -18,7 +18,7 @@ public sealed class GivenAScrapeConfigurationMapping
                 TopWallpapers = "top",
                 Subscriptions = "subscriptions"
             },
-            UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
+            UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
         };
 
         var dto = entity.ToDto();
@@ -38,7 +38,7 @@ public sealed class GivenAScrapeConfigurationMapping
             {
                 BaseUrl = new Uri("https://example.test/")
             },
-            UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
+            UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
         };
 
         var dto = entity.ToDto();
@@ -57,7 +57,7 @@ public sealed class GivenAScrapeConfigurationMapping
             {
                 BaseUrl = new Uri("https://example.test/")
             },
-            UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
+            UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
         };
 
         var dto = entity.ToDto();
