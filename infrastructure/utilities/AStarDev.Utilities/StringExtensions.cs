@@ -243,4 +243,14 @@ public static class StringExtensions
             ? string.Empty
             : new System.Globalization.CultureInfo(cultureName, false).TextInfo.ToTitleCase(value.ToLowerInvariant());
 #pragma warning restore CA1308 // Normalize strings to uppercase
+
+    /// <summary>
+    ///     The ToDirectorySlug method converts a string to a directory-safe slug by lower-casing it and replacing spaces with hyphens.
+    /// </summary>
+    /// <param name="value">The string to convert</param>
+    /// <returns>The slugified string</returns>
+    public static string ToDirectorySlug(this string value)
+#pragma warning disable CA1308 // Normalize strings to uppercase
+        => value.IsNullOrWhiteSpace() ? string.Empty : value.Trim().ToLowerInvariant().Replace(' ', '-');
+#pragma warning restore CA1308 // Normalize strings to uppercase
 }
