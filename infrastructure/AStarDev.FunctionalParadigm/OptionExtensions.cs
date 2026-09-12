@@ -104,9 +104,9 @@ public static class OptionExtensions
         ///     Asynchronously converts an <see cref="Option{T}" /> to a <see cref="Result{T, TError}" />.
         /// </summary>
         public async Task<Result<T, TError>> ToResultAsync<TError>(Func<Task<TError>> errorFactoryAsync)
-            => await option.Match<Task<Result<T, TError>>>(
-                                                        some => Task.FromResult<Result<T, TError>>(Result.Success<T, TError>(some)),
-                                                        async () => Result.Failure<T, TError>(await errorFactoryAsync()));
+            => await option.Match(
+                                some => Task.FromResult(Result.Success<T, TError>(some)),
+                                async () => Result.Failure<T, TError>(await errorFactoryAsync()));
 
         /// <summary>
         ///     Executes a side-effect action on the value if present, and returns the original option.
