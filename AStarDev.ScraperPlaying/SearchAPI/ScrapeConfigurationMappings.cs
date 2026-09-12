@@ -18,7 +18,6 @@ public static class ScrapeConfigurationMappings
             config.EmailAddress,
             config.Username,
             config.Password,
-            config.SessionCookie,
             config.ApiKey
         );
 }

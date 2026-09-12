@@ -47,7 +47,7 @@ internal static class ScrapeSettingsImportMapper
                 RootDirectory = directories.BaseDirectory,
                 BaseSaveDirectory = directories.BaseSaveDirectory,
                 BaseDirectory = directories.BaseDirectory,
-                BaseDirectoryFamous = directories.BaseDirectoryFamous,
+                RootDirectoryFamous = directories.BaseDirectoryFamous,
                 SubDirectoryName = directories.SubDirectoryName
             }
         };

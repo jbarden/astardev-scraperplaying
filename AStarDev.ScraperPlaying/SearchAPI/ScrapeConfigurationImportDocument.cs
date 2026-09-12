@@ -15,7 +15,6 @@ public sealed class UserConfigurationImportDocument
     public string EmailAddress { get; init; } = string.Empty;
     public string Username { get; init; } = string.Empty;
     public string Password { get; init; } = string.Empty;
-    public string SessionCookie { get; init; } = string.Empty;
     public string ApiKey { get; init; } = string.Empty;
 }
 
@@ -62,6 +61,6 @@ public sealed class ScrapeDirectoriesImportDocument
     public string RootDirectory { get; init; } = string.Empty;
     public string BaseSaveDirectory { get; init; } = string.Empty;
     public string BaseDirectory { get; init; } = string.Empty;
-    public string BaseDirectoryFamous { get; init; } = string.Empty;
+    public string RootDirectoryFamous { get; init; } = string.Empty;
     public string SubDirectoryName { get; init; } = string.Empty;
 }

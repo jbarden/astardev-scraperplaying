@@ -56,15 +56,13 @@ public static class ScrapeConfigurationImportMapper
                 document.UserConfiguration.EmailAddress,
                 document.UserConfiguration.Username,
                 document.UserConfiguration.Password,
-                document.UserConfiguration.SessionCookie, document.UserConfiguration.ApiKey),
+                document.UserConfiguration.ApiKey),
             SearchConfiguration = searchEntity,
             ScrapeDirectories = new ScrapeDirectoriesEntity(
                 new ScrapeDirectoriesId(document.ScrapeDirectories.Id),
                 new ScrapeConfigurationId(document.Id),
                 document.ScrapeDirectories.RootDirectory,
-                document.ScrapeDirectories.BaseSaveDirectory,
-                document.ScrapeDirectories.BaseDirectory,
-                document.ScrapeDirectories.BaseDirectoryFamous,
+                document.ScrapeDirectories.RootDirectoryFamous,
                 document.ScrapeDirectories.SubDirectoryName)
         };
     }

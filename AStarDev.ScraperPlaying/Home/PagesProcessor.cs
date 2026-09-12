@@ -9,9 +9,9 @@ namespace AStarDev.ScraperPlaying.Home;
 public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork unitOfWork, IFilesQuery filesQuery, IJsonResponseProcessor jsonResponseProcessor, IImageProcessor imageProcessor, ITagsProcessor tagsProcessor, Func<TimeSpan> pacingDelay) : IPagesProcessor
 {
     /// <inheritdoc/>
-    public async Task FetchAndProcessPagesAsync(string logLabel, Func<int, string> pageUrlFactory, string apiKey, string sessionCookie, Uri baseUrl, IProgress<string> progress, CancellationToken cancellationToken)
+    public async Task FetchAndProcessPagesAsync(string logLabel, Func<int, string> pageUrlFactory, string apiKey, Uri baseUrl, IProgress<string> progress, CancellationToken cancellationToken)
     {
-        var client = CreateHttpClient(apiKey, sessionCookie, baseUrl);
+        var client = CreateHttpClient(apiKey, baseUrl);
         try
         {
             var page = 1;
@@ -105,13 +105,11 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
         );
     }
 
-    private HttpClient CreateHttpClient(string apiKey, string sessionCookie, Uri baseUrl)
+    private HttpClient CreateHttpClient(string apiKey, Uri baseUrl)
     {
         var httpClient = httpClientFactory.CreateClient(ApplicationConstants.WallhavenHttpClientName);
         httpClient.BaseAddress = baseUrl;
         httpClient.DefaultRequestHeaders.Add("X-API-Key", apiKey);
-        if (!string.IsNullOrWhiteSpace(sessionCookie)) httpClient.DefaultRequestHeaders.Add("Cookie", sessionCookie);
-
         httpClient.DefaultRequestHeaders.Referrer = baseUrl;
 
         return httpClient;
