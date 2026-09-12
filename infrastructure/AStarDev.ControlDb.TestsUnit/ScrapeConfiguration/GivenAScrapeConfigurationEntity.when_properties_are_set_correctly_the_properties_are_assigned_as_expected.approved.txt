@@ -71,5 +71,5 @@
   "topWallpapersTotalPages": 40,
   "loginUrl": "https://example.com/scrape/login",
   "useHeadless": true,
-  "slowMotionDelay": 250.0
+  "slowMotionDelay": 250
 }
