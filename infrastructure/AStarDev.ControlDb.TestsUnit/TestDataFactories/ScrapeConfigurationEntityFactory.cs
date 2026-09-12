@@ -14,7 +14,24 @@ internal static class ScrapeConfigurationEntityFactory
         {
             UserConfiguration = new UserConfigurationEntity(userConfigurationId, scrapeConfigurationId, "user@example.com", "username", "password", "apiKey"),
             SearchConfiguration = new SearchConfigurationEntity(searchConfigurationId, scrapeConfigurationId, "search-config", 10, []),
-            ScrapeDirectories = new ScrapeDirectoriesEntity(scrapeDirectoriesId, scrapeConfigurationId, "root-save-directory", "root-directory-famous", "sub-directory-name")
+            ScrapeDirectories = new ScrapeDirectoriesEntity(scrapeDirectoriesId, scrapeConfigurationId, "root-save-directory", "root-directory-famous", "sub-directory-name"),
+            BaseUrl = new Uri("https://example.com/scrape"),
+            ApiKey = "scrape-api-key",
+            SearchString = "search-string",
+            TopWallpapers = "top-wallpapers",
+            SearchStringPrefix = "prefix-",
+            SearchStringSuffix = "-suffix",
+            Subscriptions = "subscriptions",
+            ImagePauseInSeconds = 5,
+            StartingPageNumber = 1,
+            TotalPages = 20,
+            SubscriptionsStartingPageNumber = 2,
+            SubscriptionsTotalPages = 30,
+            TopWallpapersStartingPageNumber = 3,
+            TopWallpapersTotalPages = 40,
+            LoginUrl = new Uri("https://example.com/scrape/login"),
+            UseHeadless = true,
+            SlowMotionDelay = 250f
         };
 
         return scrapeConfiguration;
