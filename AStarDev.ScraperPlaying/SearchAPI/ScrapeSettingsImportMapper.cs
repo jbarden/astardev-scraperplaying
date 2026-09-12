@@ -23,23 +23,7 @@ internal static class ScrapeSettingsImportMapper
             SearchConfiguration = new SearchConfigurationImportDocument
             {
                 Id = searchConfigurationId,
-                BaseUrl = searchConfiguration.BaseUrl,
-                LoginUrl = searchConfiguration.LoginUrl,
-                SearchCategories = searchConfiguration.SearchCategories,
-                SearchString = searchConfiguration.SearchString,
-                TopWallpapers = searchConfiguration.TopWallpapers,
-                SearchStringPrefix = searchConfiguration.SearchStringPrefix,
-                SearchStringSuffix = searchConfiguration.SearchStringSuffix,
-                Subscriptions = searchConfiguration.Subscriptions,
-                ImagePauseInSeconds = searchConfiguration.ImagePauseInSeconds,
-                StartingPageNumber = searchConfiguration.StartingPageNumber,
-                TotalPages = searchConfiguration.TotalPages,
-                UseHeadless = searchConfiguration.UseHeadless,
-                SlowMotionDelay = searchConfiguration.SlowMotionDelay,
-                SubscriptionsStartingPageNumber = searchConfiguration.SubscriptionsStartingPageNumber,
-                SubscriptionsTotalPages = searchConfiguration.SubscriptionsTotalPages,
-                TopWallpapersTotalPages = searchConfiguration.TopWallpapersTotalPages,
-                TopWallpapersStartingPageNumber = searchConfiguration.TopWallpapersStartingPageNumber
+                SearchCategories = searchConfiguration.SearchCategories
             },
             ScrapeDirectories = new ScrapeDirectoriesImportDocument
             {
@@ -49,7 +33,23 @@ internal static class ScrapeSettingsImportMapper
                 BaseDirectory = directories.BaseDirectory,
                 RootDirectoryFamous = directories.BaseDirectoryFamous,
                 SubDirectoryName = directories.SubDirectoryName
-            }
+            },
+            BaseUrl = searchConfiguration.BaseUrl,
+            LoginUrl = searchConfiguration.LoginUrl,
+            SearchString = searchConfiguration.SearchString,
+            TopWallpapers = searchConfiguration.TopWallpapers,
+            SearchStringPrefix = searchConfiguration.SearchStringPrefix,
+            SearchStringSuffix = searchConfiguration.SearchStringSuffix,
+            Subscriptions = searchConfiguration.Subscriptions,
+            ImagePauseInSeconds = searchConfiguration.ImagePauseInSeconds,
+            StartingPageNumber = searchConfiguration.StartingPageNumber,
+            TotalPages = searchConfiguration.TotalPages,
+            UseHeadless = searchConfiguration.UseHeadless,
+            SlowMotionDelay = searchConfiguration.SlowMotionDelay,
+            SubscriptionsStartingPageNumber = searchConfiguration.SubscriptionsStartingPageNumber,
+            SubscriptionsTotalPages = searchConfiguration.SubscriptionsTotalPages,
+            TopWallpapersTotalPages = searchConfiguration.TopWallpapersTotalPages,
+            TopWallpapersStartingPageNumber = searchConfiguration.TopWallpapersStartingPageNumber
         };
     }
 }

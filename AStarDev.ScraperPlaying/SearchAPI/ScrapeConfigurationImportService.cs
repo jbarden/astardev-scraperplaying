@@ -49,7 +49,7 @@ public sealed class ScrapeConfigurationFileReader : IScrapeConfigurationFileRead
         ArgumentNullException.ThrowIfNull(document.UserConfiguration);
         ArgumentNullException.ThrowIfNull(document.SearchConfiguration);
         ArgumentNullException.ThrowIfNull(document.ScrapeDirectories);
-        if (document.SearchConfiguration.BaseUrl is null || document.SearchConfiguration.LoginUrl is null)
+        if (document.BaseUrl is null || document.LoginUrl is null)
         {
             throw new JsonException("The configuration must contain valid base and login URLs.");
         }

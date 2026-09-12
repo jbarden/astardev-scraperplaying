@@ -12,7 +12,8 @@ public sealed class GivenAScrapeConfigurationImport
         var reader = Substitute.For<IScrapeConfigurationFileReader>();
         var document = new ScrapeConfigurationImportDocument
         {
-            SearchConfiguration = new() { ApiKey = "api-key", SearchCategories = [new() { Id = "general" }] }
+            ApiKey = "api-key",
+            SearchConfiguration = new() { SearchCategories = [new() { Id = "general" }] }
         };
         reader.ReadAsync("configuration.json", Arg.Any<CancellationToken>()).Returns(document);
         var service = new ScrapeConfigurationImportService(repository, reader);
@@ -67,8 +68,8 @@ public sealed class GivenAScrapeConfigurationImport
                 {
                   "id": "11111111-1111-1111-1111-111111111111",
                   "userConfiguration": { "username": "user", "password": "secret" },
+                  "apiKey": "key", "baseUrl": "https://example.test", "loginUrl": "https://example.test/login",
                   "searchConfiguration": {
-                    "apiKey": "key", "baseUrl": "https://example.test", "loginUrl": "https://example.test/login",
                     "searchCategories": [{ "id": "1", "name": "general", "isFamous": true }]
                   },
                   "scrapeDirectories": { "rootDirectory": "/tmp/scrapes" }
@@ -78,7 +79,7 @@ public sealed class GivenAScrapeConfigurationImport
             var document = await new ScrapeConfigurationFileReader().ReadAsync(path, TestContext.Current.CancellationToken);
 
             document.UserConfiguration.Username.ShouldBe("user");
-            document.SearchConfiguration.ApiKey.ShouldBe("key");
+            document.ApiKey.ShouldBe("key");
             document.SearchConfiguration.SearchCategories.Single().IsFamous.ShouldBeTrue();
             document.ScrapeDirectories.RootDirectory.ShouldBe("/tmp/scrapes");
         }
@@ -119,6 +120,9 @@ public sealed class GivenAScrapeConfigurationImport
             document.ScrapeDirectories.RootDirectory.ShouldBe("Pictures/Wallhaven");
             document.Id.ShouldNotBe(Guid.Empty);
             document.SearchConfiguration.Id.ShouldNotBe(Guid.Empty);
+            document.BaseUrl.ShouldBe(new Uri("https://example.test"));
+            document.SearchString.ShouldBe("/search");
+            document.ImagePauseInSeconds.ShouldBe(10);
         }
         finally
         {

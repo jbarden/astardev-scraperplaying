@@ -27,26 +27,7 @@ public static class ScrapeConfigurationImportMapper
             new ScrapeConfigurationId(document.Id),
             search.SearchTerm,
             search.MaxResults ?? 0,
-            categories)
-        {
-            BaseUrl = search.BaseUrl,
-            ApiKey = search.ApiKey,
-            SearchString = search.SearchString,
-            TopWallpapers = search.TopWallpapers,
-            SearchStringPrefix = search.SearchStringPrefix,
-            SearchStringSuffix = search.SearchStringSuffix,
-            Subscriptions = search.Subscriptions,
-            ImagePauseInSeconds = search.ImagePauseInSeconds,
-            StartingPageNumber = search.StartingPageNumber,
-            TotalPages = search.TotalPages,
-            SubscriptionsStartingPageNumber = search.SubscriptionsStartingPageNumber,
-            SubscriptionsTotalPages = search.SubscriptionsTotalPages,
-            TopWallpapersStartingPageNumber = search.TopWallpapersStartingPageNumber,
-            TopWallpapersTotalPages = search.TopWallpapersTotalPages,
-            LoginUrl = search.LoginUrl,
-            UseHeadless = search.UseHeadless,
-            SlowMotionDelay = search.SlowMotionDelay
-        };
+            categories);
 
         return new ScrapeConfigurationEntity(new ScrapeConfigurationId(document.Id))
         {
@@ -63,7 +44,24 @@ public static class ScrapeConfigurationImportMapper
                 new ScrapeConfigurationId(document.Id),
                 document.ScrapeDirectories.RootDirectory,
                 document.ScrapeDirectories.RootDirectoryFamous,
-                document.ScrapeDirectories.SubDirectoryName)
+                document.ScrapeDirectories.SubDirectoryName),
+            BaseUrl = document.BaseUrl,
+            ApiKey = document.ApiKey,
+            SearchString = document.SearchString,
+            TopWallpapers = document.TopWallpapers,
+            SearchStringPrefix = document.SearchStringPrefix,
+            SearchStringSuffix = document.SearchStringSuffix,
+            Subscriptions = document.Subscriptions,
+            ImagePauseInSeconds = document.ImagePauseInSeconds,
+            StartingPageNumber = document.StartingPageNumber,
+            TotalPages = document.TotalPages,
+            SubscriptionsStartingPageNumber = document.SubscriptionsStartingPageNumber,
+            SubscriptionsTotalPages = document.SubscriptionsTotalPages,
+            TopWallpapersStartingPageNumber = document.TopWallpapersStartingPageNumber,
+            TopWallpapersTotalPages = document.TopWallpapersTotalPages,
+            LoginUrl = document.LoginUrl,
+            UseHeadless = document.UseHeadless,
+            SlowMotionDelay = document.SlowMotionDelay
         };
     }
 }

@@ -6,9 +6,9 @@ public static class ScrapeConfigurationMappings
 {
     public static ScrapeConfiguration ToDto(this ScrapeConfigurationEntity config)
         => new(
-            new Uri(config.SearchConfiguration.BaseUrl.AbsoluteUri + config.SearchConfiguration.SearchStringPrefix + "{id}" + config.SearchConfiguration.SearchStringSuffix),
-            new Uri(config.SearchConfiguration.BaseUrl.AbsoluteUri + config.SearchConfiguration.TopWallpapers),
-            new Uri(config.SearchConfiguration.BaseUrl.AbsoluteUri + config.SearchConfiguration.Subscriptions),
+            new Uri(config.BaseUrl.AbsoluteUri + config.SearchStringPrefix + "{id}" + config.SearchStringSuffix),
+            new Uri(config.BaseUrl.AbsoluteUri + config.TopWallpapers),
+            new Uri(config.BaseUrl.AbsoluteUri + config.Subscriptions),
             config.SearchConfiguration.SearchCategories.ToDtos(), config.UserConfiguration.ToDto());
 
     public static UserConfiguration ToDto(this UserConfigurationEntity config)

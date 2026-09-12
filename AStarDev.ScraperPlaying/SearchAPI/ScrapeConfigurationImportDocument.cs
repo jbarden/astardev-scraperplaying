@@ -7,22 +7,6 @@ public sealed class ScrapeConfigurationImportDocument
     public UserConfigurationImportDocument UserConfiguration { get; init; } = new();
     public SearchConfigurationImportDocument SearchConfiguration { get; init; } = new();
     public ScrapeDirectoriesImportDocument ScrapeDirectories { get; init; } = new();
-}
-
-public sealed class UserConfigurationImportDocument
-{
-    public Guid Id { get; init; }
-    public string EmailAddress { get; init; } = string.Empty;
-    public string Username { get; init; } = string.Empty;
-    public string Password { get; init; } = string.Empty;
-    public string ApiKey { get; init; } = string.Empty;
-}
-
-public sealed class SearchConfigurationImportDocument
-{
-    public Guid Id { get; init; }
-    public string SearchTerm { get; init; } = string.Empty;
-    public int? MaxResults { get; init; }
     public Uri BaseUrl { get; init; } = new("https://example.com");
     public string ApiKey { get; init; } = string.Empty;
     public string SearchString { get; init; } = string.Empty;
@@ -40,6 +24,22 @@ public sealed class SearchConfigurationImportDocument
     public Uri LoginUrl { get; init; } = new("https://example.com/login");
     public bool UseHeadless { get; init; }
     public float? SlowMotionDelay { get; init; }
+}
+
+public sealed class UserConfigurationImportDocument
+{
+    public Guid Id { get; init; }
+    public string EmailAddress { get; init; } = string.Empty;
+    public string Username { get; init; } = string.Empty;
+    public string Password { get; init; } = string.Empty;
+    public string ApiKey { get; init; } = string.Empty;
+}
+
+public sealed class SearchConfigurationImportDocument
+{
+    public Guid Id { get; init; }
+    public string SearchTerm { get; init; } = string.Empty;
+    public int? MaxResults { get; init; }
     public List<SearchCategoryImportDocument> SearchCategories { get; init; } = [];
 }
 

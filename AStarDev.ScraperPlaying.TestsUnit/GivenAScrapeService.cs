@@ -154,13 +154,11 @@ public sealed class GivenAScrapeService : IDisposable
 
         return new ScrapeConfigurationEntity(scrapeConfigurationId)
         {
+            BaseUrl = new Uri("https://example.test"),
+            TopWallpapers = "top/",
+            SearchStringPrefix = "search/%7Bid%7D/",
             UserConfiguration = new UserConfigurationEntity(new UserConfigurationId(Guid.CreateVersion7()), scrapeConfigurationId, "user@example.test", "user", "secret", "api-key"),
-            SearchConfiguration = new SearchConfigurationEntity(searchConfigurationId, scrapeConfigurationId, "cats", 10, categories)
-            {
-                BaseUrl = new Uri("https://example.test"),
-                TopWallpapers = "top/",
-                SearchStringPrefix = "search/%7Bid%7D/"
-            },
+            SearchConfiguration = new SearchConfigurationEntity(searchConfigurationId, scrapeConfigurationId, "cats", 10, categories),
             ScrapeDirectories = new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.CreateVersion7()), scrapeConfigurationId, rootDirectory, "famous", "sub")
         };
     }

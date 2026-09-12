@@ -35,19 +35,17 @@ public static class Seeder
         context.Set<ScrapeConfigurationEntity>().Add(new ScrapeConfigurationEntity(Guid.Empty)
         {
             UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, "jason.j.barden2@outlook.com", "jbarden", Environment.GetEnvironmentVariable("ScrapePassword") ?? "Password1!", "n/a"),
-            SearchConfiguration = new SearchConfigurationEntity(Guid.Empty, Guid.Empty, "search term", 500, searchCategories)
-            {
-                BaseUrl = new Uri("https://wallhaven.cc/"),
-                ApiKey = "your-api-key",
-                SearchString = "search string",
-                TopWallpapers = "top wallpapers",
-                SearchStringPrefix = "/search?q=id:",
-                SearchStringSuffix = "&categories=001&purity=111&sorting=date_added&order=desc&ai_art_filter=0&page=",
-                SlowMotionDelay = 500,
-                Subscriptions = "subscription?page=",
-                UseHeadless = false
-            },
-            ScrapeDirectories = new ScrapeDirectoriesEntity(Guid.Empty, Guid.Empty, "/run/media/jbarden/Tbdrive/sync/jason.barden1@outlook.com/", "Pictures/WallHaven/Famous", "subdirectory")
+            SearchConfiguration = new SearchConfigurationEntity(Guid.Empty, Guid.Empty, "search term", 500, searchCategories),
+            ScrapeDirectories = new ScrapeDirectoriesEntity(Guid.Empty, Guid.Empty, "/run/media/jbarden/Tbdrive/sync/jason.barden1@outlook.com/", "Pictures/WallHaven/Famous", "subdirectory"),
+            BaseUrl = new Uri("https://wallhaven.cc/"),
+            ApiKey = "your-api-key",
+            SearchString = "search string",
+            TopWallpapers = "top wallpapers",
+            SearchStringPrefix = "/search?q=id:",
+            SearchStringSuffix = "&categories=001&purity=111&sorting=date_added&order=desc&ai_art_filter=0&page=",
+            SlowMotionDelay = 500,
+            Subscriptions = "subscription?page=",
+            UseHeadless = false
         });
     }
 }
