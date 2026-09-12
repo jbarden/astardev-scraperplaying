@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO.Abstractions;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.ControlDb;
@@ -7,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace AStarDev.ScraperPlaying.Home;
 
-public class ScrapeService(OperationCoordinator operationCoordinator, IServiceScopeFactory scopeFactory) : IScrapeService
+public class ScrapeService(OperationCoordinator operationCoordinator, IServiceScopeFactory scopeFactory, IFileSystem fileSystem) : IScrapeService
 {
     /// <inheritdoc/>
     public async Task RunScraperAsync(IProgress<string> progress)
@@ -40,6 +41,16 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
         {
             operationCoordinator.Complete();
         }
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> RootDirectoryExistsAsync()
+    {
+        using var scope = scopeFactory.CreateScope();
+        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+        var configuration = await LoadConfigurationAsync(unitOfWork);
+
+        return fileSystem.Directory.Exists(configuration.ScrapeDirectories.RootDirectory);
     }
 
     private static async Task<ScrapeConfigurationEntity> LoadConfigurationAsync(IUnitOfWork unitOfWork)

@@ -22,6 +22,7 @@ public partial class MainWindow : Window, IDisposable
     private readonly ILogger<MainWindow> logger;
     private readonly OperationCoordinator operationCoordinator;
     private bool isDisposing;
+    private bool isRootDirectoryAvailable = true;
 
     public MainWindow(ILogger<MainWindow> logger, IScrapeConfigurationImportService importService, IScrapeConfigurationExportService exportService, IConfigurationFilePicker configurationFilePicker, IScrapeService scrapeService, OperationCoordinator operationCoordinator)
     {
@@ -34,6 +35,7 @@ public partial class MainWindow : Window, IDisposable
         this.operationCoordinator = operationCoordinator;
         operationCoordinator.StateChanged += (_, _) => UpdateOperationControls();
         Closed += (_, _) => Dispose();
+        Loaded += async (_, _) => await CheckRootDirectoryAvailabilityAsync();
         UpdateOperationControls();
     }
 
@@ -159,8 +161,21 @@ public partial class MainWindow : Window, IDisposable
         var isOperationRunning = operationCoordinator.IsOperationRunning;
         ImportConfigurationMenuItem.IsEnabled = !isOperationRunning;
         ExportConfigurationMenuItem.IsEnabled = !isOperationRunning;
-        RunScraperButton.IsEnabled = !isOperationRunning;
+        RunScraperButton.IsEnabled = !isOperationRunning && isRootDirectoryAvailable;
         CancelButton.IsEnabled = isOperationRunning;
+    }
+
+    private async Task CheckRootDirectoryAvailabilityAsync()
+    {
+        if (scrapeService is null) return;
+
+        isRootDirectoryAvailable = await scrapeService.RootDirectoryExistsAsync();
+        if (!isRootDirectoryAvailable)
+        {
+            AppendStatusMessage("Root directory could not be found.");
+        }
+
+        UpdateOperationControls();
     }
 
     private void SetStatusText(string message) => Dispatcher.UIThread.Post(() => StatusTextBlock.Text = message);
