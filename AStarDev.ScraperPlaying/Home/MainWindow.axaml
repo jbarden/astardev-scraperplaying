@@ -6,21 +6,28 @@
         Height="800"
         MinWidth="480"
         MinHeight="320">
-  <Grid RowDefinitions="Auto,Auto,*" Margin="32">
-    <TextBlock Text="AStarDev Scraper Playing"
+  <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="32">
+    <Menu Grid.Row="0">
+      <MenuItem Header="_File">
+        <MenuItem x:Name="ImportConfigurationMenuItem" Header="_Import Configuration" Click="ImportConfiguration" />
+        <MenuItem x:Name="ExportConfigurationMenuItem" Header="_Export Configuration" Click="ExportConfiguration" />
+        <Separator />
+        <MenuItem Header="E_xit" Click="Exit" />
+      </MenuItem>
+    </Menu>
+    <TextBlock Grid.Row="1"
+               Text="AStarDev Scraper Playing"
                FontSize="28"
                FontWeight="SemiBold" />
-    <StackPanel Grid.Row="1"
+    <StackPanel Grid.Row="2"
                 Orientation="Horizontal"
                 HorizontalAlignment="Center"
                 Spacing="12"
                 Margin="0,24,0,0">
-      <Button x:Name="ImportConfigurationButton" Content="Import configuration" Click="ImportConfiguration" />
-      <Button x:Name="ExportConfigurationButton" Content="Export configuration" Click="ExportConfiguration" />
       <Button x:Name="RunScraperButton" Content="Run Scraper" Click="RunScraper" />
       <Button x:Name="CancelButton" Content="Cancel" Click="CancelOperation" IsEnabled="False" />
     </StackPanel>
-    <Border Grid.Row="2"
+    <Border Grid.Row="3"
             Margin="0,24,0,0"
             Padding="24"
             Background="{DynamicResource SystemControlBackgroundAltHighBrush}"

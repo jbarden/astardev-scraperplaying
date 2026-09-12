@@ -4,6 +4,7 @@ using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.SearchAPI;
 using Avalonia.Controls;
 using Avalonia.Threading;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -115,6 +116,20 @@ public partial class MainWindow : Window, IDisposable
 
     public void CancelOperation(object? sender, RoutedEventArgs eventArgs) => operationCoordinator.Cancel();
 
+    public void Exit(object? sender, RoutedEventArgs eventArgs) => Close();
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (e.Key == Key.F4 && e.KeyModifiers == KeyModifiers.Alt)
+        {
+            Close();
+
+            return;
+        }
+
+        base.OnKeyDown(e);
+    }
+
     public void Dispose()
     {
         Dispose(true);
@@ -142,8 +157,8 @@ public partial class MainWindow : Window, IDisposable
     private void UpdateOperationControls()
     {
         var isOperationRunning = operationCoordinator.IsOperationRunning;
-        ImportConfigurationButton.IsEnabled = !isOperationRunning;
-        ExportConfigurationButton.IsEnabled = !isOperationRunning;
+        ImportConfigurationMenuItem.IsEnabled = !isOperationRunning;
+        ExportConfigurationMenuItem.IsEnabled = !isOperationRunning;
         RunScraperButton.IsEnabled = !isOperationRunning;
         CancelButton.IsEnabled = isOperationRunning;
     }
