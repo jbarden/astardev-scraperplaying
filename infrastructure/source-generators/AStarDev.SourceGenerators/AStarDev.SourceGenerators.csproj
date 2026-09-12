@@ -40,6 +40,10 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" PrivateAssets="all" />
     </ItemGroup>
 
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
     <!-- Build the Attributes project separately and copy its DLL into the output
             so the generator package contains the attributes types without creating
             a NuGet package dependency on a separate Attributes package. -->
@@ -64,7 +68,6 @@
 
     <!-- Include build props and targets to auto-reference the Attributes assembly -->
     <ItemGroup>
-            <None Include="README.md" Pack="true" PackagePath="" />
         <None Include="build\AStarDev.SourceGenerators.props" Pack="true" PackagePath="build" />
         <None Include="build\AStarDev.SourceGenerators.targets" Pack="true" PackagePath="build" />
     </ItemGroup>
