@@ -24,23 +24,6 @@ public static class ScrapeConfigurationExportMapper
                 Id = search.Id.Value,
                 SearchTerm = search.SearchTerm,
                 MaxResults = search.MaxResults,
-                BaseUrl = search.BaseUrl,
-                ApiKey = search.ApiKey,
-                SearchString = search.SearchString,
-                TopWallpapers = search.TopWallpapers,
-                SearchStringPrefix = search.SearchStringPrefix,
-                SearchStringSuffix = search.SearchStringSuffix,
-                Subscriptions = search.Subscriptions,
-                ImagePauseInSeconds = search.ImagePauseInSeconds,
-                StartingPageNumber = search.StartingPageNumber,
-                TotalPages = search.TotalPages,
-                SubscriptionsStartingPageNumber = search.SubscriptionsStartingPageNumber,
-                SubscriptionsTotalPages = search.SubscriptionsTotalPages,
-                TopWallpapersStartingPageNumber = search.TopWallpapersStartingPageNumber,
-                TopWallpapersTotalPages = search.TopWallpapersTotalPages,
-                LoginUrl = search.LoginUrl,
-                UseHeadless = search.UseHeadless,
-                SlowMotionDelay = search.SlowMotionDelay,
                 SearchCategories = search.SearchCategories.Select(category => new SearchCategoryImportDocument
                 {
                     Id = category.Id,
@@ -59,7 +42,24 @@ public static class ScrapeConfigurationExportMapper
                 RootDirectory = entity.ScrapeDirectories.RootDirectory,
                 RootDirectoryFamous = entity.ScrapeDirectories.RootDirectoryFamous,
                 SubDirectoryName = entity.ScrapeDirectories.SubDirectoryName
-            }
+            },
+            BaseUrl = entity.BaseUrl,
+            ApiKey = entity.ApiKey,
+            SearchString = entity.SearchString,
+            TopWallpapers = entity.TopWallpapers,
+            SearchStringPrefix = entity.SearchStringPrefix,
+            SearchStringSuffix = entity.SearchStringSuffix,
+            Subscriptions = entity.Subscriptions,
+            ImagePauseInSeconds = entity.ImagePauseInSeconds,
+            StartingPageNumber = entity.StartingPageNumber,
+            TotalPages = entity.TotalPages,
+            SubscriptionsStartingPageNumber = entity.SubscriptionsStartingPageNumber,
+            SubscriptionsTotalPages = entity.SubscriptionsTotalPages,
+            TopWallpapersStartingPageNumber = entity.TopWallpapersStartingPageNumber,
+            TopWallpapersTotalPages = entity.TopWallpapersTotalPages,
+            LoginUrl = entity.LoginUrl,
+            UseHeadless = entity.UseHeadless,
+            SlowMotionDelay = entity.SlowMotionDelay
         };
     }
 }

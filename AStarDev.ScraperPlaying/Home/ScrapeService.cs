@@ -62,10 +62,10 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
 
     private static async Task RunSearchesAsync(IPagesProcessor pagesProcessor, ScrapeConfigurationEntity configuration, IProgress<string> progress, CancellationToken cancellationToken)
     {
-        var baseUrl = configuration.SearchConfiguration.BaseUrl;
+        var baseUrl = configuration.BaseUrl;
         var apiKey = configuration.UserConfiguration.ApiKey;
-        var topWallpapersUrl = configuration.SearchConfiguration.TopWallpapers;
-        var searchCategoriesUrl = configuration.SearchConfiguration.SearchStringPrefix;
+        var topWallpapersUrl = configuration.TopWallpapers;
+        var searchCategoriesUrl = configuration.SearchStringPrefix;
         var searchCategories = configuration.SearchConfiguration.SearchCategories;
 
         progress.Report("Fetching top wallpapers.");
