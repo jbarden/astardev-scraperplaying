@@ -233,4 +233,13 @@ public sealed class GivenStringExtensions
     [InlineData("", "")]
     [InlineData("   ", "")]
     public void when_to_title_case_is_called_then_returns_the_expected_result(string? input, string expected) => input!.ToTitleCase().ShouldBe(expected);
+
+    [Theory]
+    [InlineData("Example Category", "example-category")]
+    [InlineData("ALREADY-HYPHENATED", "already-hyphenated")]
+    [InlineData("multiple   spaces", "multiple---spaces")]
+    [InlineData(null, "")]
+    [InlineData("", "")]
+    [InlineData("   ", "")]
+    public void when_to_directory_slug_is_called_then_returns_the_expected_result(string? input, string expected) => input!.ToDirectorySlug().ShouldBe(expected);
 }

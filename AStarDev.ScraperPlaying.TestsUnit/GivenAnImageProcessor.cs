@@ -1,6 +1,7 @@
 using System.Net;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
+using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Home;
 using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
@@ -12,10 +13,17 @@ public sealed class GivenAnImageProcessor
 {
     private static readonly DateTimeOffset now = new(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
     private readonly IRepository<FileEntity, FileId> fileRepository = Substitute.For<IRepository<FileEntity, FileId>>();
+    private readonly IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> scrapeConfigurationRepository = Substitute.For<IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>>();
     private readonly MockFileSystem fileSystem = new();
     private readonly ImageProcessor processor;
 
-    public GivenAnImageProcessor() => processor = new(() => now, fileSystem, () => TimeSpan.FromMilliseconds(1));
+    public GivenAnImageProcessor()
+    {
+        unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().Returns(scrapeConfigurationRepository);
+        scrapeConfigurationRepository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration("root-directory"));
+        processor = new(() => now, fileSystem, () => TimeSpan.FromMilliseconds(1), unitOfWork);
+    }
 
     [Fact]
     public async Task when_processing_a_wallpaper_then_a_matching_file_entity_is_added_and_returned()
@@ -23,7 +31,7 @@ public sealed class GivenAnImageProcessor
         fileRepository.Add(Arg.Any<FileEntity>()).Returns(call => (Exceptional<FileEntity>)call.Arg<FileEntity>());
         var wallpaper = CreateWallpaper(id: "wallpaper-1", fileSize: 1234, fileType: "image/jpeg", dimensionX: 1920, dimensionY: 1080, path: "https://example.test/full/wallpaper-1.jpg");
 
-        var result = await processor.ProcessTheImageAsync(fileRepository, wallpaper, CancellationToken.None);
+        var result = await processor.ProcessTheImageAsync(fileRepository, wallpaper, Option.None<string>(), CancellationToken.None);
 
         var addedEntity = result.Match(entity => entity, _ => (FileEntity?)null);
         addedEntity.ShouldNotBeNull();
@@ -38,12 +46,38 @@ public sealed class GivenAnImageProcessor
     }
 
     [Fact]
+    public async Task when_no_category_name_is_supplied_then_the_directory_is_the_root_combined_with_top_wallpapers()
+    {
+        fileRepository.Add(Arg.Any<FileEntity>()).Returns(call => (Exceptional<FileEntity>)call.Arg<FileEntity>());
+        var wallpaper = CreateWallpaper(id: "wallpaper-top");
+
+        var result = await processor.ProcessTheImageAsync(fileRepository, wallpaper, Option.None<string>(), CancellationToken.None);
+
+        var addedEntity = result.Match(entity => entity, _ => (FileEntity?)null);
+        addedEntity.ShouldNotBeNull();
+        addedEntity.DirectoryName.Value.ShouldBe(fileSystem.Path.Combine("root-directory", "top-wallpapers"));
+    }
+
+    [Fact]
+    public async Task when_a_category_name_is_supplied_then_the_directory_is_the_root_combined_with_the_slugified_category_name()
+    {
+        fileRepository.Add(Arg.Any<FileEntity>()).Returns(call => (Exceptional<FileEntity>)call.Arg<FileEntity>());
+        var wallpaper = CreateWallpaper(id: "wallpaper-category");
+
+        var result = await processor.ProcessTheImageAsync(fileRepository, wallpaper, Option.Some("My Category"), CancellationToken.None);
+
+        var addedEntity = result.Match(entity => entity, _ => (FileEntity?)null);
+        addedEntity.ShouldNotBeNull();
+        addedEntity.DirectoryName.Value.ShouldBe(fileSystem.Path.Combine("root-directory", "my-category"));
+    }
+
+    [Fact]
     public async Task when_the_wallpaper_path_does_not_have_an_image_extension_then_is_image_is_false()
     {
         fileRepository.Add(Arg.Any<FileEntity>()).Returns(call => (Exceptional<FileEntity>)call.Arg<FileEntity>());
         var wallpaper = CreateWallpaper(id: "wallpaper-5", path: "https://example.test/full/wallpaper-5.txt");
 
-        var result = await processor.ProcessTheImageAsync(fileRepository, wallpaper, CancellationToken.None);
+        var result = await processor.ProcessTheImageAsync(fileRepository, wallpaper, Option.None<string>(), CancellationToken.None);
 
         var addedEntity = result.Match(entity => entity, _ => (FileEntity?)null);
         addedEntity.ShouldNotBeNull();
@@ -57,7 +91,7 @@ public sealed class GivenAnImageProcessor
         fileRepository.Add(Arg.Any<FileEntity>()).Returns((Exceptional<FileEntity>)exception);
         var wallpaper = CreateWallpaper(id: "wallpaper-2");
 
-        var result = await processor.ProcessTheImageAsync(fileRepository, wallpaper, CancellationToken.None);
+        var result = await processor.ProcessTheImageAsync(fileRepository, wallpaper, Option.None<string>(), CancellationToken.None);
 
         var capturedException = result.Match(_ => (Exception?)null, ex => ex);
         capturedException.ShouldBeSameAs(exception);
@@ -91,6 +125,16 @@ public sealed class GivenAnImageProcessor
 
     private static Data CreateWallpaper(string id, int fileSize = 0, string fileType = "", int dimensionX = 0, int dimensionY = 0, string path = "")
         => new(id, "", "", 0, 0, "", "", "", dimensionX, dimensionY, "", "", fileSize, fileType, "", [], path, new Thumbs("", "", ""));
+
+    private static ScrapeConfigurationEntity CreateConfiguration(string rootDirectory)
+    {
+        var scrapeConfigurationId = new ScrapeConfigurationId(Guid.CreateVersion7());
+
+        return new ScrapeConfigurationEntity(scrapeConfigurationId)
+        {
+            ScrapeDirectories = new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.CreateVersion7()), scrapeConfigurationId, rootDirectory, rootDirectory, "")
+        };
+    }
 
     private static HttpClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> responder)
         => new(new StubHttpMessageHandler(responder));
