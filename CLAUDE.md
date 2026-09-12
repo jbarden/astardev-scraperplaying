@@ -8,6 +8,8 @@
 
 - New code need TDD, no exception. Change old code, must add/update test too. Test watch what class/method DO, not how it DO it. No interaction-test allowed, ever. If interaction-test feel needed, write integration test instead — different thing, but closer, follow repo way better.
 
+- always raise PR when completed implementation of GH Issue
+
 - Every PR raised, set auto-complete (`gh pr merge --auto --squash`) right after create.
 
 - New utility method: check `AStarDev.Utilities` first for existing one. If reusable beyond this project, add it there, not to consuming project.
@@ -22,7 +24,9 @@
 
 - Never use null except when receiving / sending data to external systems. Within app boundary, use Option&lt;T&gt;
 
-- never using single letter variable names - excpetions: loop indexes (e.g.: i, j, etc) / framework conventions (e - event args, ex - exception)
+- never using single letter variable names - excpetions: loop indexes (e.g.: i, j, etc) / framework conventions (e - event args, ex - exception, etc)
+
+- don't waste tokens / context window showing code edits to the user - they can see changes in the PR
 
 ## graphify
 
