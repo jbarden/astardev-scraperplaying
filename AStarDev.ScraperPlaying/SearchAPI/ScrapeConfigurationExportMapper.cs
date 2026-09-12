@@ -17,7 +17,6 @@ public static class ScrapeConfigurationExportMapper
                 EmailAddress = entity.UserConfiguration.EmailAddress,
                 Username = entity.UserConfiguration.Username,
                 Password = entity.UserConfiguration.Password,
-                SessionCookie = entity.UserConfiguration.SessionCookie,
                 ApiKey = entity.UserConfiguration.ApiKey
             },
             SearchConfiguration = new SearchConfigurationImportDocument
@@ -58,9 +57,7 @@ public static class ScrapeConfigurationExportMapper
             {
                 Id = entity.ScrapeDirectories.Id.Value,
                 RootDirectory = entity.ScrapeDirectories.RootDirectory,
-                BaseSaveDirectory = entity.ScrapeDirectories.BaseSaveDirectory,
-                BaseDirectory = entity.ScrapeDirectories.BaseDirectory,
-                BaseDirectoryFamous = entity.ScrapeDirectories.BaseDirectoryFamous,
+                RootDirectoryFamous = entity.ScrapeDirectories.RootDirectoryFamous,
                 SubDirectoryName = entity.ScrapeDirectories.SubDirectoryName
             }
         };

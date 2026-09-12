@@ -51,10 +51,8 @@
     "scrapeConfigurationEntityId": {
       "value": "00000000-0000-0000-0000-000000000000"
     },
-    "rootDirectory": "scrape-directory",
-    "baseSaveDirectory": "base-save-directory",
-    "baseDirectory": "base-directory",
-    "baseDirectoryFamous": "base-directory-famous",
+    "rootDirectory": "root-save-directory",
+    "rootDirectoryFamous": "root-directory-famous",
     "subDirectoryName": "sub-directory-name"
   }
 }

@@ -8,6 +8,5 @@ namespace AStarDev.ControlDb.ScrapeConfiguration;
 /// <param name="EmailAddress">The email address of the user.</param>
 /// <param name="Username">The username of the user.</param>
 /// <param name="Password">The password of the user.</param>
-/// <param name="SessionCookie">The session cookie of the user.</param>
 /// <param name="ApiKey">The API key of the user.</param>
-public record UserConfigurationEntity(UserConfigurationId Id, ScrapeConfigurationId ScrapeConfigurationEntityId, string EmailAddress, string Username, string Password, string SessionCookie, string ApiKey);
+public record UserConfigurationEntity(UserConfigurationId Id, ScrapeConfigurationId ScrapeConfigurationEntityId, string EmailAddress, string Username, string Password, string ApiKey);

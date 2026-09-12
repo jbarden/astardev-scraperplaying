@@ -34,7 +34,7 @@ public static class Seeder
                 };
         context.Set<ScrapeConfigurationEntity>().Add(new ScrapeConfigurationEntity(Guid.Empty)
         {
-            UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, "jason.j.barden2@outlook.com", "jbarden", Environment.GetEnvironmentVariable("ScrapePassword") ?? "Password1!", "n/a", "n/a"),
+            UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, "jason.j.barden2@outlook.com", "jbarden", Environment.GetEnvironmentVariable("ScrapePassword") ?? "Password1!", "n/a"),
             SearchConfiguration = new SearchConfigurationEntity(Guid.Empty, Guid.Empty, "search term", 500, searchCategories)
             {
                 BaseUrl = new Uri("https://wallhaven.cc/"),
@@ -47,7 +47,7 @@ public static class Seeder
                 Subscriptions = "subscription?page=",
                 UseHeadless = false
             },
-            ScrapeDirectories = new ScrapeDirectoriesEntity(Guid.Empty, Guid.Empty, "/run/media/jbarden/Tbdrive/sync/jason.barden1@outlook.com/", "Pictures/WallHaven/", "Pictures/WallHaven/", "Pictures/WallHaven/Famous", "subdirectory")
+            ScrapeDirectories = new ScrapeDirectoriesEntity(Guid.Empty, Guid.Empty, "/run/media/jbarden/Tbdrive/sync/jason.barden1@outlook.com/", "Pictures/WallHaven/Famous", "subdirectory")
         });
     }
 }

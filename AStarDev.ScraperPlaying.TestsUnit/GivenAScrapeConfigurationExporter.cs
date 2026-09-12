@@ -36,7 +36,7 @@ public sealed class GivenAScrapeConfigurationExporter
         document.UserConfiguration.Username.ShouldBe("user");
         document.SearchConfiguration.SearchTerm.ShouldBe("cats");
         document.SearchConfiguration.SearchCategories.Single().Name.ShouldBe("General");
-        document.ScrapeDirectories.RootDirectory.ShouldBe("/tmp");
+        document.ScrapeDirectories.RootDirectory.ShouldBe("Pictures");
     }
 
     [Fact]
