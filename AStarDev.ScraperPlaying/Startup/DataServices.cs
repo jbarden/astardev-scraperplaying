@@ -34,7 +34,7 @@ public static class DataServices
             // never-saved ControlDbContext instance for anything (FilesQuery, TagsQuery, FileTagRepository) that
             // takes ControlDbContext directly. Registering it last makes every direct ControlDbContext resolution
             // reuse the same instance IUnitOfWork resolves.
-            .AddScoped<ControlDbContext>(serviceProvider => (ControlDbContext)serviceProvider.GetRequiredService<IUnitOfWork>());
+            .AddScoped(serviceProvider => (ControlDbContext)serviceProvider.GetRequiredService<IUnitOfWork>());
 
         return services;
     }
