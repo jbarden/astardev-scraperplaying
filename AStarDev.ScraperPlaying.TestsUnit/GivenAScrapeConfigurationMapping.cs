@@ -6,18 +6,16 @@ namespace AStarDev.ScraperPlaying.TestsUnit;
 public sealed class GivenAScrapeConfigurationMapping
 {
     [Fact]
-    public void when_an_entity_is_mapped_then_urls_are_built_from_the_search_configuration()
+    public void when_an_entity_is_mapped_then_urls_are_built_from_the_scrape_configuration()
     {
         var entity = new ScrapeConfigurationEntity(Guid.Empty)
         {
-            SearchConfiguration = new SearchConfigurationEntity(Guid.Empty, Guid.Empty, "search term", 10, [])
-            {
-                BaseUrl = new Uri("https://example.test/"),
-                SearchStringPrefix = "/search?q=id:",
-                SearchStringSuffix = "&page=1",
-                TopWallpapers = "top",
-                Subscriptions = "subscriptions"
-            },
+            BaseUrl = new Uri("https://example.test/"),
+            SearchStringPrefix = "/search?q=id:",
+            SearchStringSuffix = "&page=1",
+            TopWallpapers = "top",
+            Subscriptions = "subscriptions",
+            SearchConfiguration = new SearchConfigurationEntity(Guid.Empty, Guid.Empty, "search term", 10, []),
             UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
         };
 
@@ -33,11 +31,9 @@ public sealed class GivenAScrapeConfigurationMapping
     {
         var entity = new ScrapeConfigurationEntity(Guid.Empty)
         {
+            BaseUrl = new Uri("https://example.test/"),
             SearchConfiguration = new SearchConfigurationEntity(Guid.Empty, Guid.Empty, "search term", 10,
-                [new() { Id = "1", Name = "General" }, new() { Id = "2", Name = "Anime" }])
-            {
-                BaseUrl = new Uri("https://example.test/")
-            },
+                [new() { Id = "1", Name = "General" }, new() { Id = "2", Name = "Anime" }]),
             UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
         };
 
@@ -53,10 +49,8 @@ public sealed class GivenAScrapeConfigurationMapping
     {
         var entity = new ScrapeConfigurationEntity(Guid.Empty)
         {
-            SearchConfiguration = new SearchConfigurationEntity(Guid.Empty, Guid.Empty, "search term", 10, [])
-            {
-                BaseUrl = new Uri("https://example.test/")
-            },
+            BaseUrl = new Uri("https://example.test/"),
+            SearchConfiguration = new SearchConfigurationEntity(Guid.Empty, Guid.Empty, "search term", 10, []),
             UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
         };
 

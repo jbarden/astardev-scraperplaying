@@ -14,7 +14,8 @@ public sealed class GivenAScrapeConfigurationExport
         var writer = Substitute.For<IScrapeConfigurationFileWriter>();
         var document = new ScrapeConfigurationImportDocument
         {
-            SearchConfiguration = new() { ApiKey = "api-key", SearchCategories = [new() { Id = "general" }] }
+            ApiKey = "api-key",
+            SearchConfiguration = new() { SearchCategories = [new() { Id = "general" }] }
         };
         exporter.ExportScrapeConfigurationAsync().Returns((Exceptional<Option<ScrapeConfigurationImportDocument>>)(Option<ScrapeConfigurationImportDocument>)document);
         var service = new ScrapeConfigurationExportService(exporter, writer);
