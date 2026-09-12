@@ -410,6 +410,13 @@
             <param name="cultureName">The culture to use for title casing</param>
             <returns>The title-cased string</returns>
         </member>
+        <member name="M:AStarDev.Utilities.StringExtensions.ToDirectorySlug(System.String)">
+            <summary>
+                The ToDirectorySlug method converts a string to a directory-safe slug by lower-casing it and replacing spaces with hyphens.
+            </summary>
+            <param name="value">The string to convert</param>
+            <returns>The slugified string</returns>
+        </member>
         <member name="T:AStarDev.Utilities.TimeSpanExtensions">
             <summary>
             Provides extension methods for the <see cref="T:System.TimeSpan"/> struct.

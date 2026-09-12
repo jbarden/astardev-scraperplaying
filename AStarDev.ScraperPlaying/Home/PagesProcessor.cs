@@ -9,7 +9,7 @@ namespace AStarDev.ScraperPlaying.Home;
 public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork unitOfWork, IFilesQuery filesQuery, IJsonResponseProcessor jsonResponseProcessor, IImageProcessor imageProcessor, ITagsProcessor tagsProcessor, Func<TimeSpan> pacingDelay) : IPagesProcessor
 {
     /// <inheritdoc/>
-    public async Task FetchAndProcessPagesAsync(string logLabel, Func<int, string> pageUrlFactory, string apiKey, Uri baseUrl, IProgress<string> progress, CancellationToken cancellationToken)
+    public async Task FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Func<int, string> pageUrlFactory, string apiKey, Uri baseUrl, IProgress<string> progress, CancellationToken cancellationToken)
     {
         var client = CreateHttpClient(apiKey, baseUrl);
         try
@@ -25,7 +25,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
 
                 foreach (var wallpaper in pageResult.Data)
                 {
-                    await ProcessWallpaperAsync(wallpaper, client, fileRepository, progress, cancellationToken);
+                    await ProcessWallpaperAsync(wallpaper, categoryName, client, fileRepository, progress, cancellationToken);
                 }
 
                 await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -50,7 +50,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
                 exception => throw exception);
     }
 
-    private async Task ProcessWallpaperAsync(Data wallpaper, HttpClient client, IRepository<FileEntity, FileId> fileRepository, IProgress<string> progress, CancellationToken cancellationToken)
+    private async Task ProcessWallpaperAsync(Data wallpaper, Option<string> categoryName, HttpClient client, IRepository<FileEntity, FileId> fileRepository, IProgress<string> progress, CancellationToken cancellationToken)
     {
         await (await filesQuery.CheckExistsByNameAsync(new FileName(wallpaper.Id), cancellationToken))
         .Match(
@@ -70,7 +70,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
                     progress.Report($"Downloaded image data for wallpaper {wallpaper.Id}");
                     await Task.Delay(pacingDelay(), cancellationToken);
 
-                    var fileEntity = (await imageProcessor.ProcessTheImageAsync(fileRepository, wallpaper, cancellationToken))
+                    var fileEntity = (await imageProcessor.ProcessTheImageAsync(fileRepository, wallpaper, categoryName, cancellationToken))
                         .Match(entity => entity, ex => throw ex);
 
                     await Task.Delay(pacingDelay(), cancellationToken);

@@ -26,11 +26,15 @@ public interface IImageProcessor
     /// </summary>
     /// <param name="fileRepository">The repository used to store file entities.</param>
     /// <param name="wallpaper">The wallpaper data to process.</param>
+    /// <param name="categoryName">
+    /// The search category name when a category search is being performed, or <see cref="Option{T}.None"/> when
+    /// processing the "Top Wallpapers" scrape.
+    /// </param>
     /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
     /// <returns>
     /// A task representing the asynchronous operation, containing an <see cref="Exceptional{T}"/> wrapping the
     /// added <see cref="FileEntity"/> on success, or the captured failure from adding it to
     /// <paramref name="fileRepository"/>.
     /// </returns>
-    Task<Exceptional<FileEntity>> ProcessTheImageAsync(IRepository<FileEntity, FileId> fileRepository, Data wallpaper, CancellationToken cancellationToken);
+    Task<Exceptional<FileEntity>> ProcessTheImageAsync(IRepository<FileEntity, FileId> fileRepository, Data wallpaper, Option<string> categoryName, CancellationToken cancellationToken);
 }
