@@ -15,6 +15,11 @@ public static class StringExtensions
         ///     The IsNull method, as you might expect, checks whether the string is, in fact, null
         /// </summary>
         /// <returns>True if the string is null, False otherwise</returns>
+        /// <remarks>
+        ///     Kept as a method rather than a property: the [NotNullWhen] attribute on the receiver
+        ///     enables nullable flow analysis at call sites (e.g. <c>if (value.IsNotNull())</c> narrows
+        ///     <c>value</c> to non-null afterwards), which requires an invocable member.
+        /// </remarks>
         public bool IsNull() =>
             value is null;
 
@@ -23,6 +28,12 @@ public static class StringExtensions
         ///     whitespace
         /// </summary>
         /// <returns>True if the string is null, empty or whitespace, False otherwise</returns>
+        /// <remarks>
+        ///     Kept as a method rather than a property: its name is identical to the BCL's own
+        ///     <see cref="string.IsNullOrWhiteSpace(string?)" /> static method, and exposing it as a
+        ///     property on the same underlying type creates a genuine member-lookup ambiguity at call
+        ///     sites (the compiler cannot tell them apart).
+        /// </remarks>
         public bool IsNullOrWhiteSpace() =>
             string.IsNullOrWhiteSpace(value);
     }
@@ -33,6 +44,11 @@ public static class StringExtensions
         ///     The IsNotNull method, as you might expect, checks whether the string is not null
         /// </summary>
         /// <returns>True if the string is not null, False otherwise</returns>
+        /// <remarks>
+        ///     Kept as a method rather than a property: the [NotNullWhen] attribute on the receiver
+        ///     enables nullable flow analysis at call sites (e.g. <c>if (value.IsNotNull())</c> narrows
+        ///     <c>value</c> to non-null afterwards), which requires an invocable member.
+        /// </remarks>
         public bool IsNotNull() =>
             !value.IsNull();
 
@@ -83,21 +99,24 @@ public static class StringExtensions
         /// <summary>
         /// </summary>
         /// <returns></returns>
-        public bool IsImage()
+        public bool IsImage
         {
-            if (string.IsNullOrEmpty(fileName)) return false;
+            get
+            {
+                if (string.IsNullOrEmpty(fileName)) return false;
 
-            return fileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
-            || fileName.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)
-            || fileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
-            || fileName.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase)
-            || fileName.EndsWith(".gif", StringComparison.OrdinalIgnoreCase);
+                return fileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
+                || fileName.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)
+                || fileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+                || fileName.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase)
+                || fileName.EndsWith(".gif", StringComparison.OrdinalIgnoreCase);
+            }
         }
 
         /// <summary>
         /// </summary>
         /// <returns></returns>
-        public bool IsNumberOnly() =>
+        public bool IsNumberOnly =>
             fileName.All(c => char.IsDigit(c) || c == '_' || c == '.');
     }
 

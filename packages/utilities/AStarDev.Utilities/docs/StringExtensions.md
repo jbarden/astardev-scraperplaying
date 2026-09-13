@@ -34,7 +34,7 @@ Returns `true` if `value` is not `null`.
 #### `IsNullOrWhiteSpace`
 
 ```csharp
-public static bool IsNullOrWhiteSpace(this string? value)
+public static bool IsNullOrWhiteSpace { get; }
 ```
 
 Returns `true` if `value` is `null`, empty, or consists only of whitespace. Equivalent to `string.IsNullOrWhiteSpace(value)`.
@@ -44,7 +44,7 @@ Returns `true` if `value` is `null`, empty, or consists only of whitespace. Equi
 #### `IsNotNullOrWhiteSpace`
 
 ```csharp
-public static bool IsNotNullOrWhiteSpace(this string? value)
+public static bool IsNotNullOrWhiteSpace { get; }
 ```
 
 Returns `true` if `value` is not `null`, not empty, and not whitespace only.
@@ -91,7 +91,7 @@ Deserializes `json` to type `T` using the supplied `options`.
 #### `IsImage`
 
 ```csharp
-public static bool IsImage(this string fileName)
+public static bool IsImage { get; }
 ```
 
 Returns `true` if `fileName` ends with `.jpg`, `.jpeg`, `.png`, `.bmp`, or `.gif` (case-insensitive). Returns `false` for null or empty strings.
@@ -101,7 +101,7 @@ Returns `true` if `fileName` ends with `.jpg`, `.jpeg`, `.png`, `.bmp`, or `.gif
 #### `IsNumberOnly`
 
 ```csharp
-public static bool IsNumberOnly(this string fileName)
+public static bool IsNumberOnly { get; }
 ```
 
 Returns `true` if every character in `fileName` is a digit (`0–9`), an underscore (`_`), or a period (`.`).
@@ -149,11 +149,11 @@ using AStarDev.Utilities;
 
 string? name = GetNameFromSomewhere();
 
-if (name.IsNullOrWhiteSpace())
+if (name.IsNullOrWhiteSpace)
     throw new InvalidOperationException("Name is required.");
 
 // fluent guard in a condition
-bool valid = name.IsNotNullOrWhiteSpace();
+bool valid = name.IsNotNullOrWhiteSpace;
 ```
 
 ### JSON round-trip
@@ -177,13 +177,13 @@ var copy2 = json.FromJson<Person>(opts);
 ```csharp
 using AStarDev.Utilities;
 
-"photo.jpg".IsImage();   // true
-"photo.PNG".IsImage();   // true
-"report.pdf".IsImage();  // false
-"".IsImage();            // false
+"photo.jpg".IsImage;   // true
+"photo.PNG".IsImage;   // true
+"report.pdf".IsImage;  // false
+"".IsImage;            // false
 
-"12_34.56".IsNumberOnly();  // true
-"abc".IsNumberOnly();       // false
+"12_34.56".IsNumberOnly;  // true
+"abc".IsNumberOnly;       // false
 ```
 
 ### String manipulation

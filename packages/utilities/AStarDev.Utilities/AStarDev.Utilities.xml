@@ -308,11 +308,11 @@
         <member name="M:AStarDev.Utilities.StringExtensions.SanitizeFilePath(System.String)">
             <inheritdoc cref="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.SanitizeFilePath"/>
         </member>
-        <member name="M:AStarDev.Utilities.StringExtensions.IsImage(System.String)">
-            <inheritdoc cref="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.IsImage"/>
+        <member name="M:AStarDev.Utilities.StringExtensions.get_IsImage(System.String)">
+            <inheritdoc cref="P:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.IsImage"/>
         </member>
-        <member name="M:AStarDev.Utilities.StringExtensions.IsNumberOnly(System.String)">
-            <inheritdoc cref="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.IsNumberOnly"/>
+        <member name="M:AStarDev.Utilities.StringExtensions.get_IsNumberOnly(System.String)">
+            <inheritdoc cref="P:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.IsNumberOnly"/>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.TruncateIfRequired(System.String,System.Int32)">
             <inheritdoc cref="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.TruncateIfRequired(System.Int32)"/>
@@ -355,6 +355,11 @@
                 The IsNull method, as you might expect, checks whether the string is, in fact, null
             </summary>
             <returns>True if the string is null, False otherwise</returns>
+            <remarks>
+                Kept as a method rather than a property: the [NotNullWhen] attribute on the receiver
+                enables nullable flow analysis at call sites (e.g. <c>if (value.IsNotNull())</c> narrows
+                <c>value</c> to non-null afterwards), which requires an invocable member.
+            </remarks>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.IsNullOrWhiteSpace">
             <summary>
@@ -362,12 +367,23 @@
                 whitespace
             </summary>
             <returns>True if the string is null, empty or whitespace, False otherwise</returns>
+            <remarks>
+                Kept as a method rather than a property: its name is identical to the BCL's own
+                <see cref="M:System.String.IsNullOrWhiteSpace(System.String)" /> static method, and exposing it as a
+                property on the same underlying type creates a genuine member-lookup ambiguity at call
+                sites (the compiler cannot tell them apart).
+            </remarks>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.IsNotNull">
             <summary>
                 The IsNotNull method, as you might expect, checks whether the string is not null
             </summary>
             <returns>True if the string is not null, False otherwise</returns>
+            <remarks>
+                Kept as a method rather than a property: the [NotNullWhen] attribute on the receiver
+                enables nullable flow analysis at call sites (e.g. <c>if (value.IsNotNull())</c> narrows
+                <c>value</c> to non-null afterwards), which requires an invocable member.
+            </remarks>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.IsNotNullOrWhiteSpace">
             <summary>
@@ -400,12 +416,12 @@
                 // sanitizedPath will be: "path to some file.txt"
             </example>
         </member>
-        <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.IsImage">
+        <member name="P:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.IsImage">
             <summary>
             </summary>
             <returns></returns>
         </member>
-        <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.IsNumberOnly">
+        <member name="P:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.IsNumberOnly">
             <summary>
             </summary>
             <returns></returns>
@@ -494,40 +510,40 @@
             Provides extension methods for the <see cref="T:System.TimeSpan"/> struct.
             </summary>
         </member>
-        <member name="M:AStarDev.Utilities.TimeSpanExtensions.IsJustNow(System.TimeSpan)">
-            <inheritdoc cref="M:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsJustNow"/>
+        <member name="M:AStarDev.Utilities.TimeSpanExtensions.get_IsJustNow(System.TimeSpan)">
+            <inheritdoc cref="P:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsJustNow"/>
         </member>
-        <member name="M:AStarDev.Utilities.TimeSpanExtensions.IsMinutesAgo(System.TimeSpan)">
-            <inheritdoc cref="M:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsMinutesAgo"/>
+        <member name="M:AStarDev.Utilities.TimeSpanExtensions.get_IsMinutesAgo(System.TimeSpan)">
+            <inheritdoc cref="P:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsMinutesAgo"/>
         </member>
-        <member name="M:AStarDev.Utilities.TimeSpanExtensions.IsHoursAgo(System.TimeSpan)">
-            <inheritdoc cref="M:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsHoursAgo"/>
+        <member name="M:AStarDev.Utilities.TimeSpanExtensions.get_IsHoursAgo(System.TimeSpan)">
+            <inheritdoc cref="P:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsHoursAgo"/>
         </member>
-        <member name="M:AStarDev.Utilities.TimeSpanExtensions.IsYesterday(System.TimeSpan)">
-            <inheritdoc cref="M:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsYesterday"/>
+        <member name="M:AStarDev.Utilities.TimeSpanExtensions.get_IsYesterday(System.TimeSpan)">
+            <inheritdoc cref="P:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsYesterday"/>
         </member>
         <member name="M:AStarDev.Utilities.TimeSpanExtensions.ToDurationString(System.TimeSpan)">
             <inheritdoc cref="M:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.ToDurationString"/>
         </member>
-        <member name="M:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsJustNow">
+        <member name="P:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsJustNow">
             <summary>
             Determines whether the specified <see cref="T:System.TimeSpan"/> represents a time span of less than two minutes.
             </summary>
             <returns><c>true</c> if the time span is less than two minutes; otherwise, <c>false</c>.</returns>
         </member>
-        <member name="M:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsMinutesAgo">
+        <member name="P:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsMinutesAgo">
             <summary>
             Determines whether the specified <see cref="T:System.TimeSpan"/> represents a time span of less than one hour.
             </summary>
             <returns><c>true</c> if the time span is less than one hour; otherwise, <c>false</c>.</returns>
         </member>
-        <member name="M:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsHoursAgo">
+        <member name="P:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsHoursAgo">
             <summary>
             Determines whether the specified <see cref="T:System.TimeSpan"/> represents a time span of less than one day.
             </summary>
             <returns><c>true</c> if the time span is less than one day; otherwise, <c>false</c>.</returns>
         </member>
-        <member name="M:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsYesterday">
+        <member name="P:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsYesterday">
             <summary>
             Determines whether the specified <see cref="T:System.TimeSpan"/> represents a time span of less than two days.
             </summary>
