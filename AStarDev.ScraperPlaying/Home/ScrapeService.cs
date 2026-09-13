@@ -62,18 +62,17 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
 
     private static async Task RunSearchesAsync(IPagesProcessor pagesProcessor, ScrapeConfigurationEntity configuration, IProgress<string> progress, CancellationToken cancellationToken)
     {
-        var baseUrl = configuration.BaseUrl;
-        var apiKey = configuration.UserConfiguration.ApiKey;
+        var connection = new WallhavenConnection(configuration.UserConfiguration.ApiKey, configuration.BaseUrl);
         var topWallpapersUrl = configuration.TopWallpapers;
         var searchCategoriesUrl = configuration.SearchStringPrefix;
         var searchCategories = configuration.SearchConfiguration.SearchCategories;
 
         progress.Report("Fetching top wallpapers.");
-        await pagesProcessor.FetchAndProcessPagesAsync("top wallpapers", Option.None<string>(), page => WallhavenUrlBuilder.BuildTopWallpapersPageUrl(topWallpapersUrl, page), apiKey, baseUrl, progress, cancellationToken);
+        await pagesProcessor.FetchAndProcessPagesAsync("top wallpapers", Option.None<string>(), page => WallhavenUrlBuilder.BuildTopWallpapersPageUrl(topWallpapersUrl, page), connection, progress, cancellationToken);
 
         foreach (var category in searchCategories.Take(3))
         {
-            await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Id}", Option.Some(category.Name), page => WallhavenUrlBuilder.BuildCategoryPageUrl(searchCategoriesUrl, category, page), apiKey, baseUrl, progress, cancellationToken);
+            await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Id}", Option.Some(category.Name), page => WallhavenUrlBuilder.BuildCategoryPageUrl(searchCategoriesUrl, category, page), connection, progress, cancellationToken);
         }
     }
 }

@@ -16,10 +16,9 @@ public interface IPagesProcessor
     /// fetching the "Top Wallpapers" scrape.
     /// </param>
     /// <param name="pageUrlFactory">A function that generates page URLs based on the page number.</param>
-    /// <param name="apiKey">The API key sent in the X-API-Key header.</param>
-    /// <param name="baseUrl">The base URL of the website to fetch pages from.</param>
+    /// <param name="connection">The Wallhaven API credentials and target host to fetch pages from.</param>
     /// <param name="progress">The progress reporter to report the fetching and processing progress.</param>
     /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    Task FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Func<int, string> pageUrlFactory, string apiKey, Uri baseUrl, IProgress<string> progress, CancellationToken cancellationToken);
+    Task FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Func<int, string> pageUrlFactory, WallhavenConnection connection, IProgress<string> progress, CancellationToken cancellationToken);
 }
