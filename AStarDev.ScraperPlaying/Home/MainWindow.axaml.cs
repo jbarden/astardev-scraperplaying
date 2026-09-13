@@ -1,7 +1,6 @@
 using System.Text.Json;
 using AStar.Dev.Logging.Extensions;
 using AStarDev.FunctionalParadigm;
-using AStarDev.ScraperPlaying.SearchAPI;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.Input;
@@ -15,21 +14,17 @@ public partial class MainWindow : Window, IDisposable
 {
     private const int MaximumStatusMessages = 100;
     private readonly StatusMessageLog statusMessageLog = new(MaximumStatusMessages);
-    private readonly IScrapeConfigurationImportService importService;
-    private readonly IScrapeConfigurationExportService exportService;
-    private readonly IConfigurationFilePicker configurationFilePicker;
+    private readonly IScrapeConfigurationFileService scrapeConfigurationFileService;
     private readonly IScrapeService scrapeService;
     private readonly ILogger<MainWindow> logger;
     private readonly OperationCoordinator operationCoordinator;
     private bool isDisposing;
     private bool isRootDirectoryAvailable = true;
 
-    public MainWindow(ILogger<MainWindow> logger, IScrapeConfigurationImportService importService, IScrapeConfigurationExportService exportService, IConfigurationFilePicker configurationFilePicker, IScrapeService scrapeService, OperationCoordinator operationCoordinator)
+    public MainWindow(ILogger<MainWindow> logger, IScrapeConfigurationFileService scrapeConfigurationFileService, IScrapeService scrapeService, OperationCoordinator operationCoordinator)
     {
         InitializeComponent();
-        this.importService = importService;
-        this.exportService = exportService;
-        this.configurationFilePicker = configurationFilePicker;
+        this.scrapeConfigurationFileService = scrapeConfigurationFileService;
         this.scrapeService = scrapeService;
         this.logger = logger;
         this.operationCoordinator = operationCoordinator;
@@ -42,7 +37,7 @@ public partial class MainWindow : Window, IDisposable
     public static MainWindow CreateStartupError(Exception exception)
     {
         // operationCoordinator must be non-null: the constructor subscribes to its StateChanged event
-        var window = new MainWindow(NullLogger<MainWindow>.Instance, null!, null!, null!, null!, new OperationCoordinator());
+        var window = new MainWindow(NullLogger<MainWindow>.Instance, null!, null!, new OperationCoordinator());
         window.AppendStatusMessage($"Startup failed: {exception.GetType().Name}: {exception.Message}");
 
         return window;
@@ -54,15 +49,10 @@ public partial class MainWindow : Window, IDisposable
 
         try
         {
-            await configurationFilePicker.PickAsync(this).MatchAsync(
-                async path =>
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    await importService.ImportAsync(path, cancellationToken);
-                    SetStatusText("Scrape configuration imported.");
-                },
-                () => SetStatusText("Scrape configuration import could not be completed.")
-            );
+            var message = (await scrapeConfigurationFileService.ImportViaPickerAsync(this, cancellationToken)).Match(
+                _ => "Scrape configuration imported.",
+                () => "Scrape configuration import could not be completed.");
+            SetStatusText(message);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -84,17 +74,10 @@ public partial class MainWindow : Window, IDisposable
 
         try
         {
-            await configurationFilePicker.PickSaveAsync(this).MatchAsync(
-                async path =>
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    var exported = await exportService.ExportAsync(path, cancellationToken);
-                    SetStatusText(exported
-                        ? "Scrape configuration exported."
-                        : "No scrape configuration was found to export.");
-                },
-                () => SetStatusText("Scrape configuration export could not be completed.")
-            );
+            var message = (await scrapeConfigurationFileService.ExportViaPickerAsync(this, cancellationToken)).Match(
+                exported => exported ? "Scrape configuration exported." : "No scrape configuration was found to export.",
+                () => "Scrape configuration export could not be completed.");
+            SetStatusText(message);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
