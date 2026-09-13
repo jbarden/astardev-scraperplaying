@@ -13,6 +13,7 @@ public class WallpaperIngestionService(IFilesQuery filesQuery, IImageProcessor i
     public async Task IngestAsync(Data wallpaper, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
     {
         var extension = wallpaper.Path.ToFileExtension();
+        var fileRequest = new WallpaperFileRequest(wallpaper, context.Directory, extension);
 
         await (await filesQuery.CheckExistsByNameAsync(new FileName($"{wallpaper.Id}{extension}"), cancellationToken))
         .Match(
@@ -28,11 +29,11 @@ public class WallpaperIngestionService(IFilesQuery filesQuery, IImageProcessor i
                 await Try.RunAsync(async () =>
                 {
                     progress.Report($"No existing file found for wallpaper {wallpaper.Id}.");
-                    await imageProcessor.DownloadImageAsync(wallpaper.Id, wallpaper.Path, extension, context.Directory, progress, context.Client, cancellationToken);
+                    await imageProcessor.DownloadImageAsync(fileRequest, progress, context.Client, cancellationToken);
                     progress.Report($"Downloaded image data for wallpaper {wallpaper.Id}");
                     await Task.Delay(pacingDelay(), cancellationToken);
 
-                    var fileEntity = (await imageProcessor.ProcessTheImageAsync(context.FileRepository, wallpaper, context.Directory, extension, cancellationToken))
+                    var fileEntity = (await imageProcessor.ProcessTheImageAsync(context.FileRepository, fileRequest, cancellationToken))
                         .Match(entity => entity, ex => throw ex);
 
                     await Task.Delay(pacingDelay(), cancellationToken);
