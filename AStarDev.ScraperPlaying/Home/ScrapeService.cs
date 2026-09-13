@@ -69,16 +69,11 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
         var searchCategories = configuration.SearchConfiguration.SearchCategories;
 
         progress.Report("Fetching top wallpapers.");
-        await pagesProcessor.FetchAndProcessPagesAsync("top wallpapers", Option.None<string>(), page => topWallpapersUrl + page, apiKey, baseUrl, progress, cancellationToken);
+        await pagesProcessor.FetchAndProcessPagesAsync("top wallpapers", Option.None<string>(), page => WallhavenUrlBuilder.BuildTopWallpapersPageUrl(topWallpapersUrl, page), apiKey, baseUrl, progress, cancellationToken);
 
         foreach (var category in searchCategories.Take(3))
         {
-            await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Id}", Option.Some(category.Name), page => BuildCategoryUrl(page, searchCategoriesUrl, category), apiKey, baseUrl, progress, cancellationToken);
+            await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Id}", Option.Some(category.Name), page => WallhavenUrlBuilder.BuildCategoryPageUrl(searchCategoriesUrl, category, page), apiKey, baseUrl, progress, cancellationToken);
         }
     }
-
-    private static string BuildCategoryUrl(int page, string searchCategoriesUrl, SearchCategoryEntity category)
-    => page == 1
-        ? searchCategoriesUrl.Replace("%7Bid%7D", category.Id)
-        : searchCategoriesUrl.Replace("%7Bid%7D", category.Id) + page;
 }
