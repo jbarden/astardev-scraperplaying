@@ -147,7 +147,7 @@ public sealed class GivenAWallpaperIngestionService
     }
 
     private Task Ingest(Data wallpaper, string directory = "some-directory")
-        => service.IngestAsync(wallpaper, directory, new HttpClient(), fileRepository, progress, CancellationToken.None);
+        => service.IngestAsync(wallpaper, new WallpaperIngestionContext(directory, new HttpClient(), fileRepository), progress, CancellationToken.None);
 
     private static Data CreateWallpaper(string id, string path = "")
         => new(id, "", "", 0, 0, "", "", "", 0, 0, "", "", 0, "", "", [], path, new Thumbs("", "", ""));
