@@ -14,7 +14,18 @@ public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, 
     private const string TopWallpapersDirectorySegment = "top-wallpapers";
 
     /// <inheritdoc/>
-    public async Task DownloadImageAsync(string id, string imageUri, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
+    public async Task<string> ResolveSaveDirectoryAsync(Option<string> categoryName, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var directorySegment = categoryName.Match(name => name.ToDirectorySlug(), () => TopWallpapersDirectorySegment);
+        var rootDirectory = await LoadRootDirectoryAsync();
+
+        return fileSystem.Path.Combine(rootDirectory, directorySegment);
+    }
+
+    /// <inheritdoc/>
+    public async Task DownloadImageAsync(string id, string imageUri, string directory, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
     {
         await Task.Delay(pacingDelay(), cancellationToken);
 
@@ -25,24 +36,22 @@ public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, 
         progress.Report($"Downloading image for wallpaper {id} from {imageUri}");
         using Stream downloadStream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
-        using var fileStream = fileSystem.FileStream.New($"{id}.jpg", FileMode.Create, FileAccess.Write, FileShare.None);
+        fileSystem.Directory.CreateDirectory(directory);
+        using var fileStream = fileSystem.FileStream.New(fileSystem.Path.Combine(directory, $"{id}.jpg"), FileMode.Create, FileAccess.Write, FileShare.None);
 
         await downloadStream.CopyToAsync(fileStream, cancellationToken);
     }
 
     /// <inheritdoc/>
-    public async Task<Exceptional<FileEntity>> ProcessTheImageAsync(IRepository<FileEntity, FileId> fileRepository, Data wallpaper, Option<string> categoryName, CancellationToken cancellationToken)
+    public Task<Exceptional<FileEntity>> ProcessTheImageAsync(IRepository<FileEntity, FileId> fileRepository, Data wallpaper, string directory, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-
-        var directorySegment = categoryName.Match(name => name.ToDirectorySlug(), () => TopWallpapersDirectorySegment);
-        var rootDirectory = await LoadRootDirectoryAsync();
 
         var fileEntity = new FileEntity
         {
             Id = FileId.Empty,
             FileName = new FileName(wallpaper.Id),
-            DirectoryName = DirectoryName.Create(fileSystem.Path.Combine(rootDirectory, directorySegment)),
+            DirectoryName = DirectoryName.Create(directory),
             FileAccessDetail = new FileAccessDetailEntity
             {
                 DetailsLastUpdated = clock().UtcDateTime,
@@ -62,7 +71,7 @@ public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, 
             }
         };
 
-        return fileRepository.Add(fileEntity);
+        return Task.FromResult(fileRepository.Add(fileEntity));
     }
 
     private async Task<string> LoadRootDirectoryAsync()
