@@ -16,6 +16,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
         {
             var page = 1;
             var fileRepository = unitOfWork.GetRepository<FileEntity, FileId>();
+            var directory = await imageProcessor.ResolveSaveDirectoryAsync(categoryName, cancellationToken);
             SearchResponse pageResult;
             await Task.Delay(pacingDelay(), cancellationToken);
             do
@@ -25,7 +26,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
 
                 foreach (var wallpaper in pageResult.Data)
                 {
-                    await ProcessWallpaperAsync(wallpaper, categoryName, client, fileRepository, progress, cancellationToken);
+                    await ProcessWallpaperAsync(wallpaper, directory, client, fileRepository, progress, cancellationToken);
                 }
 
                 await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -50,7 +51,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
                 exception => throw exception);
     }
 
-    private async Task ProcessWallpaperAsync(Data wallpaper, Option<string> categoryName, HttpClient client, IRepository<FileEntity, FileId> fileRepository, IProgress<string> progress, CancellationToken cancellationToken)
+    private async Task ProcessWallpaperAsync(Data wallpaper, string directory, HttpClient client, IRepository<FileEntity, FileId> fileRepository, IProgress<string> progress, CancellationToken cancellationToken)
     {
         await (await filesQuery.CheckExistsByNameAsync(new FileName(wallpaper.Id), cancellationToken))
         .Match(
@@ -66,11 +67,11 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
                 await Try.RunAsync(async () =>
                 {
                     progress.Report($"No existing file found for wallpaper {wallpaper.Id}.");
-                    await imageProcessor.DownloadImageAsync(wallpaper.Id, wallpaper.Path, progress, client, cancellationToken);
+                    await imageProcessor.DownloadImageAsync(wallpaper.Id, wallpaper.Path, directory, progress, client, cancellationToken);
                     progress.Report($"Downloaded image data for wallpaper {wallpaper.Id}");
                     await Task.Delay(pacingDelay(), cancellationToken);
 
-                    var fileEntity = (await imageProcessor.ProcessTheImageAsync(fileRepository, wallpaper, categoryName, cancellationToken))
+                    var fileEntity = (await imageProcessor.ProcessTheImageAsync(fileRepository, wallpaper, directory, cancellationToken))
                         .Match(entity => entity, ex => throw ex);
 
                     await Task.Delay(pacingDelay(), cancellationToken);
