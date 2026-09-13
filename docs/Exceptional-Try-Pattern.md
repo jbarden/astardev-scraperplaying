@@ -23,4 +23,4 @@ Key points:
 - If the delegate already returns `Exceptional<T>` (or the target type is itself `Exceptional<T>`), don't wrap the result again — `Try.RunAsync<T>` returns `Task<Exceptional<T>>` directly, so it can be returned as-is when `T` matches the interface's expected success type.
 - Consumers should stay unaware of this - no per-call `try/catch` boilerplate is needed at call sites; `Exceptional<T>` is consumed via `.Match(onSuccess, onFailure)` or `.Tap(...)`.
 
-See [infrastructure/AStarDev.FunctionalParadigm/Try.cs](../infrastructure/AStarDev.FunctionalParadigm/Try.cs) and its usage in [infrastructure/AStarDev.ControlDb/ControlDbContext.cs](../infrastructure/AStarDev.ControlDb/ControlDbContext.cs).
+See [packages/AStarDev.FunctionalParadigm/Try.cs](../packages/AStarDev.FunctionalParadigm/Try.cs) and its usage in [packages/AStarDev.ControlDb/ControlDbContext.cs](../packages/AStarDev.ControlDb/ControlDbContext.cs).
