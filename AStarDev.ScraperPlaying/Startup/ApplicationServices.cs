@@ -30,6 +30,7 @@ public static class ApplicationServices
             .AddScoped<IImageProcessor, ImageProcessor>()
             .AddScoped<ISaveDirectoryResolver, SaveDirectoryResolver>()
             .AddScoped<ITagsProcessor, TagsProcessor>()
+            .AddScoped<IWallpaperIngestionService, WallpaperIngestionService>()
             .AddSingleton<Func<DateTimeOffset>>(_ => () => DateTimeOffset.UtcNow)
             .AddSingleton<Func<TimeSpan>>(_ => () => TimeSpan.FromSeconds(2))
             .AddSingleton<MainWindow>()
