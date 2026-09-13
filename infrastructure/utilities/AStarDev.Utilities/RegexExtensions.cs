@@ -6,33 +6,32 @@ namespace AStarDev.Utilities;
 /// </summary>
 public static partial class RegexExtensions
 {
-    /// <summary>
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    public static bool ContainsAtLeastOneLowercaseLetter(this string value) =>
-        LowercaseLettersRegex().IsMatch(value);
+    extension(string value)
+    {
+        /// <summary>
+        /// </summary>
+        /// <returns></returns>
+        public bool ContainsAtLeastOneLowercaseLetter() =>
+            LowercaseLettersRegex().IsMatch(value);
 
-    /// <summary>
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    public static bool ContainsAtLeastOneUppercaseLetter(this string value) =>
-        UppercaseLettersRegex().IsMatch(value);
+        /// <summary>
+        /// </summary>
+        /// <returns></returns>
+        public bool ContainsAtLeastOneUppercaseLetter() =>
+            UppercaseLettersRegex().IsMatch(value);
 
-    /// <summary>
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    public static bool ContainsAtLeastOneDigit(this string value) =>
-        DigitRegex().IsMatch(value);
+        /// <summary>
+        /// </summary>
+        /// <returns></returns>
+        public bool ContainsAtLeastOneDigit() =>
+            DigitRegex().IsMatch(value);
 
-    /// <summary>
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    public static bool ContainsAtLeastOneSpecialCharacter(this string value) =>
-        SpecialCharacterRegex().IsMatch(value);
+        /// <summary>
+        /// </summary>
+        /// <returns></returns>
+        public bool ContainsAtLeastOneSpecialCharacter() =>
+            SpecialCharacterRegex().IsMatch(value);
+    }
 
     [GeneratedRegex("[a-z]", RegexOptions.CultureInvariant, 1_000)]
     private static partial Regex LowercaseLettersRegex();

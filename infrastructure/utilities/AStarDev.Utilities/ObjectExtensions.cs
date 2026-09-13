@@ -10,12 +10,14 @@ public static class ObjectExtensions
 {
     private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
-    /// <summary>
-    ///     The ToJson method, as you might expect, converts the supplied object to its JSON equivalent (using the
-    ///     JsonSerializerDefaults.Web defaults with WriteIndented set to true)
-    /// </summary>
-    /// <param name="obj">The object to convert to JSON</param>
-    /// <returns>The JSON string of the object supplied</returns>
-    public static string ToJson<T>(this T obj) =>
-        JsonSerializer.Serialize(obj, Options);
+    extension<T>(T obj)
+    {
+        /// <summary>
+        ///     The ToJson method, as you might expect, converts the supplied object to its JSON equivalent (using the
+        ///     JsonSerializerDefaults.Web defaults with WriteIndented set to true)
+        /// </summary>
+        /// <returns>The JSON string of the object supplied</returns>
+        public string ToJson() =>
+            JsonSerializer.Serialize(obj, Options);
+    }
 }
