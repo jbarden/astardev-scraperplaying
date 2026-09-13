@@ -11,33 +11,34 @@ namespace AStarDev.ScraperPlaying.Home;
 public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, Func<TimeSpan> pacingDelay) : IImageProcessor
 {
     /// <inheritdoc/>
-    public async Task DownloadImageAsync(string id, string imageUri, string extension, string directory, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
+    public async Task DownloadImageAsync(WallpaperFileRequest request, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
     {
         await Task.Delay(pacingDelay(), cancellationToken);
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, imageUri);
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Get, request.Wallpaper.Path);
 
-        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        using var response = await client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         response.EnsureSuccessStatusCode();
-        progress.Report($"Downloading image for wallpaper {id} from {imageUri}");
+        progress.Report($"Downloading image for wallpaper {request.Wallpaper.Id} from {request.Wallpaper.Path}");
         using Stream downloadStream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
-        fileSystem.Directory.CreateDirectory(directory);
-        using var fileStream = fileSystem.FileStream.New(fileSystem.Path.Combine(directory, $"{id}{extension}"), FileMode.Create, FileAccess.Write, FileShare.None);
+        fileSystem.Directory.CreateDirectory(request.Directory);
+        using var fileStream = fileSystem.FileStream.New(fileSystem.Path.Combine(request.Directory, $"{request.Wallpaper.Id}{request.Extension}"), FileMode.Create, FileAccess.Write, FileShare.None);
 
         await downloadStream.CopyToAsync(fileStream, cancellationToken);
     }
 
     /// <inheritdoc/>
-    public Task<Exceptional<FileEntity>> ProcessTheImageAsync(IRepository<FileEntity, FileId> fileRepository, Data wallpaper, string directory, string extension, CancellationToken cancellationToken)
+    public Task<Exceptional<FileEntity>> ProcessTheImageAsync(IRepository<FileEntity, FileId> fileRepository, WallpaperFileRequest request, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
+        var wallpaper = request.Wallpaper;
         var fileEntity = new FileEntity
         {
             Id = FileId.Empty,
-            FileName = new FileName($"{wallpaper.Id}{extension}"),
-            DirectoryName = DirectoryName.Create(directory),
+            FileName = new FileName($"{wallpaper.Id}{request.Extension}"),
+            DirectoryName = DirectoryName.Create(request.Directory),
             FileAccessDetail = new FileAccessDetailEntity
             {
                 DetailsLastUpdated = clock().UtcDateTime,
