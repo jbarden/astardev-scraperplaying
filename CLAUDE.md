@@ -28,6 +28,10 @@
 
 - don't waste tokens / context window showing code edits to the user - they can see changes in the PR
 
+- Before using `??` / `?.` / a null check to handle a "missing value" case, confirm the API's actual sentinel for absence — many BCL/library methods return empty string, empty collection, or a default struct instead of null (e.g. `Path.GetExtension` returns `""`, not `null`, when the path has no extension, so `Path.GetExtension(path) ?? fallback` never falls back). When in doubt, write a throwaway check or read the docs rather than assume. Add a test for that specific falsy-but-not-null case, not just the null case.
+
+- A shorter/more "idiomatic" rewrite of existing logic is not proof it's correct. If existing code has an unusual shape (e.g. an explicit `IsNullOrEmpty` check instead of `??`), treat it as intentional and re-run the tests covering that behaviour before simplifying it — don't rely on the rewrite "looking right".
+
 ## graphify
 
 Project has knowledge graph: graphify-out/ with god nodes, community structure, and cross-file relationships.
