@@ -25,7 +25,7 @@ public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, 
     }
 
     /// <inheritdoc/>
-    public async Task DownloadImageAsync(string id, string imageUri, string directory, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
+    public async Task DownloadImageAsync(string id, string imageUri, string extension, string directory, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
     {
         await Task.Delay(pacingDelay(), cancellationToken);
 
@@ -37,20 +37,20 @@ public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, 
         using Stream downloadStream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
         fileSystem.Directory.CreateDirectory(directory);
-        using var fileStream = fileSystem.FileStream.New(fileSystem.Path.Combine(directory, $"{id}.jpg"), FileMode.Create, FileAccess.Write, FileShare.None);
+        using var fileStream = fileSystem.FileStream.New(fileSystem.Path.Combine(directory, $"{id}{extension}"), FileMode.Create, FileAccess.Write, FileShare.None);
 
         await downloadStream.CopyToAsync(fileStream, cancellationToken);
     }
 
     /// <inheritdoc/>
-    public Task<Exceptional<FileEntity>> ProcessTheImageAsync(IRepository<FileEntity, FileId> fileRepository, Data wallpaper, string directory, CancellationToken cancellationToken)
+    public Task<Exceptional<FileEntity>> ProcessTheImageAsync(IRepository<FileEntity, FileId> fileRepository, Data wallpaper, string directory, string extension, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         var fileEntity = new FileEntity
         {
             Id = FileId.Empty,
-            FileName = new FileName(wallpaper.Id),
+            FileName = new FileName($"{wallpaper.Id}{extension}"),
             DirectoryName = DirectoryName.Create(directory),
             FileAccessDetail = new FileAccessDetailEntity
             {

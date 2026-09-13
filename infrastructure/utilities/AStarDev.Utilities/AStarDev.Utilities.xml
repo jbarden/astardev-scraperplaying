@@ -169,6 +169,14 @@
             <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="basePath" /> or <paramref name="segments" /> is null.</exception>
             <exception cref="T:System.ArgumentException">Thrown when any segment is rooted.</exception>
         </member>
+        <member name="M:AStarDev.Utilities.PathOperationExtensions.ToFileExtension(System.String,System.String)">
+            <summary>
+                Returns the file extension (including the leading '.') from a path or URL, or <paramref name="fallbackExtension" /> when the path has none.
+            </summary>
+            <param name="path">The path or URL to extract the extension from.</param>
+            <param name="fallbackExtension">The extension to return when <paramref name="path" /> has none. Defaults to ".jpg".</param>
+            <returns>The extension from <paramref name="path" />, or <paramref name="fallbackExtension" /> when none is present.</returns>
+        </member>
         <member name="M:AStarDev.Utilities.PathOperationExtensions.CleanPath(System.String)">
              <summary>
             

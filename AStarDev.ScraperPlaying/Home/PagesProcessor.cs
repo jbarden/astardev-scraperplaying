@@ -2,6 +2,7 @@ using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
+using AStarDev.Utilities;
 
 namespace AStarDev.ScraperPlaying.Home;
 
@@ -53,7 +54,9 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
 
     private async Task ProcessWallpaperAsync(Data wallpaper, string directory, HttpClient client, IRepository<FileEntity, FileId> fileRepository, IProgress<string> progress, CancellationToken cancellationToken)
     {
-        await (await filesQuery.CheckExistsByNameAsync(new FileName(wallpaper.Id), cancellationToken))
+        var extension = wallpaper.Path.ToFileExtension();
+
+        await (await filesQuery.CheckExistsByNameAsync(new FileName($"{wallpaper.Id}{extension}"), cancellationToken))
         .Match(
             async exists =>
             {
@@ -67,11 +70,11 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
                 await Try.RunAsync(async () =>
                 {
                     progress.Report($"No existing file found for wallpaper {wallpaper.Id}.");
-                    await imageProcessor.DownloadImageAsync(wallpaper.Id, wallpaper.Path, directory, progress, client, cancellationToken);
+                    await imageProcessor.DownloadImageAsync(wallpaper.Id, wallpaper.Path, extension, directory, progress, client, cancellationToken);
                     progress.Report($"Downloaded image data for wallpaper {wallpaper.Id}");
                     await Task.Delay(pacingDelay(), cancellationToken);
 
-                    var fileEntity = (await imageProcessor.ProcessTheImageAsync(fileRepository, wallpaper, directory, cancellationToken))
+                    var fileEntity = (await imageProcessor.ProcessTheImageAsync(fileRepository, wallpaper, directory, extension, cancellationToken))
                         .Match(entity => entity, ex => throw ex);
 
                     await Task.Delay(pacingDelay(), cancellationToken);
