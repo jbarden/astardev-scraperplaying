@@ -74,4 +74,20 @@ public sealed class GivenPathOperationExtensions
 
         path.CleanPath().ShouldBe("path file.txt");
     }
+
+    [Fact]
+    public void when_to_file_extension_is_called_with_a_url_then_returns_the_extension_from_the_url() =>
+        "https://example.test/full/wallpaper-1.png".ToFileExtension().ShouldBe(".png");
+
+    [Fact]
+    public void when_to_file_extension_is_called_with_a_different_extension_then_returns_that_extension() =>
+        "https://example.test/full/wallpaper-1.gif".ToFileExtension().ShouldBe(".gif");
+
+    [Fact]
+    public void when_to_file_extension_is_called_with_a_path_with_no_extension_then_returns_the_fallback_extension() =>
+        "https://example.test/full/wallpaper-1".ToFileExtension().ShouldBe(".jpg");
+
+    [Fact]
+    public void when_to_file_extension_is_called_with_an_explicit_fallback_then_uses_that_fallback_when_no_extension_is_present() =>
+        "https://example.test/full/wallpaper-1".ToFileExtension(".png").ShouldBe(".png");
 }

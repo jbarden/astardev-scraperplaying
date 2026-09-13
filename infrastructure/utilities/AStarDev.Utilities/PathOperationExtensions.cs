@@ -30,6 +30,19 @@ public static class PathOperationExtensions
     }
 
     /// <summary>
+    ///     Returns the file extension (including the leading '.') from a path or URL, or <paramref name="fallbackExtension" /> when the path has none.
+    /// </summary>
+    /// <param name="path">The path or URL to extract the extension from.</param>
+    /// <param name="fallbackExtension">The extension to return when <paramref name="path" /> has none. Defaults to ".jpg".</param>
+    /// <returns>The extension from <paramref name="path" />, or <paramref name="fallbackExtension" /> when none is present.</returns>
+    public static string ToFileExtension(this string path, string fallbackExtension = ".jpg")
+    {
+        string extension = Path.GetExtension(path);
+
+        return extension.IsNullOrWhiteSpace() ? fallbackExtension : extension;
+    }
+
+    /// <summary>
     ///
     /// </summary>
     /// <param name="path"></param>
