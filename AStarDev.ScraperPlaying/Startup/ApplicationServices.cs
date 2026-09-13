@@ -24,6 +24,7 @@ public static class ApplicationServices
             .AddSingleton<IScrapeConfigurationFileWriter, ScrapeConfigurationFileWriter>()
             .AddSingleton<IScrapeConfigurationExportService, ScrapeConfigurationExportService>()
             .AddSingleton<IScrapeConfigurationExporter, ScrapeConfigurationExporter>()
+            .AddSingleton<IScrapeConfigurationFileService, ScrapeConfigurationFileService>()
             .AddSingleton<OperationCoordinator>()
             .AddScoped<IPagesProcessor, PagesProcessor>()
             .AddScoped<IJsonResponseProcessor, JsonResponseProcessor>()
