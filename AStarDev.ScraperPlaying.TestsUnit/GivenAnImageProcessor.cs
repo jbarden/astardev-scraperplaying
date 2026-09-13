@@ -1,7 +1,6 @@
 using System.Net;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
-using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Home;
 using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
@@ -13,16 +12,12 @@ public sealed class GivenAnImageProcessor
 {
     private static readonly DateTimeOffset now = new(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
     private readonly IRepository<FileEntity, FileId> fileRepository = Substitute.For<IRepository<FileEntity, FileId>>();
-    private readonly IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
-    private readonly IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> scrapeConfigurationRepository = Substitute.For<IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>>();
     private readonly MockFileSystem fileSystem = new();
     private readonly ImageProcessor processor;
 
     public GivenAnImageProcessor()
     {
-        unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().Returns(scrapeConfigurationRepository);
-        scrapeConfigurationRepository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration("root-directory"));
-        processor = new(() => now, fileSystem, () => TimeSpan.FromMilliseconds(1), unitOfWork);
+        processor = new(() => now, fileSystem, () => TimeSpan.FromMilliseconds(1));
     }
 
     [Fact]
@@ -98,22 +93,6 @@ public sealed class GivenAnImageProcessor
     }
 
     [Fact]
-    public async Task when_no_category_name_is_supplied_then_the_resolved_directory_is_the_root_combined_with_top_wallpapers()
-    {
-        var directory = await processor.ResolveSaveDirectoryAsync(Option.None<string>(), CancellationToken.None);
-
-        directory.ShouldBe(fileSystem.Path.Combine("root-directory", "top-wallpapers"));
-    }
-
-    [Fact]
-    public async Task when_a_category_name_is_supplied_then_the_resolved_directory_is_the_root_combined_with_the_slugified_category_name()
-    {
-        var directory = await processor.ResolveSaveDirectoryAsync(Option.Some("My Category"), CancellationToken.None);
-
-        directory.ShouldBe(fileSystem.Path.Combine("root-directory", "my-category"));
-    }
-
-    [Fact]
     public async Task when_downloading_an_image_succeeds_then_it_is_written_to_the_resolved_directory_with_the_supplied_extension_and_progress_is_reported()
     {
         var imageBytes = new byte[] { 1, 2, 3, 4, 5 };
@@ -175,16 +154,6 @@ public sealed class GivenAnImageProcessor
 
     private static Data CreateWallpaper(string id, int fileSize = 0, string fileType = "", int dimensionX = 0, int dimensionY = 0, string path = "")
         => new(id, "", "", 0, 0, "", "", "", dimensionX, dimensionY, "", "", fileSize, fileType, "", [], path, new Thumbs("", "", ""));
-
-    private static ScrapeConfigurationEntity CreateConfiguration(string rootDirectory)
-    {
-        var scrapeConfigurationId = new ScrapeConfigurationId(Guid.CreateVersion7());
-
-        return new ScrapeConfigurationEntity(scrapeConfigurationId)
-        {
-            ScrapeDirectories = new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.CreateVersion7()), scrapeConfigurationId, rootDirectory, rootDirectory, "")
-        };
-    }
 
     private static HttpClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> responder)
         => new(new StubHttpMessageHandler(responder));
