@@ -39,7 +39,7 @@ public static class PathOperationExtensions
     {
         string extension = Path.GetExtension(path);
 
-        return string.IsNullOrEmpty(extension) ? fallbackExtension : extension;
+        return extension.IsNullOrWhiteSpace() ? fallbackExtension : extension;
     }
 
     /// <summary>
