@@ -9,9 +9,9 @@ namespace AStarDev.ScraperPlaying.Home;
 public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork unitOfWork, IJsonResponseProcessor jsonResponseProcessor, ISaveDirectoryResolver saveDirectoryResolver, IWallpaperIngestionService wallpaperIngestionService, Func<TimeSpan> pacingDelay) : IPagesProcessor
 {
     /// <inheritdoc/>
-    public async Task FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Func<int, string> pageUrlFactory, string apiKey, Uri baseUrl, IProgress<string> progress, CancellationToken cancellationToken)
+    public async Task FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Func<int, string> pageUrlFactory, WallhavenConnection connection, IProgress<string> progress, CancellationToken cancellationToken)
     {
-        var client = CreateHttpClient(apiKey, baseUrl);
+        var client = CreateHttpClient(connection);
         try
         {
             var page = 1;
@@ -51,12 +51,12 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
                 exception => throw exception);
     }
 
-    private HttpClient CreateHttpClient(string apiKey, Uri baseUrl)
+    private HttpClient CreateHttpClient(WallhavenConnection connection)
     {
         var httpClient = httpClientFactory.CreateClient(ApplicationConstants.WallhavenHttpClientName);
-        httpClient.BaseAddress = baseUrl;
-        httpClient.DefaultRequestHeaders.Add("X-API-Key", apiKey);
-        httpClient.DefaultRequestHeaders.Referrer = baseUrl;
+        httpClient.BaseAddress = connection.BaseUrl;
+        httpClient.DefaultRequestHeaders.Add("X-API-Key", connection.ApiKey);
+        httpClient.DefaultRequestHeaders.Referrer = connection.BaseUrl;
 
         return httpClient;
     }

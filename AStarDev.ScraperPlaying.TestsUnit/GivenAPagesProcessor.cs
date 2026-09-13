@@ -96,8 +96,7 @@ public sealed class GivenAPagesProcessor
             "wallpapers",
             Option.None<string>(),
             page => $"https://example.test/page/{page}",
-            "api-key",
-            new Uri("https://example.test"),
+            new WallhavenConnection("api-key", new Uri("https://example.test")),
             progress,
             CancellationToken.None);
 
