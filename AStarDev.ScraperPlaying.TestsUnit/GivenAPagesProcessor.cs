@@ -23,7 +23,7 @@ public sealed class GivenAPagesProcessor
         unitOfWork.GetRepository<FileEntity, FileId>().Returns(fileRepository);
         unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
         saveDirectoryResolver.ResolveSaveDirectoryAsync(Arg.Any<Option<string>>(), Arg.Any<CancellationToken>()).Returns("resolved-directory");
-        wallpaperIngestionService.IngestAsync(Arg.Any<Data>(), Arg.Any<string>(), Arg.Any<HttpClient>(), Arg.Any<IRepository<FileEntity, FileId>>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
+        wallpaperIngestionService.IngestAsync(Arg.Any<Data>(), Arg.Any<WallpaperIngestionContext>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
         processor = new(httpClientFactory, unitOfWork, jsonResponseProcessor, saveDirectoryResolver, wallpaperIngestionService, () => TimeSpan.FromMilliseconds(1));
     }
@@ -36,7 +36,7 @@ public sealed class GivenAPagesProcessor
 
         await Run();
 
-        await wallpaperIngestionService.Received(1).IngestAsync(wallpaper, "resolved-directory", Arg.Any<HttpClient>(), fileRepository, progress, Arg.Any<CancellationToken>());
+        await wallpaperIngestionService.Received(1).IngestAsync(wallpaper, Arg.Is<WallpaperIngestionContext>(context => context.Directory == "resolved-directory" && context.FileRepository == fileRepository), progress, Arg.Any<CancellationToken>());
         await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
@@ -45,7 +45,7 @@ public sealed class GivenAPagesProcessor
     {
         var wallpaper = CreateWallpaper("wallpaper-2");
         SetUpPage(1, CreateSearchResponse(lastPage: 1, wallpaper));
-        wallpaperIngestionService.IngestAsync(Arg.Any<Data>(), Arg.Any<string>(), Arg.Any<HttpClient>(), Arg.Any<IRepository<FileEntity, FileId>>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
+        wallpaperIngestionService.IngestAsync(Arg.Any<Data>(), Arg.Any<WallpaperIngestionContext>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
             .Returns(_ => throw new InvalidOperationException("ingestion failed"));
 
         await Should.ThrowAsync<InvalidOperationException>(Run);

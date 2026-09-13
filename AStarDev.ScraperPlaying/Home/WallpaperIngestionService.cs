@@ -10,7 +10,7 @@ namespace AStarDev.ScraperPlaying.Home;
 public class WallpaperIngestionService(IFilesQuery filesQuery, IImageProcessor imageProcessor, ITagsProcessor tagsProcessor, Func<TimeSpan> pacingDelay) : IWallpaperIngestionService
 {
     /// <inheritdoc/>
-    public async Task IngestAsync(Data wallpaper, string directory, HttpClient client, IRepository<FileEntity, FileId> fileRepository, IProgress<string> progress, CancellationToken cancellationToken)
+    public async Task IngestAsync(Data wallpaper, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
     {
         var extension = wallpaper.Path.ToFileExtension();
 
@@ -28,15 +28,15 @@ public class WallpaperIngestionService(IFilesQuery filesQuery, IImageProcessor i
                 await Try.RunAsync(async () =>
                 {
                     progress.Report($"No existing file found for wallpaper {wallpaper.Id}.");
-                    await imageProcessor.DownloadImageAsync(wallpaper.Id, wallpaper.Path, extension, directory, progress, client, cancellationToken);
+                    await imageProcessor.DownloadImageAsync(wallpaper.Id, wallpaper.Path, extension, context.Directory, progress, context.Client, cancellationToken);
                     progress.Report($"Downloaded image data for wallpaper {wallpaper.Id}");
                     await Task.Delay(pacingDelay(), cancellationToken);
 
-                    var fileEntity = (await imageProcessor.ProcessTheImageAsync(fileRepository, wallpaper, directory, extension, cancellationToken))
+                    var fileEntity = (await imageProcessor.ProcessTheImageAsync(context.FileRepository, wallpaper, context.Directory, extension, cancellationToken))
                         .Match(entity => entity, ex => throw ex);
 
                     await Task.Delay(pacingDelay(), cancellationToken);
-                    await tagsProcessor.FetchAndLinkTagsAsync(wallpaper.Id, fileEntity.Id, client, progress, cancellationToken)
+                    await tagsProcessor.FetchAndLinkTagsAsync(wallpaper.Id, fileEntity.Id, context.Client, progress, cancellationToken)
                         .MatchAsync(
                             _ => Task.CompletedTask,
                             ex =>

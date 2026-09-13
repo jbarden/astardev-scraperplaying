@@ -17,6 +17,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
             var page = 1;
             var fileRepository = unitOfWork.GetRepository<FileEntity, FileId>();
             var directory = await saveDirectoryResolver.ResolveSaveDirectoryAsync(categoryName, cancellationToken);
+            var ingestionContext = new WallpaperIngestionContext(directory, client, fileRepository);
             SearchResponse pageResult;
             await Task.Delay(pacingDelay(), cancellationToken);
             do
@@ -26,7 +27,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
 
                 foreach (var wallpaper in pageResult.Data)
                 {
-                    await wallpaperIngestionService.IngestAsync(wallpaper, directory, client, fileRepository, progress, cancellationToken);
+                    await wallpaperIngestionService.IngestAsync(wallpaper, ingestionContext, progress, cancellationToken);
                 }
 
                 await unitOfWork.SaveChangesAsync(cancellationToken);
