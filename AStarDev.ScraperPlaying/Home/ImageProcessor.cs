@@ -1,7 +1,6 @@
 using System.IO.Abstractions;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
-using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
 using AStarDev.Utilities;
@@ -9,21 +8,8 @@ using AStarDev.Utilities;
 namespace AStarDev.ScraperPlaying.Home;
 
 /// <inheritdoc/>
-public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, Func<TimeSpan> pacingDelay, IUnitOfWork unitOfWork) : IImageProcessor
+public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, Func<TimeSpan> pacingDelay) : IImageProcessor
 {
-    private const string TopWallpapersDirectorySegment = "top-wallpapers";
-
-    /// <inheritdoc/>
-    public async Task<string> ResolveSaveDirectoryAsync(Option<string> categoryName, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var directorySegment = categoryName.Match(name => name.ToDirectorySlug(), () => TopWallpapersDirectorySegment);
-        var rootDirectory = await LoadRootDirectoryAsync();
-
-        return fileSystem.Path.Combine(rootDirectory, directorySegment);
-    }
-
     /// <inheritdoc/>
     public async Task DownloadImageAsync(string id, string imageUri, string extension, string directory, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
     {
@@ -72,16 +58,5 @@ public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, 
         };
 
         return Task.FromResult(fileRepository.Add(fileEntity));
-    }
-
-    private async Task<string> LoadRootDirectoryAsync()
-    {
-        var configuration = (await unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().TryGetFirstAsync())
-            .Match(
-                option => option.Match(scrapeConfig => scrapeConfig, () => throw new InvalidOperationException("Scrape configuration not found")),
-                exception => throw exception
-            );
-
-        return configuration.ScrapeDirectories.RootDirectory;
     }
 }

@@ -7,7 +7,7 @@ using AStarDev.Utilities;
 namespace AStarDev.ScraperPlaying.Home;
 
 /// <inheritdoc/>
-public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork unitOfWork, IFilesQuery filesQuery, IJsonResponseProcessor jsonResponseProcessor, IImageProcessor imageProcessor, ITagsProcessor tagsProcessor, Func<TimeSpan> pacingDelay) : IPagesProcessor
+public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork unitOfWork, IFilesQuery filesQuery, IJsonResponseProcessor jsonResponseProcessor, IImageProcessor imageProcessor, ISaveDirectoryResolver saveDirectoryResolver, ITagsProcessor tagsProcessor, Func<TimeSpan> pacingDelay) : IPagesProcessor
 {
     /// <inheritdoc/>
     public async Task FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Func<int, string> pageUrlFactory, string apiKey, Uri baseUrl, IProgress<string> progress, CancellationToken cancellationToken)
@@ -17,7 +17,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
         {
             var page = 1;
             var fileRepository = unitOfWork.GetRepository<FileEntity, FileId>();
-            var directory = await imageProcessor.ResolveSaveDirectoryAsync(categoryName, cancellationToken);
+            var directory = await saveDirectoryResolver.ResolveSaveDirectoryAsync(categoryName, cancellationToken);
             SearchResponse pageResult;
             await Task.Delay(pacingDelay(), cancellationToken);
             do

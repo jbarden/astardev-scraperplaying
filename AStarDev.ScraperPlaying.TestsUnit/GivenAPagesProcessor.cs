@@ -14,6 +14,7 @@ public sealed class GivenAPagesProcessor
     private readonly IFilesQuery filesQuery = Substitute.For<IFilesQuery>();
     private readonly IJsonResponseProcessor jsonResponseProcessor = Substitute.For<IJsonResponseProcessor>();
     private readonly IImageProcessor imageProcessor = Substitute.For<IImageProcessor>();
+    private readonly ISaveDirectoryResolver saveDirectoryResolver = Substitute.For<ISaveDirectoryResolver>();
     private readonly ITagsProcessor tagsProcessor = Substitute.For<ITagsProcessor>();
     private readonly CapturingProgress progress = new();
     private readonly PagesProcessor processor;
@@ -23,10 +24,10 @@ public sealed class GivenAPagesProcessor
         httpClientFactory.CreateClient(ApplicationConstants.WallhavenHttpClientName).Returns(_ => new HttpClient());
         unitOfWork.GetRepository<FileEntity, FileId>().Returns(fileRepository);
         unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
-        imageProcessor.ResolveSaveDirectoryAsync(Arg.Any<Option<string>>(), Arg.Any<CancellationToken>()).Returns("resolved-directory");
+        saveDirectoryResolver.ResolveSaveDirectoryAsync(Arg.Any<Option<string>>(), Arg.Any<CancellationToken>()).Returns("resolved-directory");
         tagsProcessor.FetchAndLinkTagsAsync(Arg.Any<string>(), Arg.Any<FileId>(), Arg.Any<HttpClient>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
             .Returns((Exceptional<UnitFp>)UnitFp.Instance);
-        processor = new(httpClientFactory, unitOfWork, filesQuery, jsonResponseProcessor, imageProcessor, tagsProcessor, () => TimeSpan.FromMilliseconds(1));
+        processor = new(httpClientFactory, unitOfWork, filesQuery, jsonResponseProcessor, imageProcessor, saveDirectoryResolver, tagsProcessor, () => TimeSpan.FromMilliseconds(1));
     }
 
     [Fact]
