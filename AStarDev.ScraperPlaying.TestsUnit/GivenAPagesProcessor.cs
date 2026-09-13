@@ -81,6 +81,23 @@ public sealed class GivenAPagesProcessor
     }
 
     [Fact]
+    public async Task when_a_wallpaper_source_path_has_no_extension_then_the_jpg_fallback_is_used_for_the_existence_check_and_download()
+    {
+        var wallpaper = CreateWallpaper("extensionless-wallpaper", path: "https://example.test/full/extensionless-wallpaper");
+        SetUpPage(1, CreateSearchResponse(lastPage: 1, wallpaper));
+        filesQuery.CheckExistsByNameAsync(Arg.Any<FileName>(), Arg.Any<CancellationToken>()).Returns((Exceptional<bool>)false);
+        imageProcessor.DownloadImageAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<IProgress<string>>(), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
+        var fileEntity = new FileEntity { FileName = new("extensionless-wallpaper.jpg"), DirectoryName = new(""), FileHandle = new(""), FileSize = 0 };
+        imageProcessor.ProcessTheImageAsync(Arg.Any<IRepository<FileEntity, FileId>>(), Arg.Any<Data>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((Exceptional<FileEntity>)fileEntity);
+
+        await Run();
+
+        await filesQuery.Received(1).CheckExistsByNameAsync(Arg.Is<FileName>(name => name.Value == "extensionless-wallpaper.jpg"), Arg.Any<CancellationToken>());
+        await imageProcessor.Received(1).DownloadImageAsync("extensionless-wallpaper", wallpaper.Path, ".jpg", "resolved-directory", progress, Arg.Any<HttpClient>(), Arg.Any<CancellationToken>());
+        await imageProcessor.Received(1).ProcessTheImageAsync(Arg.Any<IRepository<FileEntity, FileId>>(), wallpaper, "resolved-directory", ".jpg", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task when_downloading_a_new_wallpaper_fails_then_the_failure_is_reported_and_the_page_completes()
     {
         var wallpaper = CreateWallpaper("failing-download");
