@@ -3,6 +3,16 @@
     "serena@claude-plugins-official": true
   },
   "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /home/jbarden/repos/astardev-scraperplaying && /home/jbarden/.local/bin/graphify update . >/dev/null 2>&1 || true"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash|Grep",
