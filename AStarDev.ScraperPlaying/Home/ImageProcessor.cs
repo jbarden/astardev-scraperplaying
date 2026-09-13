@@ -61,7 +61,7 @@ public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, 
             FileSize = wallpaper.FileSize,
             FileHandle = FileHandle.Create(wallpaper.Id),
             FileType = wallpaper.FileType,
-            IsImage = wallpaper.Path.IsImage(),
+            IsImage = wallpaper.Path.IsImage,
             ImageDetail = new ImageDetailEntity
             {
                 Id = ImageId.Empty,
