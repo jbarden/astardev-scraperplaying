@@ -14,7 +14,7 @@ namespace AStarDev.ScraperPlaying.Home;
 public partial class MainWindow : Window, IDisposable
 {
     private const int MaximumStatusMessages = 100;
-    private readonly Queue<string> statusMessages = new();
+    private readonly StatusMessageLog statusMessageLog = new(MaximumStatusMessages);
     private readonly IScrapeConfigurationImportService importService;
     private readonly IScrapeConfigurationExportService exportService;
     private readonly IConfigurationFilePicker configurationFilePicker;
@@ -182,13 +182,8 @@ public partial class MainWindow : Window, IDisposable
 
     private void AppendStatusMessage(string message) => Dispatcher.UIThread.Post(() =>
                                                              {
-                                                                 statusMessages.Enqueue(message);
-                                                                 while (statusMessages.Count > MaximumStatusMessages)
-                                                                 {
-                                                                     statusMessages.Dequeue();
-                                                                 }
-
-                                                                 StatusTextBlock.Text = string.Join(Environment.NewLine, statusMessages);
+                                                                 statusMessageLog.Append(message);
+                                                                 StatusTextBlock.Text = statusMessageLog.Text;
                                                                  StatusScrollViewer.ScrollToEnd();
                                                              });
 }
