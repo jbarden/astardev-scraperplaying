@@ -2,6 +2,7 @@ using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
+using Microsoft.EntityFrameworkCore;
 
 namespace AStarDev.ScraperPlaying.Home;
 
@@ -35,10 +36,29 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
                 page++;
             } while (page <= pageResult.Meta.LastPage && page <= 4);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            await SavePartiallyIngestedPageAsync(progress);
+
+            throw;
+        }
         catch (Exception ex)
         {
             progress.Report($"An error occurred during the fetching and processing of pages: {ex.Message}");
             throw;
+        }
+    }
+
+    private async Task SavePartiallyIngestedPageAsync(IProgress<string> progress)
+    {
+        try
+        {
+            await unitOfWork.SaveChangesAsync(CancellationToken.None);
+            progress.Report("Scrape cancelled - saved wallpapers downloaded so far this page.");
+        }
+        catch (DbUpdateException ex)
+        {
+            progress.Report($"Scrape cancelled - failed to save wallpapers downloaded so far this page: {ex.Message}");
         }
     }
 
