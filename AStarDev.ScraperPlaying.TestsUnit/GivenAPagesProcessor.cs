@@ -3,6 +3,7 @@ using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Home;
 using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
+using Microsoft.EntityFrameworkCore;
 
 namespace AStarDev.ScraperPlaying.TestsUnit;
 
@@ -76,6 +77,61 @@ public sealed class GivenAPagesProcessor
         progress.Messages.ShouldContain("Fetching wallpapers page 4.");
         progress.Messages.ShouldNotContain(message => message.Contains("page 5"));
         await unitOfWork.Received(4).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task when_ingesting_a_wallpaper_is_cancelled_mid_page_then_the_partial_page_is_saved_before_the_cancellation_propagates()
+    {
+        var wallpaper = CreateWallpaper("wallpaper-cancelled");
+        SetUpPage(1, CreateSearchResponse(lastPage: 1, wallpaper));
+        using var cancellationTokenSource = new CancellationTokenSource();
+        wallpaperIngestionService.IngestAsync(Arg.Any<Data>(), Arg.Any<WallpaperIngestionContext>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                cancellationTokenSource.Cancel();
+
+                throw new OperationCanceledException(cancellationTokenSource.Token);
+            });
+
+        await Should.ThrowAsync<OperationCanceledException>(
+            () => processor.FetchAndProcessPagesAsync(
+                "wallpapers",
+                Option.None<string>(),
+                page => $"https://example.test/page/{page}",
+                new WallhavenConnection("api-key", new Uri("https://example.test")),
+                progress,
+                cancellationTokenSource.Token));
+
+        await unitOfWork.Received(1).SaveChangesAsync(Arg.Is<CancellationToken>(token => token == CancellationToken.None));
+        progress.Messages.ShouldContain("Scrape cancelled - saved wallpapers downloaded so far this page.");
+    }
+
+    [Fact]
+    public async Task when_the_partial_page_save_on_cancellation_itself_fails_then_the_cancellation_still_propagates()
+    {
+        var wallpaper = CreateWallpaper("wallpaper-cancelled-save-fails");
+        SetUpPage(1, CreateSearchResponse(lastPage: 1, wallpaper));
+        using var cancellationTokenSource = new CancellationTokenSource();
+        wallpaperIngestionService.IngestAsync(Arg.Any<Data>(), Arg.Any<WallpaperIngestionContext>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                cancellationTokenSource.Cancel();
+
+                throw new OperationCanceledException(cancellationTokenSource.Token);
+            });
+        unitOfWork.SaveChangesAsync(Arg.Is<CancellationToken>(token => token == CancellationToken.None))
+            .Returns<Task<int>>(_ => throw new DbUpdateException("save failed"));
+
+        await Should.ThrowAsync<OperationCanceledException>(
+            () => processor.FetchAndProcessPagesAsync(
+                "wallpapers",
+                Option.None<string>(),
+                page => $"https://example.test/page/{page}",
+                new WallhavenConnection("api-key", new Uri("https://example.test")),
+                progress,
+                cancellationTokenSource.Token));
+
+        progress.Messages.ShouldContain("Scrape cancelled - failed to save wallpapers downloaded so far this page: save failed");
     }
 
     [Fact]
