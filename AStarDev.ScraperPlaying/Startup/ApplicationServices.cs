@@ -1,8 +1,10 @@
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using AStarDev.ScraperPlaying.Home;
-using AStarDev.ScraperPlaying.SearchAPI;
+using AStarDev.ScraperPlaying.ScrapeConfiguration;
+using AStarDev.ScraperPlaying.Scraping;
+using AStarDev.ScraperPlaying.UI;
+using AStarDev.ScraperPlaying.WallpaperIngestion;
 
 namespace AStarDev.ScraperPlaying.Startup;
 

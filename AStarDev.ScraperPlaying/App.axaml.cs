@@ -25,11 +25,11 @@ public partial class App : Application, IDisposable
             try
             {
                 serviceProvider = BuildServices();
-                desktop.MainWindow = serviceProvider.GetRequiredService<Home.MainWindow>();
+                desktop.MainWindow = serviceProvider.GetRequiredService<UI.MainWindow>();
             }
             catch (Exception exception)
             {
-                desktop.MainWindow = Home.MainWindow.CreateStartupError(exception);
+                desktop.MainWindow = UI.MainWindow.CreateStartupError(exception);
             }
         }
 
