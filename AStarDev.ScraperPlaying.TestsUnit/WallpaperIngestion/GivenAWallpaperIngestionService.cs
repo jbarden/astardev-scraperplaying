@@ -151,7 +151,7 @@ public sealed class GivenAWallpaperIngestionService
         => service.IngestAsync(wallpaper, new WallpaperIngestionContext(directory, new HttpClient(), fileRepository, "resolved-category"), progress, CancellationToken.None);
 
     private static Data CreateWallpaper(string id, string path = "")
-        => new(id, "", "", 0, 0, "", "", "", 0, 0, "", "", 0, "", "", [], path, new Thumbs("", "", ""));
+        => new(id, 0, 0, 0, "", path);
 
     private sealed class CapturingProgress : IProgress<string>
     {
