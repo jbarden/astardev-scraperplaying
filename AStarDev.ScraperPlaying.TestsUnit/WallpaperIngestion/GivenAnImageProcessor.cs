@@ -162,7 +162,7 @@ public sealed class GivenAnImageProcessor
     }
 
     private static Data CreateWallpaper(string id, int fileSize = 0, string fileType = "", int dimensionX = 0, int dimensionY = 0, string path = "")
-        => new(id, "", "", 0, 0, "", "", "", dimensionX, dimensionY, "", "", fileSize, fileType, "", [], path, new Thumbs("", "", ""));
+        => new(id, dimensionX, dimensionY, fileSize, fileType, path);
 
     private static HttpClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> responder)
         => new(new StubHttpMessageHandler(responder));

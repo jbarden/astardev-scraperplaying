@@ -130,15 +130,10 @@ public sealed class GivenATagsProcessor
             .Returns((Exceptional<Option<DetailResponse>>)(Option<DetailResponse>)CreateDetailResponse(tags));
 
     private static DetailResponse CreateDetailResponse(params Tag[] tags)
-        => new(new Data(
-            "wallpaper-1", "", "",
-            new Uploader("", "", new Avatar("", "", "", "")),
-            0, 0, "", "", "", 0, 0, "", "", 0, "", "", [], "",
-            new Thumbs("", "", ""),
-            tags));
+        => new(new Data(tags));
 
     private static Tag CreateTag(int wallhavenTagId, string name)
-        => new(wallhavenTagId, name, name, 1, "Nature", "sfw", "");
+        => new(wallhavenTagId, name, name, 1, "Nature", "sfw");
 
     private sealed class CapturingProgress : IProgress<string>
     {

@@ -189,10 +189,10 @@ public sealed class GivenAPagesProcessor
     }
 
     private static SearchResponse CreateSearchResponse(int lastPage, params Data[] wallpapers)
-        => new(wallpapers, new Meta(1, lastPage, 24, wallpapers.Length, default, new object()));
+        => new(wallpapers, new Meta(lastPage));
 
     private static Data CreateWallpaper(string id, string path = "")
-        => new(id, "", "", 0, 0, "", "", "", 0, 0, "", "", 0, "", "", [], path, new Thumbs("", "", ""));
+        => new(id, 0, 0, 0, "", path);
 
     private sealed class CapturingProgress : IProgress<string>
     {
