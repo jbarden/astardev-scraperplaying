@@ -39,6 +39,20 @@
              </summary>
              <returns></returns>
         </member>
+        <member name="T:AStarDev.Utilities.ByteSizeExtensions">
+            <summary>
+            Provides extension methods for formatting byte counts.
+            </summary>
+        </member>
+        <member name="M:AStarDev.Utilities.ByteSizeExtensions.ToFileSizeString(System.Int32)">
+            <inheritdoc cref="M:AStarDev.Utilities.ByteSizeExtensions.&lt;G&gt;$BA41CFE2B5EDAEB8C1B9062F59ED4D69.ToFileSizeString"/>
+        </member>
+        <member name="M:AStarDev.Utilities.ByteSizeExtensions.&lt;G&gt;$BA41CFE2B5EDAEB8C1B9062F59ED4D69.ToFileSizeString">
+            <summary>
+            Formats the specified byte count using whichever unit reads best for its magnitude.
+            </summary>
+            <returns>A human-readable size, e.g. "512 B", "42 KB", or "3.1 MB".</returns>
+        </member>
         <member name="T:AStarDev.Utilities.Constants">
             <summary>
                 The <see href="Constants"></see>see> class contains static / constant properties to simplify and centralise various

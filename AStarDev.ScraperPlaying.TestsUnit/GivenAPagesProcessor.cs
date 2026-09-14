@@ -37,8 +37,25 @@ public sealed class GivenAPagesProcessor
 
         await Run();
 
-        await wallpaperIngestionService.Received(1).IngestAsync(wallpaper, Arg.Is<WallpaperIngestionContext>(context => context.Directory == "resolved-directory" && context.FileRepository == fileRepository), progress, Arg.Any<CancellationToken>());
+        await wallpaperIngestionService.Received(1).IngestAsync(wallpaper, Arg.Is<WallpaperIngestionContext>(context => context.Directory == "resolved-directory" && context.FileRepository == fileRepository && context.CategoryLabel == "Top Wallpapers"), progress, Arg.Any<CancellationToken>());
         await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task when_a_specific_search_category_is_supplied_then_wallpapers_are_ingested_with_that_category_as_the_label()
+    {
+        var wallpaper = CreateWallpaper("wallpaper-category");
+        SetUpPage(1, CreateSearchResponse(lastPage: 1, wallpaper));
+
+        await processor.FetchAndProcessPagesAsync(
+            "search category Cars",
+            Option.Some("Cars"),
+            page => $"https://example.test/page/{page}",
+            new WallhavenConnection("api-key", new Uri("https://example.test")),
+            progress,
+            CancellationToken.None);
+
+        await wallpaperIngestionService.Received(1).IngestAsync(wallpaper, Arg.Is<WallpaperIngestionContext>(context => context.CategoryLabel == "Cars"), progress, Arg.Any<CancellationToken>());
     }
 
     [Fact]

@@ -9,4 +9,5 @@ namespace AStarDev.ScraperPlaying.Home;
 /// <param name="Wallpaper">The wallpaper data being downloaded/processed.</param>
 /// <param name="Directory">The directory to save the wallpaper's image into.</param>
 /// <param name="Extension">The file extension (including the leading '.') to save the image with.</param>
-public sealed record WallpaperFileRequest(Data Wallpaper, string Directory, string Extension);
+/// <param name="CategoryLabel">The search category the wallpaper came from, or "Top Wallpapers" when it did not come from a specific search category.</param>
+public sealed record WallpaperFileRequest(Data Wallpaper, string Directory, string Extension, string CategoryLabel);

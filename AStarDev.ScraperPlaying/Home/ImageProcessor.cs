@@ -29,7 +29,7 @@ public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, 
             await downloadStream.CopyToAsync(fileStream, cancellationToken);
         }
 
-        imageDownloadNotifier.NotifyImageDownloaded(savedPath);
+        imageDownloadNotifier.NotifyImageDownloaded(new WallpaperDownloadDetails(savedPath, request.Wallpaper.Id, request.CategoryLabel, request.Wallpaper.FileSize, request.Wallpaper.DimensionX, request.Wallpaper.DimensionY));
     }
 
     /// <inheritdoc/>

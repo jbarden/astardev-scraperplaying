@@ -18,7 +18,8 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
             var page = 1;
             var fileRepository = unitOfWork.GetRepository<FileEntity, FileId>();
             var directory = await saveDirectoryResolver.ResolveSaveDirectoryAsync(categoryName, cancellationToken);
-            var ingestionContext = new WallpaperIngestionContext(directory, client, fileRepository);
+            var categoryLabel = categoryName.Match(name => name, () => "Top Wallpapers");
+            var ingestionContext = new WallpaperIngestionContext(directory, client, fileRepository, categoryLabel);
             SearchResponse pageResult;
             await Task.Delay(pacingDelay(), cancellationToken);
             do

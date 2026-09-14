@@ -8,17 +8,23 @@ public sealed class GivenAnImageDisplayCoordinator
     private readonly IDownloadedImageDecoder decoder = Substitute.For<IDownloadedImageDecoder>();
 
     [Fact]
-    public void when_a_notified_image_decodes_successfully_then_image_ready_is_raised_with_the_decoded_stream()
+    public void when_a_notified_image_decodes_successfully_then_image_ready_is_raised_with_the_decoded_stream_and_details()
     {
         var decodedStream = new MemoryStream([1, 2, 3]);
         decoder.DecodeToPng("/some/path/wallpaper-1.jpg").Returns(decodedStream);
         var coordinator = new ImageDisplayCoordinator(notifier, decoder);
-        Stream? receivedStream = null;
-        coordinator.ImageReady += (_, stream) => receivedStream = stream;
+        WallpaperPreviewImage? received = null;
+        coordinator.ImageReady += (_, preview) => received = preview;
 
-        notifier.NotifyImageDownloaded("/some/path/wallpaper-1.jpg");
+        notifier.NotifyImageDownloaded(new WallpaperDownloadDetails("/some/path/wallpaper-1.jpg", "wallpaper-1", "Cars", 1234, 1920, 1080));
 
-        receivedStream.ShouldBeSameAs(decodedStream);
+        received.ShouldNotBeNull();
+        received.PngStream.ShouldBeSameAs(decodedStream);
+        received.Name.ShouldBe("wallpaper-1");
+        received.CategoryLabel.ShouldBe("Cars");
+        received.FileSizeBytes.ShouldBe(1234);
+        received.Width.ShouldBe(1920);
+        received.Height.ShouldBe(1080);
     }
 
     [Fact]
@@ -29,7 +35,7 @@ public sealed class GivenAnImageDisplayCoordinator
         var raised = false;
         coordinator.ImageReady += (_, _) => raised = true;
 
-        Should.NotThrow(() => notifier.NotifyImageDownloaded("/some/path/wallpaper-1.jpg"));
+        Should.NotThrow(() => notifier.NotifyImageDownloaded(new WallpaperDownloadDetails("/some/path/wallpaper-1.jpg", "wallpaper-1", "Cars", 1234, 1920, 1080)));
 
         raised.ShouldBeFalse();
     }

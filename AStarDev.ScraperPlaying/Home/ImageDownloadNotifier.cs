@@ -4,8 +4,8 @@ namespace AStarDev.ScraperPlaying.Home;
 public sealed class ImageDownloadNotifier : IImageDownloadNotifier
 {
     /// <inheritdoc/>
-    public event EventHandler<string>? ImageDownloaded;
+    public event EventHandler<WallpaperDownloadDetails>? ImageDownloaded;
 
     /// <inheritdoc/>
-    public void NotifyImageDownloaded(string filePath) => ImageDownloaded?.Invoke(this, filePath);
+    public void NotifyImageDownloaded(WallpaperDownloadDetails details) => ImageDownloaded?.Invoke(this, details);
 }
