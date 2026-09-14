@@ -18,11 +18,20 @@ public sealed class GivenAServiceRegistrationGenerator
                                                    Transient
                                                }
 
+                                               public enum Layer
+                                               {
+                                                   Application,
+                                                   Domain,
+                                                   Infrastructure,
+                                                   Miscellaneous
+                                               }
+
                                                [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
                                                public sealed class AutoRegisterServiceAttribute : Attribute
                                                {
-                                                   public AutoRegisterServiceAttribute(ServiceLifetime lifetime = ServiceLifetime.Scoped) { Lifetime = lifetime; }
+                                                   public AutoRegisterServiceAttribute(ServiceLifetime lifetime = ServiceLifetime.Scoped, Layer layer = Layer.Miscellaneous) { Lifetime = lifetime; Layer = layer; }
                                                    public ServiceLifetime Lifetime { get; }
+                                                   public Layer Layer { get; }
                                                    public Type? As { get; set; }
                                                    public bool AsSelf { get; set; } = false;
                                                }
@@ -79,9 +88,15 @@ public sealed class GivenAServiceRegistrationGenerator
 
                       public static class GeneratedServiceCollectionExtensions
                       {
-                          public static IServiceCollection AddAnnotatedServices(this IServiceCollection services)
+                          public static IServiceCollection AddMiscellaneousServices(this IServiceCollection services)
                           {
                               services.AddScoped<global::TestNamespace.IFoo, global::TestNamespace.Foo>();
+                              return services;
+                          }
+
+                          public static IServiceCollection AddAnnotatedServices(this IServiceCollection services)
+                          {
+                              services.AddMiscellaneousServices();
                               return services;
                           }
                       }
@@ -120,9 +135,15 @@ public sealed class GivenAServiceRegistrationGenerator
 
                       public static class GeneratedServiceCollectionExtensions
                       {
-                          public static IServiceCollection AddAnnotatedServices(this IServiceCollection services)
+                          public static IServiceCollection AddMiscellaneousServices(this IServiceCollection services)
                           {
                               services.AddSingleton<global::TestNamespace.IFoo, global::TestNamespace.Foo>();
+                              return services;
+                          }
+
+                          public static IServiceCollection AddAnnotatedServices(this IServiceCollection services)
+                          {
+                              services.AddMiscellaneousServices();
                               return services;
                           }
                       }
@@ -161,10 +182,16 @@ public sealed class GivenAServiceRegistrationGenerator
 
                       public static class GeneratedServiceCollectionExtensions
                       {
-                          public static IServiceCollection AddAnnotatedServices(this IServiceCollection services)
+                          public static IServiceCollection AddMiscellaneousServices(this IServiceCollection services)
                           {
                               services.AddScoped<global::TestNamespace.IFoo, global::TestNamespace.Foo>();
                               services.AddScoped<global::TestNamespace.Foo>();
+                              return services;
+                          }
+
+                          public static IServiceCollection AddAnnotatedServices(this IServiceCollection services)
+                          {
+                              services.AddMiscellaneousServices();
                               return services;
                           }
                       }
@@ -205,9 +232,15 @@ public sealed class GivenAServiceRegistrationGenerator
 
                       public static class GeneratedServiceCollectionExtensions
                       {
-                          public static IServiceCollection AddAnnotatedServices(this IServiceCollection services)
+                          public static IServiceCollection AddMiscellaneousServices(this IServiceCollection services)
                           {
                               services.AddScoped<global::TestNamespace.IBar, global::TestNamespace.Foo>();
+                              return services;
+                          }
+
+                          public static IServiceCollection AddAnnotatedServices(this IServiceCollection services)
+                          {
+                              services.AddMiscellaneousServices();
                               return services;
                           }
                       }
@@ -245,9 +278,15 @@ public sealed class GivenAServiceRegistrationGenerator
 
                       public static class GeneratedServiceCollectionExtensions
                       {
-                          public static IServiceCollection AddAnnotatedServices(this IServiceCollection services)
+                          public static IServiceCollection AddMiscellaneousServices(this IServiceCollection services)
                           {
                               services.AddScoped<global::TestNamespace.Foo>();
+                              return services;
+                          }
+
+                          public static IServiceCollection AddAnnotatedServices(this IServiceCollection services)
+                          {
+                              services.AddMiscellaneousServices();
                               return services;
                           }
                       }
@@ -341,5 +380,101 @@ public sealed class GivenAServiceRegistrationGenerator
 
             text.ShouldNotContain("Foo");
         }
+    }
+
+    [Fact]
+    public void when_a_class_has_no_layer_specified_then_it_is_registered_under_add_miscellaneous_services()
+    {
+        const string input = """
+                             using AStarDev.SourceGeneratorAttributes;
+
+                             namespace TestNamespace
+                             {
+                                 public interface IFoo { }
+
+                                 [AutoRegisterService]
+                                 public class Foo : IFoo { }
+                             }
+
+                             """;
+        var compilation = CreateCompilation(input);
+        var generator = new ServiceRegistrationGenerator();
+        var driver = CSharpGeneratorDriver.Create(generator);
+        driver = (CSharpGeneratorDriver)driver.RunGenerators(compilation, TestContext.Current.CancellationToken);
+        var result = driver.GetRunResult();
+        var generated = result.Results.SelectMany(r => r.GeneratedSources).FirstOrDefault(x => x.HintName.Contains("ServiceCollectionExtensions", StringComparison.Ordinal));
+        string text = generated.SourceText.ToString();
+
+        text.ShouldContain("AddMiscellaneousServices");
+    }
+
+    [Fact]
+    public void when_classes_span_multiple_layers_then_each_layer_gets_its_own_registration_method()
+    {
+        const string input = """
+                             using AStarDev.SourceGeneratorAttributes;
+
+                             namespace TestNamespace
+                             {
+                                 public interface IFoo { }
+                                 public interface IBar { }
+                                 public interface IBaz { }
+
+                                 [AutoRegisterService(layer: Layer.Application)]
+                                 public class Foo : IFoo { }
+
+                                 [AutoRegisterService(layer: Layer.Domain)]
+                                 public class Bar : IBar { }
+
+                                 [AutoRegisterService(layer: Layer.Infrastructure)]
+                                 public class Baz : IBaz { }
+                             }
+
+                             """;
+        var compilation = CreateCompilation(input);
+        var generator = new ServiceRegistrationGenerator();
+        var driver = CSharpGeneratorDriver.Create(generator);
+        driver = (CSharpGeneratorDriver)driver.RunGenerators(compilation, TestContext.Current.CancellationToken);
+        var result = driver.GetRunResult();
+        var generated = result.Results.SelectMany(r => r.GeneratedSources).FirstOrDefault(x => x.HintName.Contains("ServiceCollectionExtensions", StringComparison.Ordinal));
+        generated.Equals(default(GeneratedSourceResult)).ShouldBeFalse();
+        string text = generated.SourceText.ToString();
+
+        text.ShouldBe("""
+                      // <auto-generated/>
+                      using Microsoft.Extensions.DependencyInjection;
+
+                      namespace TestNamespace;
+
+                      public static class GeneratedServiceCollectionExtensions
+                      {
+                          public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+                          {
+                              services.AddScoped<global::TestNamespace.IFoo, global::TestNamespace.Foo>();
+                              return services;
+                          }
+
+                          public static IServiceCollection AddDomainServices(this IServiceCollection services)
+                          {
+                              services.AddScoped<global::TestNamespace.IBar, global::TestNamespace.Bar>();
+                              return services;
+                          }
+
+                          public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
+                          {
+                              services.AddScoped<global::TestNamespace.IBaz, global::TestNamespace.Baz>();
+                              return services;
+                          }
+
+                          public static IServiceCollection AddAnnotatedServices(this IServiceCollection services)
+                          {
+                              services.AddApplicationServices();
+                              services.AddDomainServices();
+                              services.AddInfrastructureServices();
+                              return services;
+                          }
+                      }
+
+                      """);
     }
 }
