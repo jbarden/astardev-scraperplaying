@@ -2,11 +2,13 @@ using System.Text.Json;
 using AStar.Dev.Logging.Extensions;
 using AStarDev.FunctionalParadigm;
 using Avalonia.Controls;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Testably.Abstractions;
 
 namespace AStarDev.ScraperPlaying.Home;
 
@@ -21,7 +23,7 @@ public partial class MainWindow : Window, IDisposable
     private bool isDisposing;
     private bool isRootDirectoryAvailable = true;
 
-    public MainWindow(ILogger<MainWindow> logger, IScrapeConfigurationFileService scrapeConfigurationFileService, IScrapeService scrapeService, OperationCoordinator operationCoordinator)
+    public MainWindow(ILogger<MainWindow> logger, IScrapeConfigurationFileService scrapeConfigurationFileService, IScrapeService scrapeService, OperationCoordinator operationCoordinator, ImageDisplayCoordinator imageDisplayCoordinator)
     {
         InitializeComponent();
         this.scrapeConfigurationFileService = scrapeConfigurationFileService;
@@ -29,6 +31,7 @@ public partial class MainWindow : Window, IDisposable
         this.logger = logger;
         this.operationCoordinator = operationCoordinator;
         operationCoordinator.StateChanged += (_, _) => UpdateOperationControls();
+        imageDisplayCoordinator.ImageReady += (_, pngStream) => Dispatcher.UIThread.Post(() => DisplayImage(pngStream));
         Closed += (_, _) => Dispose();
         Loaded += async (_, _) => await CheckRootDirectoryAvailabilityAsync();
         UpdateOperationControls();
@@ -36,8 +39,8 @@ public partial class MainWindow : Window, IDisposable
 
     public static MainWindow CreateStartupError(Exception exception)
     {
-        // operationCoordinator must be non-null: the constructor subscribes to its StateChanged event
-        var window = new MainWindow(NullLogger<MainWindow>.Instance, null!, null!, new OperationCoordinator());
+        // operationCoordinator/imageDisplayCoordinator must be non-null: the constructor subscribes to their events
+        var window = new MainWindow(NullLogger<MainWindow>.Instance, null!, null!, new OperationCoordinator(), new ImageDisplayCoordinator(new ImageDownloadNotifier(), new DownloadedImageDecoder(new RealFileSystem())));
         window.AppendStatusMessage($"Startup failed: {exception.GetType().Name}: {exception.Message}");
 
         return window;
@@ -159,6 +162,17 @@ public partial class MainWindow : Window, IDisposable
         }
 
         UpdateOperationControls();
+    }
+
+    private void DisplayImage(Stream pngStream)
+    {
+        var previousImage = DownloadedImage.Source;
+        using (pngStream)
+        {
+            DownloadedImage.Source = new Bitmap(pngStream);
+        }
+
+        (previousImage as IDisposable)?.Dispose();
     }
 
     private void SetStatusText(string message) => Dispatcher.UIThread.Post(() => StatusTextBlock.Text = message);

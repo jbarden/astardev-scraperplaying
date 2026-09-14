@@ -8,7 +8,7 @@ using AStarDev.Utilities;
 namespace AStarDev.ScraperPlaying.Home;
 
 /// <inheritdoc/>
-public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, Func<TimeSpan> pacingDelay) : IImageProcessor
+public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, Func<TimeSpan> pacingDelay, IImageDownloadNotifier imageDownloadNotifier) : IImageProcessor
 {
     /// <inheritdoc/>
     public async Task DownloadImageAsync(WallpaperFileRequest request, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
@@ -23,9 +23,13 @@ public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, 
         using Stream downloadStream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
         fileSystem.Directory.CreateDirectory(request.Directory);
-        using var fileStream = fileSystem.FileStream.New(fileSystem.Path.Combine(request.Directory, $"{request.Wallpaper.Id}{request.Extension}"), FileMode.Create, FileAccess.Write, FileShare.None);
+        var savedPath = fileSystem.Path.Combine(request.Directory, $"{request.Wallpaper.Id}{request.Extension}");
+        using (var fileStream = fileSystem.FileStream.New(savedPath, FileMode.Create, FileAccess.Write, FileShare.None))
+        {
+            await downloadStream.CopyToAsync(fileStream, cancellationToken);
+        }
 
-        await downloadStream.CopyToAsync(fileStream, cancellationToken);
+        imageDownloadNotifier.NotifyImageDownloaded(savedPath);
     }
 
     /// <inheritdoc/>
