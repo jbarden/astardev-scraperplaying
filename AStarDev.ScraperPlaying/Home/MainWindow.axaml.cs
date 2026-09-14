@@ -23,6 +23,7 @@ public partial class MainWindow : Window, IDisposable
     private readonly OperationCoordinator operationCoordinator;
     private bool isDisposing;
     private bool isRootDirectoryAvailable = true;
+    private bool isImageDisplayEnabled = true;
 
     public MainWindow(ILogger<MainWindow> logger, IScrapeConfigurationFileService scrapeConfigurationFileService, IScrapeService scrapeService, OperationCoordinator operationCoordinator, ImageDisplayCoordinator imageDisplayCoordinator)
     {
@@ -105,6 +106,12 @@ public partial class MainWindow : Window, IDisposable
 
     public void CancelOperation(object? sender, RoutedEventArgs eventArgs) => operationCoordinator.Cancel();
 
+    public void ToggleImageDisplay(object? sender, RoutedEventArgs eventArgs)
+    {
+        isImageDisplayEnabled = ImageDisplayToggle.IsChecked == true;
+        if (!isImageDisplayEnabled) ClearDisplayedImage();
+    }
+
     public void Exit(object? sender, RoutedEventArgs eventArgs) => Close();
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -167,6 +174,13 @@ public partial class MainWindow : Window, IDisposable
 
     private void DisplayImage(WallpaperPreviewImage preview)
     {
+        if (!isImageDisplayEnabled)
+        {
+            preview.PngStream.Dispose();
+
+            return;
+        }
+
         var previousImage = DownloadedImage.Source;
         using (preview.PngStream)
         {
@@ -180,6 +194,17 @@ public partial class MainWindow : Window, IDisposable
         ImageSizeText.Text = $"Size: {preview.FileSizeBytes.ToFileSizeString()}";
         ImageDimensionsText.Text = $"Dimensions: {preview.Width} x {preview.Height}";
         ImageDetailsPanel.IsVisible = true;
+    }
+
+    private void ClearDisplayedImage()
+    {
+        (DownloadedImage.Source as IDisposable)?.Dispose();
+        DownloadedImage.Source = null;
+        ImageDetailsPanel.IsVisible = false;
+        ImageNameText.Text = string.Empty;
+        ImageCategoryText.Text = string.Empty;
+        ImageSizeText.Text = string.Empty;
+        ImageDimensionsText.Text = string.Empty;
     }
 
     private void SetStatusText(string message) => Dispatcher.UIThread.Post(() => StatusTextBlock.Text = message);
