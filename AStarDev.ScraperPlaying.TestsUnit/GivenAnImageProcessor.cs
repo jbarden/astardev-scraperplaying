@@ -12,12 +12,13 @@ public sealed class GivenAnImageProcessor
 {
     private static readonly DateTimeOffset now = new(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
     private readonly IRepository<FileEntity, FileId> fileRepository = Substitute.For<IRepository<FileEntity, FileId>>();
+    private readonly IImageDownloadNotifier imageDownloadNotifier = Substitute.For<IImageDownloadNotifier>();
     private readonly MockFileSystem fileSystem = new();
     private readonly ImageProcessor processor;
 
     public GivenAnImageProcessor()
     {
-        processor = new(() => now, fileSystem, () => TimeSpan.FromMilliseconds(1));
+        processor = new(() => now, fileSystem, () => TimeSpan.FromMilliseconds(1), imageDownloadNotifier);
     }
 
     [Fact]
@@ -107,6 +108,7 @@ public sealed class GivenAnImageProcessor
         fileSystem.File.Exists(expectedPath).ShouldBeTrue();
         fileSystem.File.ReadAllBytes(expectedPath).ShouldBe(imageBytes);
         progress.Messages.ShouldContain("Downloading image for wallpaper wallpaper-3 from https://example.test/image.jpg");
+        imageDownloadNotifier.Received(1).NotifyImageDownloaded(expectedPath);
     }
 
     [Fact]
@@ -123,6 +125,7 @@ public sealed class GivenAnImageProcessor
 
         fileSystem.File.Exists(expectedPath).ShouldBeTrue();
         fileSystem.File.Exists(fileSystem.Path.Combine(directory, "wallpaper-8.jpg")).ShouldBeFalse();
+        imageDownloadNotifier.Received(1).NotifyImageDownloaded(expectedPath);
     }
 
     [Fact]
@@ -140,6 +143,7 @@ public sealed class GivenAnImageProcessor
 
         fileSystem.Directory.Exists(directory).ShouldBeTrue();
         fileSystem.File.Exists(fileSystem.Path.Combine(directory, "wallpaper-6.jpg")).ShouldBeTrue();
+        imageDownloadNotifier.Received(1).NotifyImageDownloaded(fileSystem.Path.Combine(directory, "wallpaper-6.jpg"));
     }
 
     [Fact]
@@ -154,6 +158,7 @@ public sealed class GivenAnImageProcessor
             () => processor.DownloadImageAsync(new WallpaperFileRequest(wallpaper, directory, ".jpg"), progress, client, CancellationToken.None));
 
         fileSystem.File.Exists(fileSystem.Path.Combine(directory, "wallpaper-4.jpg")).ShouldBeFalse();
+        imageDownloadNotifier.DidNotReceive().NotifyImageDownloaded(Arg.Any<string>());
     }
 
     private static Data CreateWallpaper(string id, int fileSize = 0, string fileType = "", int dimensionX = 0, int dimensionY = 0, string path = "")
