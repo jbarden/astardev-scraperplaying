@@ -28,7 +28,7 @@ public class WallpaperIngestionService(IFilesQuery filesQuery, IImageProcessor i
 
                 await Try.RunAsync(async () =>
                 {
-                    progress.Report($"No existing file found for wallpaper {wallpaper.Id}.");
+                    progress.Report($"No existing data found for wallpaper {wallpaper.Id}.");
                     await imageProcessor.DownloadImageAsync(fileRequest, progress, context.Client, cancellationToken);
                     progress.Report($"Downloaded image data for wallpaper {wallpaper.Id}");
                     await Task.Delay(pacingDelay(), cancellationToken);

@@ -47,7 +47,7 @@ public sealed class GivenAWallpaperIngestionService
 
         await Ingest(wallpaper);
 
-        progress.Messages.ShouldContain("No existing file found for wallpaper new-wallpaper.");
+        progress.Messages.ShouldContain("No existing data found for wallpaper new-wallpaper.");
         progress.Messages.ShouldContain("Downloaded image data for wallpaper new-wallpaper");
         progress.Messages.ShouldNotContain(message => message.Contains("Failed"));
         await tagsProcessor.Received(1).FetchAndLinkTagsAsync("new-wallpaper", fileEntity.Id, Arg.Any<HttpClient>(), progress, Arg.Any<CancellationToken>());
