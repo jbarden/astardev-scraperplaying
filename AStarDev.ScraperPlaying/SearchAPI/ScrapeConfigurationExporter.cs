@@ -4,9 +4,7 @@ using AStarDev.FunctionalParadigm;
 
 namespace AStarDev.ScraperPlaying.SearchAPI;
 
-/// <summary>
-/// Represents a repository for reading the scrape configuration settings aggregate for export.
-/// </summary>
+/// <summary>Represents a repository for reading the scrape configuration settings aggregate for export.</summary>
 /// <param name="unitOfWork">The unit of work used to obtain the scrape configuration repository.</param>
 public sealed class ScrapeConfigurationExporter(IUnitOfWork unitOfWork) : IScrapeConfigurationExporter
 {

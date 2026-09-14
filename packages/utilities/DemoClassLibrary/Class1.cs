@@ -1,8 +1,6 @@
-﻿using AStar.Dev.Technical.Debt.Reporting;
+﻿namespace DemoClassLibrary;
 
-namespace DemoClassLibrary;
-
-[Refactor(1,1,"Empty class...")]
+[Refactor(1, 1, "Empty class...")]
 public class Class1
 {
     [Refactor(1, 1, "Empty method...")]

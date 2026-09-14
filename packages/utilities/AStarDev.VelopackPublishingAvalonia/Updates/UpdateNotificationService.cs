@@ -1,4 +1,6 @@
-namespace AStar.Dev.Velopack.Publishing.Avalonia.Updates;
+using AStarDev.VelopackPublishing;
+
+namespace AStarDev.VelopackPublishingAvalonia.Updates;
 
 /// <inheritdoc />
 public sealed class UpdateNotificationService(IVelopackUpdateService updateCheckService, IUpdateAvailableViewModelFactory viewModelFactory, IUpdateAvailableDialogService dialogService) : IUpdateNotificationService

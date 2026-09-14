@@ -5,14 +5,12 @@ using AStarDev.FunctionalParadigm;
 
 namespace AStarDev.ScraperPlaying.SearchAPI;
 
-/// <summary>
-/// Represents a repository for scrape configuration settings repository.
-/// </summary>
+/// <summary>Represents a repository for scrape configuration settings repository.</summary>
 /// <param name="dbContextFactory">The factory for creating instances of the ControlDbContext.</param>
 public sealed class ScrapeConfigurationImporter(IUnitOfWork unitOfWork) : IScrapeConfigurationImporter
 {
     /// <inheritdoc/>
-    public async Task<Exceptional<UnitFp>> ImportScrapeConfigurationAsync(ScrapeConfigurationImportDocument document)
+    public async Task<Exceptional<Unit>> ImportScrapeConfigurationAsync(ScrapeConfigurationImportDocument document)
     {
         var dbContext = unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>();
 
@@ -31,7 +29,7 @@ public sealed class ScrapeConfigurationImporter(IUnitOfWork unitOfWork) : IScrap
             dbContext.Add(document.ToEntity()).Match(entity => entity, exception => throw exception);
             await unitOfWork.SaveChangesAsync();
 
-            return UnitFp.Instance;
+            return Unit.Instance;
         });
     }
 }

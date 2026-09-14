@@ -1,10 +1,11 @@
-using AStar.Dev.Logging.Extensions;
+using AStarDev.LoggingExtensions;
+using AStarDev.VelopackPublishing;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using Velopack;
 
-namespace AStar.Dev.Velopack.Publishing.Avalonia.Updates;
+namespace AStarDev.VelopackPublishingAvalonia.Updates;
 
 /// <summary>Presents a discovered Velopack update, offering the user a choice to restart now or later.</summary>
 public sealed partial class UpdateAvailableViewModel : ObservableObject, IDisposable
@@ -36,15 +37,19 @@ public sealed partial class UpdateAvailableViewModel : ObservableObject, IDispos
         ReleaseNotes = updateInfo.TargetFullRelease.NotesMarkdown ?? string.Empty;
     }
 
+    /// <summary>The target version of the discovered update.</summary>
     [ObservableProperty]
     public partial string TargetVersion { get; set; }
 
+    /// <summary>The release notes for the discovered update.</summary>
     [ObservableProperty]
     public partial string ReleaseNotes { get; set; }
 
+    /// <summary>Indicates whether the view model is currently performing a busy operation, such as downloading updates.</summary>
     [ObservableProperty]
     public partial bool IsBusy { get; set; }
 
+    /// <summary>The error message to display if an update operation fails.</summary>
     [ObservableProperty]
     public partial string? ErrorMessage { get; set; }
 
@@ -97,6 +102,8 @@ public sealed partial class UpdateAvailableViewModel : ObservableObject, IDispos
             textProvider.TextChanged -= OnTextProviderChanged;
     }
 
+    /// <summary>Restarts the application immediately to apply the available update.</summary>
+    /// <returns>A Task representing the asynchronous operation.</returns>
     [RelayCommand]
     private async Task RestartNowAsync()
     {

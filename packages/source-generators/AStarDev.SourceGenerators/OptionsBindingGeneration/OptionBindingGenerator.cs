@@ -69,19 +69,23 @@ public sealed partial class OptionsBindingGenerator : IIncrementalGenerator
         if (attr is { ConstructorArguments.Length: > 0 } && attr.ConstructorArguments[0].Value is string s && !string.IsNullOrWhiteSpace(s))
             sectionName = s;
         else if (ctx.Attributes.Length > 0)
-        {
-            // Fallback: parse from syntax
-            var attrSyntax = ctx.Attributes[0].ApplicationSyntaxReference?.GetSyntax() as AttributeSyntax;
-            if (attrSyntax?.ArgumentList?.Arguments.Count > 0)
-            {
-                var expr = attrSyntax.ArgumentList.Arguments[0].Expression;
-                if (expr is LiteralExpressionSyntax { Token.Value: string literalValue }) sectionName = literalValue;
-            }
-        }
+            sectionName = FallbackToParsingFromSyntax(ctx, sectionName);
 
         return !string.IsNullOrWhiteSpace(sectionName)
             ? new OptionsTypeInfo(typeName, fullTypeName, sectionName!, ctx.TargetNode.GetLocation())
             : ExtractSectionNameFromMembers(ctx, typeSymbol, sectionName, typeName, fullTypeName);
+    }
+
+    private static string? FallbackToParsingFromSyntax(GeneratorAttributeSyntaxContext ctx, string? sectionName)
+    {
+        var attrSyntax = ctx.Attributes[0].ApplicationSyntaxReference?.GetSyntax() as AttributeSyntax;
+        if (attrSyntax?.ArgumentList?.Arguments.Count > 0)
+        {
+            var expr = attrSyntax.ArgumentList.Arguments[0].Expression;
+            if (expr is LiteralExpressionSyntax { Token.Value: string literalValue }) sectionName = literalValue;
+        }
+
+        return sectionName;
     }
 
     private static OptionsTypeInfo? ExtractSectionNameFromMembers(GeneratorAttributeSyntaxContext ctx, INamedTypeSymbol typeSymbol, string? sectionName, string typeName, string fullTypeName)

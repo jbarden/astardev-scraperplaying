@@ -5,10 +5,10 @@ public sealed class GivenUnit
     [Fact]
     public void when_unit_values_are_compared_then_they_are_all_equal()
     {
-        var a = UnitFp.Instance;
-        var b = new UnitFp();
+        var a = Unit.Instance;
+        var b = new Unit();
 
         a.ShouldBe(b);
-        UnitFp.Instance.ShouldBe(a);
+        Unit.Instance.ShouldBe(a);
     }
 }

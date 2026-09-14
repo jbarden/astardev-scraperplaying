@@ -1,8 +1,6 @@
 namespace AStarDev.ScraperPlaying.Home;
 
-/// <summary>
-/// Interface for decoding a downloaded wallpaper image file into a PNG-encoded stream suitable for display.
-/// </summary>
+/// <summary>Interface for decoding a downloaded wallpaper image file into a PNG-encoded stream suitable for display.</summary>
 public interface IDownloadedImageDecoder
 {
     /// <summary>Decodes the image at <paramref name="filePath"/> and re-encodes it as PNG.</summary>

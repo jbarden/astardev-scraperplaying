@@ -1,9 +1,6 @@
 namespace AStarDev.ScraperPlaying.Home;
 
-/// <summary>
-/// Accumulates status messages up to a fixed capacity, discarding the oldest message once that capacity is
-/// exceeded, and renders the retained messages as newline-separated text.
-/// </summary>
+/// <summary>Accumulates status messages up to a fixed capacity, discarding the oldest message once that capacity is exceeded, and renders the retained messages as newline-separated text.</summary>
 /// <param name="maximumMessages">The maximum number of messages to retain.</param>
 public sealed class StatusMessageLog(int maximumMessages)
 {

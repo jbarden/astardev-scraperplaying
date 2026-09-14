@@ -5,9 +5,7 @@
     </assembly>
     <members>
         <member name="T:AStarDev.Utilities.ApplicationPathsProvider">
-            <summary>
-            Provides methods to retrieve application-specific paths for data storage, logs, and user files based on the operating system.
-            </summary>
+            <summary>Provides methods to retrieve application-specific paths for data storage, logs, and user files based on the operating system.</summary>
         </member>
         <member name="M:AStarDev.Utilities.ApplicationPathsProvider.ApplicationDirectory(System.String)">
             <inheritdoc cref="M:AStarDev.Utilities.ApplicationPathsProvider.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.ApplicationDirectory"/>
@@ -22,52 +20,35 @@
             <param name="applicationName"></param>
         </member>
         <member name="M:AStarDev.Utilities.ApplicationPathsProvider.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.ApplicationDirectory">
-             <summary>
-            
-             </summary>
-             <returns></returns>
+            <summary>Gets the application-specific data directory.</summary>
+            <returns>The path to the application-specific data directory.</returns>
         </member>
         <member name="M:AStarDev.Utilities.ApplicationPathsProvider.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.LogsDirectory">
-             <summary>
-            
-             </summary>
-             <returns></returns>
+            <summary>Gets the application-specific logs directory.</summary>
+            <returns>The path to the application-specific logs directory.</returns>
         </member>
         <member name="M:AStarDev.Utilities.ApplicationPathsProvider.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.UserDirectory">
-             <summary>
-            
-             </summary>
-             <returns></returns>
+            <summary>Gets the application-specific user directory.</summary>
+            <returns>The path to the application-specific user directory.</returns>
         </member>
         <member name="T:AStarDev.Utilities.ByteSizeExtensions">
-            <summary>
-            Provides extension methods for formatting byte counts.
-            </summary>
+            <summary>Provides extension methods for formatting byte counts.</summary>
         </member>
         <member name="M:AStarDev.Utilities.ByteSizeExtensions.ToFileSizeString(System.Int32)">
             <inheritdoc cref="M:AStarDev.Utilities.ByteSizeExtensions.&lt;G&gt;$BA41CFE2B5EDAEB8C1B9062F59ED4D69.ToFileSizeString"/>
         </member>
         <member name="M:AStarDev.Utilities.ByteSizeExtensions.&lt;G&gt;$BA41CFE2B5EDAEB8C1B9062F59ED4D69.ToFileSizeString">
-            <summary>
-            Formats the specified byte count using whichever unit reads best for its magnitude.
-            </summary>
+            <summary>Formats the specified byte count using whichever unit reads best for its magnitude.</summary>
             <returns>A human-readable size, e.g. "512 B", "42 KB", or "3.1 MB".</returns>
         </member>
         <member name="T:AStarDev.Utilities.Constants">
-            <summary>
-                The <see href="Constants"></see>see> class contains static / constant properties to simplify and centralise various
-                settings
-            </summary>
+            <summary>The <see href="Constants"></see>see> class contains static / constant properties to simplify and centralise various settings</summary>
         </member>
         <member name="P:AStarDev.Utilities.Constants.WebDeserialisationSettings">
-            <summary>
-                Returns an instance of <see href="JsonSerializerOptions"></see> configured with the Web defaults
-            </summary>
+            <summary>Returns an instance of <see href="JsonSerializerOptions"></see> configured with the Web defaults</summary>
         </member>
         <member name="T:AStarDev.Utilities.EncryptionExtensions">
-            <summary>
-                The <see cref="T:AStarDev.Utilities.EncryptionExtensions" /> class contains extension methods to encrypt / decrypt the specified string
-            </summary>
+            <summary>The <see cref="T:AStarDev.Utilities.EncryptionExtensions" /> class contains extension methods to encrypt / decrypt the specified string</summary>
         </member>
         <member name="M:AStarDev.Utilities.EncryptionExtensions.Encrypt(System.String,System.String,System.String)">
             <inheritdoc cref="M:AStarDev.Utilities.EncryptionExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.Encrypt(System.String,System.String)"/>
@@ -76,31 +57,15 @@
             <inheritdoc cref="M:AStarDev.Utilities.EncryptionExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.Decrypt(System.String,System.String)"/>
         </member>
         <member name="M:AStarDev.Utilities.EncryptionExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.Encrypt(System.String,System.String)">
-            <summary>
-                The Encrypt extension method will encrypt the specified string (using AES encryption)
-            </summary>
-            <param name="key">
-                The optional key to use for the encryption. If supplied, it must be 16, 24, or 32 bytes long. If not
-                specified, an internal default (32 bytes) will be used
-            </param>
-            <param name="iv">
-                The optional iv (initialisation vector) to use for the decryption. If supplied, it must be 16 bytes
-                long. If not specified, an internal default will be used
-            </param>
+            <summary>The Encrypt extension method will encrypt the specified string (using AES encryption)</summary>
+            <param name="key">The optional key to use for the encryption. If supplied, it must be 16, 24, or 32 bytes long. If not specified, an internal default (32 bytes) will be used</param>
+            <param name="iv">The optional iv (initialisation vector) to use for the decryption. If supplied, it must be 16 bytes long. If not specified, an internal default will be used</param>
             <returns>The original string encrypted appropriately</returns>
         </member>
         <member name="M:AStarDev.Utilities.EncryptionExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.Decrypt(System.String,System.String)">
-            <summary>
-                The Decrypt extension method will encrypt the specified string (using AES encryption)
-            </summary>
-            <param name="key">
-                The optional key to use for the encryption. If supplied, it must be 16, 24, or 32 bytes long. If not
-                specified, an internal default (32 bytes) will be used
-            </param>
-            <param name="iv">
-                The optional iv (initialisation vector) to use for the decryption. If supplied, it must be 16 bytes
-                long. If not specified, an internal default will be used
-            </param>
+            <summary>The Decrypt extension method will encrypt the specified string (using AES encryption)</summary>
+            <param name="key">The optional key to use for the encryption. If supplied, it must be 16, 24, or 32 bytes long. If not specified, an internal default (32 bytes) will be used</param>
+            <param name="iv">The optional iv (initialisation vector) to use for the decryption. If supplied, it must be 16 bytes long. If not specified, an internal default will be used</param>
             <returns>The decrypted string</returns>
         </member>
         <member name="T:AStarDev.Utilities.EnumExtensions">
@@ -111,9 +76,7 @@
             <inheritdoc cref="M:AStarDev.Utilities.EnumExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.ParseEnum``1"/>
         </member>
         <member name="M:AStarDev.Utilities.EnumExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.ParseEnum``1">
-            <summary>
-                The ParseEnum method will parse the supplied string and return the matching enum value
-            </summary>
+            <summary>The ParseEnum method will parse the supplied string and return the matching enum value</summary>
             <typeparam name="T">The typeof of the expected enum</typeparam>
             <returns>The parsed value as the matching enum value</returns>
             <exception cref="T:System.ArgumentException">Thrown when the string is not a valid enum value</exception>
@@ -124,17 +87,13 @@
              </summary>
         </member>
         <member name="M:AStarDev.Utilities.IntParser.ToInt(System.String)">
-            <summary>
-                The ToInt method will parse the supplied string and return the matching int value
-            </summary>
+            <summary>The ToInt method will parse the supplied string and return the matching int value</summary>
             <param name="value">The value to parse to the int</param>
             <returns>The parsed value as the matching int value</returns>
             <exception cref="T:System.FormatException">Thrown when the string is not a valid int value</exception>
         </member>
         <member name="M:AStarDev.Utilities.IntParser.ToIntSafe(System.String)">
-            <summary>
-               The ToIntSafe method will parse the supplied string and return the matching int value, or 0 if the string is not a valid int value
-            </summary>
+            <summary>The ToIntSafe method will parse the supplied string and return the matching int value, or 0 if the string is not a valid int value</summary>
             <param name="value">The value to parse to the int</param>
             <returns>The parsed value as the matching int value, or 0 if the string is not a valid int value</returns>
         </member>
@@ -149,22 +108,15 @@
             <inheritdoc cref="M:AStarDev.Utilities.LinqExtensions.&lt;G&gt;$E09FCB5EB13C1AE2FC524F6744DE5322`1.ForEachAsync(System.Func{`0,System.Threading.Tasks.Task})"/>
         </member>
         <member name="M:AStarDev.Utilities.LinqExtensions.&lt;G&gt;$E09FCB5EB13C1AE2FC524F6744DE5322`1.ForEach(System.Action{`0})">
-            <summary>
-            </summary>
-            <param name="action"></param>
+            <summary>Executes the specified action for each element in the enumerable.</summary>
+            <param name="action">The action to execute for each element in the enumerable.</param>
         </member>
         <member name="M:AStarDev.Utilities.LinqExtensions.&lt;G&gt;$E09FCB5EB13C1AE2FC524F6744DE5322`1.ForEachAsync(System.Func{`0,System.Threading.Tasks.Task})">
-            <summary>
-                Awaits the supplied asynchronous action once per item, strictly sequentially, so no two invocations
-                ever run concurrently.
-            </summary>
-            <param name="action"></param>
+            <summary>Awaits the supplied asynchronous action once per item, strictly sequentially, so no two invocations ever run concurrently.</summary>
+            <param name="action">The asynchronous action to execute for each element in the enumerable.</param>
         </member>
         <member name="T:AStarDev.Utilities.ObjectExtensions">
-            <summary>
-                The <see cref="T:AStarDev.Utilities.ObjectExtensions" /> class contains some useful methods to enable various tasks
-                to be performed in a more fluid, English sentence, style
-            </summary>
+            <summary>The <see cref="T:AStarDev.Utilities.ObjectExtensions" /> class contains some useful methods to enable various tasks to be performed in a more fluid, English sentence, style</summary>
         </member>
         <member name="M:AStarDev.Utilities.ObjectExtensions.ToJson``1(``0)">
             <inheritdoc cref="M:AStarDev.Utilities.ObjectExtensions.&lt;G&gt;$8048A6C8BE30A622530249B904B537EB`1.ToJson"/>
@@ -193,26 +145,20 @@
             <inheritdoc cref="M:AStarDev.Utilities.PathOperationExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.CleanPath"/>
         </member>
         <member name="M:AStarDev.Utilities.PathOperationExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.CombinePath(System.String[])">
-            <summary>
-                Combines a base path with one or more relative segments while preventing rooted segments from overriding earlier parts.
-            </summary>
+            <summary>Combines a base path with one or more relative segments while preventing rooted segments from overriding earlier parts.</summary>
             <param name="segments">The path segments to append. All segments must be relative.</param>
             <returns>The combined path.</returns>
             <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="basePath" /> or <paramref name="segments" /> is null.</exception>
             <exception cref="T:System.ArgumentException">Thrown when any segment is rooted.</exception>
         </member>
         <member name="M:AStarDev.Utilities.PathOperationExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.ToFileExtension(System.String)">
-            <summary>
-                Returns the file extension (including the leading '.') from a path or URL, or <paramref name="fallbackExtension" /> when the path has none.
-            </summary>
+            <summary>Returns the file extension (including the leading '.') from a path or URL, or <paramref name="fallbackExtension" /> when the path has none.</summary>
             <param name="fallbackExtension">The extension to return when <paramref name="path" /> has none. Defaults to ".jpg".</param>
             <returns>The extension from <paramref name="path" />, or <paramref name="fallbackExtension" /> when none is present.</returns>
         </member>
         <member name="M:AStarDev.Utilities.PathOperationExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.CleanPath">
-             <summary>
-            
-             </summary>
-             <returns></returns>
+            <summary>Cleans the path by removing invalid characters and certain unwanted symbols.</summary>
+            <returns>The cleaned path.</returns>
         </member>
         <member name="T:AStarDev.Utilities.RegexExtensions">
             <summary>
@@ -279,14 +225,12 @@
             </remarks>
         </member>
         <member name="M:AStarDev.Utilities.RegexExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.ContainsAtLeastOneLowercaseLetter">
-            <summary>
-            </summary>
-            <returns></returns>
+            <summary>Determines whether the string contains at least one lowercase letter.</summary>
+            <returns><c>true</c> if the string contains at least one lowercase letter; otherwise, <c>false</c>.</returns>
         </member>
         <member name="M:AStarDev.Utilities.RegexExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.ContainsAtLeastOneUppercaseLetter">
-            <summary>
-            </summary>
-            <returns></returns>
+            <summary>Determines whether the string contains at least one uppercase letter.</summary>
+            <returns><c>true</c> if the string contains at least one uppercase letter; otherwise, <c>false</c>.</returns>
         </member>
         <member name="M:AStarDev.Utilities.RegexExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.ContainsAtLeastOneDigit">
             <summary>
@@ -294,15 +238,11 @@
             <returns></returns>
         </member>
         <member name="M:AStarDev.Utilities.RegexExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.ContainsAtLeastOneSpecialCharacter">
-            <summary>
-            </summary>
-            <returns></returns>
+            <summary>Determines whether the string contains at least one digit.</summary>
+            <returns><c>true</c> if the string contains at least one digit; otherwise, <c>false</c>.</returns>
         </member>
         <member name="T:AStarDev.Utilities.StringExtensions">
-            <summary>
-                The <see cref="T:AStarDev.Utilities.StringExtensions" /> class contains some useful methods to enable checks to be
-                performed in a more fluid, English sentence, style
-            </summary>
+            <summary>The <see cref="T:AStarDev.Utilities.StringExtensions" /> class contains some useful methods to enable checks to be performed in a more fluid, English sentence, style</summary>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.IsNull(System.String)">
             <inheritdoc cref="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.IsNull"/>
@@ -365,9 +305,7 @@
             <inheritdoc cref="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$E8CA98ACBCAEE63BB261A3FD4AF31675.FileSizeToText"/>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.IsNull">
-            <summary>
-                The IsNull method, as you might expect, checks whether the string is, in fact, null
-            </summary>
+            <summary>The IsNull method, as you might expect, checks whether the string is, in fact, null</summary>
             <returns>True if the string is null, False otherwise</returns>
             <remarks>
                 Kept as a method rather than a property: the [NotNullWhen] attribute on the receiver
@@ -376,10 +314,7 @@
             </remarks>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.IsNullOrWhiteSpace">
-            <summary>
-                The IsNullOrWhiteSpace method, as you might expect, checks whether the string is, in fact, null, empty or
-                whitespace
-            </summary>
+            <summary>The IsNullOrWhiteSpace method, as you might expect, checks whether the string is, in fact, null, empty or whitespace</summary>
             <returns>True if the string is null, empty or whitespace, False otherwise</returns>
             <remarks>
                 Kept as a method rather than a property: its name is identical to the BCL's own
@@ -389,9 +324,7 @@
             </remarks>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.IsNotNull">
-            <summary>
-                The IsNotNull method, as you might expect, checks whether the string is not null
-            </summary>
+            <summary>The IsNotNull method, as you might expect, checks whether the string is not null</summary>
             <returns>True if the string is not null, False otherwise</returns>
             <remarks>
                 Kept as a method rather than a property: the [NotNullWhen] attribute on the receiver
@@ -400,9 +333,7 @@
             </remarks>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.IsNotNullOrWhiteSpace">
-            <summary>
-                The IsNotNullOrWhiteSpace method, as you might expect, checks whether the string is not null, empty or whitespace
-            </summary>
+            <summary>The IsNotNullOrWhiteSpace method, as you might expect, checks whether the string is not null, empty or whitespace</summary>
             <returns>True if the string is not null, empty or whitespace, False otherwise</returns>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.FromJson``1(System.Text.Json.JsonSerializerOptions)">
@@ -441,88 +372,62 @@
             <returns></returns>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.TruncateIfRequired(System.Int32)">
-            <summary>
-                The TruncateIfRequired method will, as the name suggests, truncate the string if the length exceeds the specified length
-            </summary>
+            <summary>The TruncateIfRequired method will, as the name suggests, truncate the string if the length exceeds the specified length</summary>
             <param name="truncateLength">The maximum length the string should be truncated to if required</param>
             <returns>The specified string or the truncated version</returns>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.RemoveTrailing(System.String)">
-            <summary>
-                The RemoveTrailing method will, as the name suggests, remove the specified character from the end if it exists
-            </summary>
+            <summary>The RemoveTrailing method will, as the name suggests, remove the specified character from the end if it exists</summary>
             <param name="removeTrailing">The character to remove from the end if it exists</param>
             <returns>The original or updated string</returns>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.EnsureTrailing(System.String)">
-            <summary>
-                The EnsureTrailing method will, as the name suggests, ensure the string ends with the specified character
-            </summary>
+            <summary>The EnsureTrailing method will, as the name suggests, ensure the string ends with the specified character</summary>
             <param name="ensureTrailing">The character to ensure is at the end of the string</param>
             <returns>The original or updated string</returns>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.CaseInsensitiveContains(System.String)">
-            <summary>
-                The CaseInsensitiveContains method checks if the string contains the specified substring, ignoring case.
-            </summary>
+            <summary>The CaseInsensitiveContains method checks if the string contains the specified substring, ignoring case.</summary>
             <param name="contains">The substring to search for</param>
             <returns>True if the value contains the substring, false otherwise</returns>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.CaseInsensitiveEquals(System.String)">
-            <summary>
-                The CaseInsensitiveEquals method checks if the string equals the specified substring, ignoring case.
-            </summary>
+            <summary>The CaseInsensitiveEquals method checks if the string equals the specified substring, ignoring case.</summary>
             <param name="equals">The string to compare with</param>
             <returns>True if the value equals the specified string, false otherwise</returns>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.ToTitleCase(System.String)">
-            <summary>
-              The TitleCased method converts a string to title case using the specified culture.
-            </summary>
+            <summary>The TitleCased method converts a string to title case using the specified culture.</summary>
             <param name="cultureName">The culture to use for title casing</param>
             <returns>The title-cased string</returns>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.ToDirectorySlug">
-            <summary>
-                The ToDirectorySlug method converts a string to a directory-safe slug by lower-casing it and replacing spaces with hyphens.
-            </summary>
+            <summary>The ToDirectorySlug method converts a string to a directory-safe slug by lower-casing it and replacing spaces with hyphens.</summary>
             <returns>The slugified string</returns>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.NormalizeLinux">
-            <summary>
-               The NormalizeLinux method normalizes a file path to a Linux-style format by replacing backslashes with forward slashes,
-            </summary>
+            <summary>The NormalizeLinux method normalizes a file path to a Linux-style format by replacing backslashes with forward slashes,</summary>
             <returns>The normalized file path, prefixed with a forward slash if not already prefixed</returns>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$34505F560D9EACF86A87F3ED1F85E448.NormalizeWindows">
-            <summary>
-              The NormalizeWindows method normalizes a file path to a Windows-style format by replacing forward slashes with backslashes,
-            </summary>
+            <summary>The NormalizeWindows method normalizes a file path to a Windows-style format by replacing forward slashes with backslashes,</summary>
             <returns>The normalized file path, prefixed with a backslash if not already prefixed</returns>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$A2D159684F90C84BD35ED118E17F9ADC.EnsureTrailing(System.String)">
-            <summary>
-                The EnsureTrailing method will, as the name suggests, ensure the string ends with the specified character
-            </summary>
+            <summary>The EnsureTrailing method will, as the name suggests, ensure the string ends with the specified character</summary>
             <param name="ensureTrailing">The character to ensure is at the end of the string</param>
             <returns>The original or updated string</returns>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$A2D159684F90C84BD35ED118E17F9ADC.EnsureTrailingSlash">
-            <summary>
-                The EnsureTrailing method will, as the name suggests, ensure the string ends with the specified character
-            </summary>
+            <summary>The EnsureTrailing method will, as the name suggests, ensure the string ends with the specified character</summary>
             <returns>The original or updated string</returns>
         </member>
         <member name="M:AStarDev.Utilities.StringExtensions.&lt;G&gt;$E8CA98ACBCAEE63BB261A3FD4AF31675.FileSizeToText">
-            <summary>
-               The FileSizeText method converts a file size in bytes to a human-readable string format (B, KB, MB).
-            </summary>
+            <summary>The FileSizeText method converts a file size in bytes to a human-readable string format (B, KB, MB).</summary>
             <returns>The human-readable string format</returns>
         </member>
         <member name="T:AStarDev.Utilities.TimeSpanExtensions">
-            <summary>
-            Provides extension methods for the <see cref="T:System.TimeSpan"/> struct.
-            </summary>
+            <summary>Provides extension methods for the <see cref="T:System.TimeSpan"/> struct.</summary>
         </member>
         <member name="M:AStarDev.Utilities.TimeSpanExtensions.get_IsJustNow(System.TimeSpan)">
             <inheritdoc cref="P:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsJustNow"/>
@@ -540,34 +445,23 @@
             <inheritdoc cref="M:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.ToDurationString"/>
         </member>
         <member name="P:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsJustNow">
-            <summary>
-            Determines whether the specified <see cref="T:System.TimeSpan"/> represents a time span of less than two minutes.
-            </summary>
+            <summary>Determines whether the specified <see cref="T:System.TimeSpan"/> represents a time span of less than two minutes.</summary>
             <returns><c>true</c> if the time span is less than two minutes; otherwise, <c>false</c>.</returns>
         </member>
         <member name="P:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsMinutesAgo">
-            <summary>
-            Determines whether the specified <see cref="T:System.TimeSpan"/> represents a time span of less than one hour.
-            </summary>
+            <summary>Determines whether the specified <see cref="T:System.TimeSpan"/> represents a time span of less than one hour.</summary>
             <returns><c>true</c> if the time span is less than one hour; otherwise, <c>false</c>.</returns>
         </member>
         <member name="P:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsHoursAgo">
-            <summary>
-            Determines whether the specified <see cref="T:System.TimeSpan"/> represents a time span of less than one day.
-            </summary>
+            <summary>Determines whether the specified <see cref="T:System.TimeSpan"/> represents a time span of less than one day.</summary>
             <returns><c>true</c> if the time span is less than one day; otherwise, <c>false</c>.</returns>
         </member>
         <member name="P:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.IsYesterday">
-            <summary>
-            Determines whether the specified <see cref="T:System.TimeSpan"/> represents a time span of less than two days.
-            </summary>
+            <summary>Determines whether the specified <see cref="T:System.TimeSpan"/> represents a time span of less than two days.</summary>
             <returns><c>true</c> if the time span is less than two days; otherwise, <c>false</c>.</returns>
         </member>
         <member name="M:AStarDev.Utilities.TimeSpanExtensions.&lt;G&gt;$AEF4692409D6751FA6D278B69B50C9D0.ToDurationString">
-            <summary>
-            Formats the specified <see cref="T:System.TimeSpan"/> using whichever unit reads best for its magnitude:
-            seconds when under a minute, minutes when under an hour, otherwise hours.
-            </summary>
+            <summary>Formats the specified <see cref="T:System.TimeSpan"/> using whichever unit reads best for its magnitude: seconds when under a minute, minutes when under an hour, otherwise hours.</summary>
             <returns>A human-readable duration, e.g. "42 seconds", "1 minute", or "2.5 hours".</returns>
         </member>
         <member name="T:System.Text.RegularExpressions.Generated.LowercaseLettersRegex_0">

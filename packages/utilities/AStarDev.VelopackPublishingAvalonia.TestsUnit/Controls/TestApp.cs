@@ -1,10 +1,11 @@
+using AStarDev.VelopackPublishingAvalonia.TestsUnit.Controls;
 using Avalonia;
 using Avalonia.Headless;
 using Avalonia.Markup.Xaml;
 
-[assembly: AvaloniaTestApplication(typeof(AStar.Dev.Velopack.Publishing.Avalonia.TestsUnit.Controls.TestApp))]
+[assembly: AvaloniaTestApplication(typeof(TestApp))]
 
-namespace AStar.Dev.Velopack.Publishing.Avalonia.TestsUnit.Controls;
+namespace AStarDev.VelopackPublishingAvalonia.TestsUnit.Controls;
 
 internal sealed class TestApp : Application
 {

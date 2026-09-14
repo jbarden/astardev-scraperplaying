@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace AStar.Dev.Velopack.Publishing;
+namespace AStarDev.VelopackPublishing;
 
 /// <summary>Registers the Velopack update-checking service and its configuration binding with the dependency injection container.</summary>
 public static class VelopackUpdateServiceCollectionExtensions

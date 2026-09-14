@@ -42,7 +42,7 @@ public sealed class GivenAScrapeConfigurationImporter
     {
         var existing = new ScrapeConfigurationEntity(new ScrapeConfigurationId(Guid.CreateVersion7()));
         repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)existing);
-        repository.Delete(existing).Returns(UnitFp.Instance);
+        repository.Delete(existing).Returns(Unit.Instance);
         repository.Add(Arg.Any<ScrapeConfigurationEntity>()).Returns(callInfo => (Exceptional<ScrapeConfigurationEntity>)callInfo.Arg<ScrapeConfigurationEntity>());
         var document = new ScrapeConfigurationImportDocument
         {

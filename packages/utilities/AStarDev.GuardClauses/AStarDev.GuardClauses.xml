@@ -4,35 +4,24 @@
         <name>AStarDev.GuardClauses</name>
     </assembly>
     <members>
-        <member name="T:AStar.Dev.Guard.Clauses.GuardAgainst">
-            <summary>
-                The root <seealso href="GuardAgainst"></seealso> class.
-            </summary>
+        <member name="T:AStarDev.GuardClauses.GuardAgainst">
+            <summary>The root <seealso href="GuardAgainst"></seealso> class.</summary>
         </member>
-        <member name="M:AStar.Dev.Guard.Clauses.GuardAgainst.Null``1(``0)">
-            <summary>
-                This method will check whether the specified object is null or not.
-            </summary>
+        <member name="M:AStarDev.GuardClauses.GuardAgainst.Null``1(``0)">
+            <summary>This method will check whether the specified object is null or not.</summary>
             <typeparam name="T">
                 Specifies the generic object to check for null.
             </typeparam>
-            <param name="objectToCheck">
-                The object to check for null.
-            </param>
-            <returns>
-                The original object if it is not null.
-            </returns>
-            <exception cref="T:System.ArgumentNullException">
-                Thrown when the object is, in fact, null.
-            </exception>
+            <param name="objectToCheck">The object to check for null.</param>
+            <returns>The original object if it is not null.</returns>
+            <exception cref="T:System.ArgumentNullException">Thrown when the object is, in fact, null.</exception>
         </member>
-        <member name="M:AStar.Dev.Guard.Clauses.GuardAgainst.Negative``1(``0)">
-             <summary>
-            
-             </summary>
-             <param name="objectToCheck"></param>
-             <typeparam name="T"></typeparam>
-             <returns></returns>
+        <member name="M:AStarDev.GuardClauses.GuardAgainst.Negative``1(``0)">
+            <summary>This method will check whether the specified numeric value is negative or not.</summary>
+            <typeparam name="T">The type of the numeric value being checked.</typeparam>
+            <param name="objectToCheck">The numeric value to check for negativity.</param>
+            <returns>The original numeric value if it is not negative.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException"></exception>
         </member>
     </members>
 </doc>

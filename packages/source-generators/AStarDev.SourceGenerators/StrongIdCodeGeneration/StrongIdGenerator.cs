@@ -6,9 +6,7 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace AStarDev.SourceGenerators.StrongIdCodeGeneration;
 
-/// <summary>
-///   The <see cref="StrongIdGenerator" /> class is a source
-/// </summary>
+/// <summary>The <see cref="StrongIdGenerator" /> class is a source</summary>
 [Generator]
 [System.Diagnostics.CodeAnalysis.SuppressMessage("MicrosoftCodeAnalysisCorrectness", "RS1038:Compiler extensions should be implemented in assemblies with compiler-provided references", Justification = "<Pending>")]
 public class StrongIdGenerator : IIncrementalGenerator

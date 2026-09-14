@@ -1,6 +1,6 @@
-using AStar.Dev.Logging.Extensions;
 using AStarDev.ControlDb;
 using AStarDev.FunctionalParadigm;
+using AStarDev.LoggingExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -25,7 +25,7 @@ public static class DatabaseMigrator
         }
     }
 
-    private static async Task<UnitFp> ApplyPendingMigrationsAsync(IDbContextFactory<ControlDbContext> dbContextFactory, ILogger logger)
+    private static async Task<Unit> ApplyPendingMigrationsAsync(IDbContextFactory<ControlDbContext> dbContextFactory, ILogger logger)
     {
         LogMessage.Information(logger, "Applying pending database migrations");
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
@@ -33,7 +33,7 @@ public static class DatabaseMigrator
 
         LogMessage.Information(logger, "Database migrations applied successfully");
 
-        return UnitFp.Instance;
+        return Unit.Instance;
     }
 
     private static void LogMigrationFailure(ILogger logger, Exception exception) =>

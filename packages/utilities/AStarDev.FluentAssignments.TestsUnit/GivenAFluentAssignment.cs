@@ -1,4 +1,4 @@
-namespace AStar.Dev.FluentAssignments.TestsUnit;
+namespace AStarDev.FluentAssignments.TestsUnit;
 
 public sealed class GivenAFluentAssignment
 {

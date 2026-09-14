@@ -1,8 +1,6 @@
 namespace AStarDev.ControlDb.ScrapeConfiguration;
 
-/// <summary>
-/// Represents a scrape configuration entity in the database.
-/// </summary>
+/// <summary>Represents a scrape configuration entity in the database.</summary>
 /// <param name="Id">The unique identifier for the scrape configuration entity.</param>
 public record ScrapeConfigurationEntity(ScrapeConfigurationId Id) : IAggregateRoot
 {

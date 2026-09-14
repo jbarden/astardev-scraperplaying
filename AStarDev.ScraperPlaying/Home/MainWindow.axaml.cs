@@ -1,6 +1,4 @@
 using System.Text.Json;
-using AStar.Dev.Logging.Extensions;
-using AStarDev.FunctionalParadigm;
 using AStarDev.Utilities;
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
@@ -10,6 +8,7 @@ using Avalonia.Interactivity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Testably.Abstractions;
+using AStarDev.LoggingExtensions;
 
 namespace AStarDev.ScraperPlaying.Home;
 

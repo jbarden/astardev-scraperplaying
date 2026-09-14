@@ -3,17 +3,11 @@ using AStarDev.FunctionalParadigm;
 
 namespace AStarDev.ControlDb;
 
-/// <summary>
-/// Adds <see cref="FileTagEntity"/> link rows. Separate from <see cref="IRepository{TAggregate,TKey}"/> since a
-/// file-tag link is keyed by the (FileId, TagId) pair, not a single <c>TKey</c>.
-/// </summary>
-public interface IFileTagRepository
-{
-    Exceptional<FileTagEntity> Add(FileTagEntity fileTag);
-}
-
+/// <summary>Implementation of the <see cref="IFileTagRepository"/> interface for managing file-tag link entities in the database.</summary>
+/// <param name="context">The database context used for managing file-tag link entities.</param>
 public class FileTagRepository(ControlDbContext context) : IFileTagRepository
 {
+    /// <inheritdoc/>
     public Exceptional<FileTagEntity> Add(FileTagEntity fileTag) =>
         Try.Run(() =>
         {

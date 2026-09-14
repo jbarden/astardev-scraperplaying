@@ -14,11 +14,6 @@ namespace AStarDev.SourceAnalyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class StrongIdPartialAnalyzer : DiagnosticAnalyzer
 {
-    /// <summary>
-    /// The diagnostic ID for a [StrongId] record struct missing partial.
-    /// </summary>
-    public const string DiagnosticId = "ASTARID001";
-
     private static readonly DiagnosticDescriptor _rule = new(
         DiagnosticId,
         "StrongId record struct must be readonly and partial",
@@ -26,6 +21,9 @@ public sealed class StrongIdPartialAnalyzer : DiagnosticAnalyzer
         "AStarDev.SourceAnalyzers",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    /// <summary>The diagnostic ID for a [StrongId] record struct missing partial.</summary>
+    public const string DiagnosticId = "ASTARID001";
 
     /// <inheritdoc/>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [_rule];

@@ -2,14 +2,10 @@ using AStarDev.FunctionalParadigm;
 
 namespace AStarDev.ScraperPlaying.Home;
 
-/// <summary>
-/// Interface for processing JSON responses by fetching and deserializing them asynchronously.
-/// </summary>
+/// <summary>Interface for processing JSON responses by fetching and deserializing them asynchronously.</summary>
 public interface IJsonResponseProcessor
 {
-    /// <summary>
-    /// Fetches a JSON response from the specified URL and deserializes it into the specified type asynchronously.
-    /// </summary>
+    /// <summary>Fetches a JSON response from the specified URL and deserializes it into the specified type asynchronously.</summary>
     /// <typeparam name="T">The type to deserialize the JSON response into.</typeparam>
     /// <param name="url">The URL to fetch the JSON response from.</param>
     /// <param name="client">The HTTP client used to make the request.</param>

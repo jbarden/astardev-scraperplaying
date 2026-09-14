@@ -5,9 +5,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace AStarDev.ControlDb.Configurations.ScrapeConfiguration;
 
-/// <summary>
-/// Provides the configuration for the <see cref="UserConfigurationEntity"/> entity.
-/// </summary>
+/// <summary>Provides the configuration for the <see cref="UserConfigurationEntity"/> entity.</summary>
 public sealed class UserConfigurationEntityConfiguration : IEntityTypeConfiguration<UserConfigurationEntity>
 {
     ///<inheritdoc/>

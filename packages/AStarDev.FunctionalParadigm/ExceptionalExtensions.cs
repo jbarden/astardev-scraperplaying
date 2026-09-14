@@ -1,17 +1,13 @@
 namespace AStarDev.FunctionalParadigm;
 
-/// <summary>
-///     Functional helpers and utilities for working with <see cref="Exceptional{T}" />.
-/// </summary>
+/// <summary>Functional helpers and utilities for working with <see cref="Exceptional{T}" />.</summary>
 public static class ExceptionalExtensions
 {
     private const string UnexpectedExceptionalTypeMessage = "Unexpected exceptional type.";
 
     extension<T>(Exceptional<T> exceptional)
     {
-        /// <summary>
-        ///     Pattern matches on the <see cref="Exceptional{T}" />, invoking the handler for the case present.
-        /// </summary>
+        /// <summary>Pattern matches on the <see cref="Exceptional{T}" />, invoking the handler for the case present.</summary>
         public TOut Match<TOut>(Func<T, TOut> onSuccess, Func<Exception, TOut> onFailure)
             => exceptional switch
             {
@@ -20,9 +16,7 @@ public static class ExceptionalExtensions
                 _ => throw new InvalidOperationException(UnexpectedExceptionalTypeMessage + $" Type: {exceptional.GetType().FullName}")
             };
 
-        /// <summary>
-        ///     Asynchronously pattern matches on the <see cref="Exceptional{T}" />, invoking the async success handler.
-        /// </summary>
+        /// <summary>Asynchronously pattern matches on the <see cref="Exceptional{T}" />, invoking the async success handler.</summary>
         public async Task<TOut> MatchAsync<TOut>(Func<T, Task<TOut>> onSuccess, Func<Exception, TOut> onFailure)
             => exceptional switch
             {
@@ -31,9 +25,7 @@ public static class ExceptionalExtensions
                 _ => throw new InvalidOperationException(UnexpectedExceptionalTypeMessage)
             };
 
-        /// <summary>
-        ///     Transforms the value inside a <see cref="Exceptional{T}" /> if it is a <see cref="Success{T}" />.
-        /// </summary>
+        /// <summary>Transforms the value inside a <see cref="Exceptional{T}" /> if it is a <see cref="Success{T}" />.</summary>
         public Exceptional<TResult> Map<TResult>(Func<T, TResult> selector)
             => exceptional switch
             {
@@ -42,9 +34,7 @@ public static class ExceptionalExtensions
                 _ => throw new InvalidOperationException(UnexpectedExceptionalTypeMessage)
             };
 
-        /// <summary>
-        ///     Asynchronously transforms the value inside a <see cref="Exceptional{T}" /> if it is a <see cref="Success{T}" />.
-        /// </summary>
+        /// <summary>Asynchronously transforms the value inside a <see cref="Exceptional{T}" /> if it is a <see cref="Success{T}" />.</summary>
         public async Task<Exceptional<TResult>> MapAsync<TResult>(Func<T, Task<TResult>> selector)
             => exceptional switch
             {
@@ -53,9 +43,7 @@ public static class ExceptionalExtensions
                 _ => throw new InvalidOperationException(UnexpectedExceptionalTypeMessage)
             };
 
-        /// <summary>
-        ///     Asynchronously transforms the value inside a <see cref="Exceptional{T}" /> if it is a <see cref="Success{T}" />.
-        /// </summary>
+        /// <summary>Asynchronously transforms the value inside a <see cref="Exceptional{T}" /> if it is a <see cref="Success{T}" />.</summary>
         public async ValueTask<Exceptional<TResult>> MapAsync<TResult>(Func<T, ValueTask<TResult>> selector)
             => exceptional switch
             {
@@ -64,9 +52,7 @@ public static class ExceptionalExtensions
                 _ => throw new InvalidOperationException(UnexpectedExceptionalTypeMessage)
             };
 
-        /// <summary>
-        ///     Chains another <see cref="Exceptional{T}" />-producing function, short-circuiting on <see cref="Failure{T}" />.
-        /// </summary>
+        /// <summary>Chains another <see cref="Exceptional{T}" />-producing function, short-circuiting on <see cref="Failure{T}" />.</summary>
         public Exceptional<TResult> Bind<TResult>(Func<T, Exceptional<TResult>> binder)
             => exceptional switch
             {
@@ -75,9 +61,7 @@ public static class ExceptionalExtensions
                 _ => throw new InvalidOperationException(UnexpectedExceptionalTypeMessage)
             };
 
-        /// <summary>
-        ///     Asynchronously chains another <see cref="Exceptional{T}" />-producing function, short-circuiting on <see cref="Failure{T}" />.
-        /// </summary>
+        /// <summary>Asynchronously chains another <see cref="Exceptional{T}" />-producing function, short-circuiting on <see cref="Failure{T}" />.</summary>
         public async Task<Exceptional<TResult>> BindAsync<TResult>(Func<T, Task<Exceptional<TResult>>> binder)
             => exceptional switch
             {
@@ -86,9 +70,7 @@ public static class ExceptionalExtensions
                 _ => throw new InvalidOperationException(UnexpectedExceptionalTypeMessage)
             };
 
-        /// <summary>
-        ///     Executes a side-effect action for the case present, and returns the original <see cref="Exceptional{T}" />.
-        /// </summary>
+        /// <summary>Executes a side-effect action for the case present, and returns the original <see cref="Exceptional{T}" />.</summary>
         public Exceptional<T> Tap(Action<T> onSuccess, Action<Exception>? onFailure = null)
         {
             switch (exceptional)
@@ -108,10 +90,7 @@ public static class ExceptionalExtensions
             }
         }
 
-        /// <summary>
-        ///     Executes a side-effect action on the captured exception of an <see cref="Exceptional{T}" />,
-        ///     returning the original result unchanged.
-        /// </summary>
+        /// <summary>Executes a side-effect action on the captured exception of an <see cref="Exceptional{T}" />, returning the original result unchanged.</summary>
         public Exceptional<T> TapError(Action<Exception> onFailure)
         {
             if (exceptional is Failure<T> failure) onFailure(failure.Exception);
@@ -119,10 +98,7 @@ public static class ExceptionalExtensions
             return exceptional;
         }
 
-        /// <summary>
-        ///     Lifts an <see cref="Exceptional{T}" /> into a <see cref="Result{TResult,TError}" />, mapping a captured
-        ///     exception to a domain error via <paramref name="mapError" />.
-        /// </summary>
+        /// <summary>Lifts an <see cref="Exceptional{T}" /> into a <see cref="Result{TResult,TError}" />, mapping a captured exception to a domain error via <paramref name="mapError" />.</summary>
         public Result<T, TError> ToResult<TError>(Func<Exception, TError> mapError)
             => exceptional switch
             {
@@ -134,9 +110,7 @@ public static class ExceptionalExtensions
 
     extension<T>(Task<Exceptional<T>> exceptionalTask)
     {
-        /// <summary>
-        ///     Asynchronously pattern matches on a Task of <see cref="Exceptional{T}" />, invoking the handler for the case present.
-        /// </summary>
+        /// <summary>Asynchronously pattern matches on a Task of <see cref="Exceptional{T}" />, invoking the handler for the case present.</summary>
         public async Task<TOut> MatchAsync<TOut>(Func<T, TOut> onSuccess, Func<Exception, TOut> onFailure)
         {
             var exceptional = await exceptionalTask.ConfigureAwait(false);
@@ -144,9 +118,7 @@ public static class ExceptionalExtensions
             return exceptional.Match(onSuccess, onFailure);
         }
 
-        /// <summary>
-        ///     Asynchronously pattern matches on a Task of <see cref="Exceptional{T}" /> for side effects.
-        /// </summary>
+        /// <summary>Asynchronously pattern matches on a Task of <see cref="Exceptional{T}" /> for side effects.</summary>
         public async Task MatchAsync(Func<T, Task> onSuccess, Func<Exception, T> onFailure)
         {
             var exceptional = await exceptionalTask.ConfigureAwait(false);
@@ -168,9 +140,7 @@ public static class ExceptionalExtensions
             }
         }
 
-        /// <summary>
-        ///     Asynchronously transforms the value inside a Task of <see cref="Exceptional{T}" /> if it is a <see cref="Success{T}" />.
-        /// </summary>
+        /// <summary>Asynchronously transforms the value inside a Task of <see cref="Exceptional{T}" /> if it is a <see cref="Success{T}" />.</summary>
         public async Task<Exceptional<TResult>> MapAsync<TResult>(Func<T, TResult> selector)
         {
             var exceptional = await exceptionalTask.ConfigureAwait(false);
@@ -178,10 +148,7 @@ public static class ExceptionalExtensions
             return exceptional.Map(selector);
         }
 
-        /// <summary>
-        ///     Asynchronously transforms the value inside a Task of <see cref="Exceptional{T}" /> if it is a <see cref="Success{T}" />,
-        ///     via an asynchronous selector.
-        /// </summary>
+        /// <summary>Asynchronously transforms the value inside a Task of <see cref="Exceptional{T}" /> if it is a <see cref="Success{T}" />, via an asynchronous selector.</summary>
         public async Task<Exceptional<TResult>> MapAsync<TResult>(Func<T, Task<TResult>> selector)
         {
             var exceptional = await exceptionalTask.ConfigureAwait(false);
@@ -189,9 +156,7 @@ public static class ExceptionalExtensions
             return await exceptional.MapAsync(selector).ConfigureAwait(false);
         }
 
-        /// <summary>
-        ///     Asynchronously chains another <see cref="Exceptional{T}" />-producing function, short-circuiting on <see cref="Failure{T}" />.
-        /// </summary>
+        /// <summary>Asynchronously chains another <see cref="Exceptional{T}" />-producing function, short-circuiting on <see cref="Failure{T}" />.</summary>
         public async Task<Exceptional<TResult>> BindAsync<TResult>(Func<T, Task<Exceptional<TResult>>> binder)
         {
             var exceptional = await exceptionalTask.ConfigureAwait(false);
@@ -199,9 +164,7 @@ public static class ExceptionalExtensions
             return await exceptional.BindAsync(binder).ConfigureAwait(false);
         }
 
-        /// <summary>
-        ///     Asynchronously chains another <see cref="Exceptional{T}" />-producing function, short-circuiting on <see cref="Failure{T}" />.
-        /// </summary>
+        /// <summary>Asynchronously chains another <see cref="Exceptional{T}" />-producing function, short-circuiting on <see cref="Failure{T}" />.</summary>
         public async Task<Exceptional<TResult>> BindAsync<TResult>(Func<T, ValueTask<Exceptional<TResult>>> binder)
         {
             var exceptional = await exceptionalTask.ConfigureAwait(false);
@@ -214,9 +177,7 @@ public static class ExceptionalExtensions
             };
         }
 
-        /// <summary>
-        ///     Asynchronously executes a side-effect action for the case present, and returns the original <see cref="Exceptional{T}" />.
-        /// </summary>
+        /// <summary>Asynchronously executes a side-effect action for the case present, and returns the original <see cref="Exceptional{T}" />.</summary>
         public async Task<Exceptional<T>> TapAsync(Action<T> onSuccess, Action<Exception>? onFailure = null)
         {
             var exceptional = await exceptionalTask.ConfigureAwait(false);
@@ -224,10 +185,7 @@ public static class ExceptionalExtensions
             return exceptional.Tap(onSuccess, onFailure);
         }
 
-        /// <summary>
-        ///     Asynchronously executes a side-effect action on the captured exception of a Task of
-        ///     <see cref="Exceptional{T}" />, returning the original result unchanged.
-        /// </summary>
+        /// <summary>Asynchronously executes a side-effect action on the captured exception of a Task of <see cref="Exceptional{T}" />, returning the original result unchanged.</summary>
         public async Task<Exceptional<T>> TapErrorAsync(Action<Exception> onFailure)
         {
             var exceptional = await exceptionalTask.ConfigureAwait(false);
@@ -258,9 +216,7 @@ public static class ExceptionalExtensions
 
     extension<T>(ValueTask<Exceptional<T>> exceptionalTask)
     {
-        /// <summary>
-        ///     Asynchronously chains another <see cref="Exceptional{T}" />-producing function, short-circuiting on <see cref="Failure{T}" />.
-        /// </summary>
+        /// <summary>Asynchronously chains another <see cref="Exceptional{T}" />-producing function, short-circuiting on <see cref="Failure{T}" />.</summary>
         public async ValueTask<Exceptional<TResult>> BindAsync<TResult>(Func<T, Task<Exceptional<TResult>>> binder)
         {
             var exceptional = await exceptionalTask.ConfigureAwait(false);
@@ -273,9 +229,7 @@ public static class ExceptionalExtensions
             };
         }
 
-        /// <summary>
-        ///     Asynchronously chains another <see cref="Exceptional{T}" />-producing function, short-circuiting on <see cref="Failure{T}" />.
-        /// </summary>
+        /// <summary>Asynchronously chains another <see cref="Exceptional{T}" />-producing function, short-circuiting on <see cref="Failure{T}" />.</summary>
         public async ValueTask<Exceptional<TResult>> BindAsync<TResult>(Func<T, ValueTask<Exceptional<TResult>>> binder)
         {
             var exceptional = await exceptionalTask.ConfigureAwait(false);
@@ -288,9 +242,7 @@ public static class ExceptionalExtensions
             };
         }
 
-        /// <summary>
-        ///     Asynchronously executes a side-effect action for the case present, and returns the original <see cref="Exceptional{T}" />.
-        /// </summary>
+        /// <summary>Asynchronously executes a side-effect action for the case present, and returns the original <see cref="Exceptional{T}" />.</summary>
         public async ValueTask<Exceptional<T>> TapAsync(Action<T> onSuccess, Action<Exception>? onFailure = null)
         {
             var exceptional = await exceptionalTask.ConfigureAwait(false);

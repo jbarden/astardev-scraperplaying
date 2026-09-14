@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
-namespace AStar.Dev.Velopack.Publishing.TestsUnit;
+namespace AStarDev.VelopackPublishing.TestsUnit;
 
 public sealed class GivenAVelopackUpdateService
 {

@@ -1,6 +1,6 @@
 using Velopack;
 
-namespace AStar.Dev.Velopack.Publishing.Avalonia.Updates;
+namespace AStarDev.VelopackPublishingAvalonia.Updates;
 
 /// <summary>Creates <see cref="UpdateAvailableViewModel"/> instances with their service dependencies resolved from the container.</summary>
 public interface IUpdateAvailableViewModelFactory

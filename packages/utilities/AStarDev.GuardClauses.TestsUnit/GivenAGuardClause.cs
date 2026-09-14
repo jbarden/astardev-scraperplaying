@@ -1,6 +1,6 @@
 using JetBrains.Annotations;
 
-namespace AStar.Dev.Guard.Clauses;
+namespace AStarDev.GuardClauses.TestsUnit;
 
 [TestSubject(typeof(GuardAgainst))]
 public class GivenAGuardClause

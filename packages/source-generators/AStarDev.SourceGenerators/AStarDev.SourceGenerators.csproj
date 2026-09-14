@@ -13,12 +13,13 @@
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <NoWarn>$(NoWarn);NU5128;NU5100</NoWarn>
         <IncludeSymbols>false</IncludeSymbols>
-        <Description>Source generators and supporting attribute types for AStar.Dev projects.</Description>
+        <Description>Source generators and supporting attribute types for AStarDev projects.</Description>
         <PackageTags>source-generator;strongid;attributes;astartools</PackageTags>
         <PackageProjectUrl>https://github.com/astar-development/astar-dev-mono/tree/main/packages/source-generators</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 		<PackageReleaseNotes>
+        v0.1.14 chore: solution cleanup - namespaces, XML doc formatting, test folder alignment
 			v0.1.13 - Bundle AStarDev.SourceAnalyzers.dll (ASTAROPT002) into this package so consumers of AStarDev.SourceGenerators receive its diagnostics without a separate package reference.
 			v0.1.12 - Fix StrongIdGenerator emitting 'System.Type Id' instead of 'System.Guid Id' when [StrongId] is applied with no explicit type argument.
 			v0.1.11 - Actual fix: drop custom nuspec (NuspecFile mode skipped _GetPackageFiles, package had zero DLLs); move Attributes DLL out of lib/ so no TFM-scoped asset restricts compatibility.

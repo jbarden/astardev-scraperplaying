@@ -3,9 +3,7 @@ using System.Text;
 
 namespace AStarDev.Utilities;
 
-/// <summary>
-///     The <see cref="EncryptionExtensions" /> class contains extension methods to encrypt / decrypt the specified string
-/// </summary>
+/// <summary>The <see cref="EncryptionExtensions" /> class contains extension methods to encrypt / decrypt the specified string</summary>
 public static class EncryptionExtensions
 {
     private const string Key = "oe3QnEe&@NnJ$$^L$1N@4WVKFayaAAOb";
@@ -13,17 +11,9 @@ public static class EncryptionExtensions
 
     extension(string plainText)
     {
-        /// <summary>
-        ///     The Encrypt extension method will encrypt the specified string (using AES encryption)
-        /// </summary>
-        /// <param name="key">
-        ///     The optional key to use for the encryption. If supplied, it must be 16, 24, or 32 bytes long. If not
-        ///     specified, an internal default (32 bytes) will be used
-        /// </param>
-        /// <param name="iv">
-        ///     The optional iv (initialisation vector) to use for the decryption. If supplied, it must be 16 bytes
-        ///     long. If not specified, an internal default will be used
-        /// </param>
+        /// <summary>The Encrypt extension method will encrypt the specified string (using AES encryption)</summary>
+        /// <param name="key">The optional key to use for the encryption. If supplied, it must be 16, 24, or 32 bytes long. If not specified, an internal default (32 bytes) will be used</param>
+        /// <param name="iv">The optional iv (initialisation vector) to use for the decryption. If supplied, it must be 16 bytes long. If not specified, an internal default will be used</param>
         /// <returns>The original string encrypted appropriately</returns>
         public string Encrypt(string? key = null, string? iv = null)
         {
@@ -47,17 +37,9 @@ public static class EncryptionExtensions
 
     extension(string encryptedText)
     {
-        /// <summary>
-        ///     The Decrypt extension method will encrypt the specified string (using AES encryption)
-        /// </summary>
-        /// <param name="key">
-        ///     The optional key to use for the encryption. If supplied, it must be 16, 24, or 32 bytes long. If not
-        ///     specified, an internal default (32 bytes) will be used
-        /// </param>
-        /// <param name="iv">
-        ///     The optional iv (initialisation vector) to use for the decryption. If supplied, it must be 16 bytes
-        ///     long. If not specified, an internal default will be used
-        /// </param>
+        /// <summary>The Decrypt extension method will encrypt the specified string (using AES encryption)</summary>
+        /// <param name="key">The optional key to use for the encryption. If supplied, it must be 16, 24, or 32 bytes long. If not specified, an internal default (32 bytes) will be used</param>
+        /// <param name="iv">The optional iv (initialisation vector) to use for the decryption. If supplied, it must be 16 bytes long. If not specified, an internal default will be used</param>
         /// <returns>The decrypted string</returns>
         public string Decrypt(string? key = null, string? iv = null)
         {

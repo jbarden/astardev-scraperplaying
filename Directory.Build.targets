@@ -84,12 +84,12 @@
 
     <PropertyGroup>
       <_IsInPackagesFolder>$([System.String]::new('$(MSBuildProjectDirectory)').Contains('/packages/'))</_IsInPackagesFolder>
-      <_HasCorrectPrefix>$([System.String]::new('$(MSBuildProjectName)').StartsWith('AStar.Dev.')) || [System.String]::new('$(MSBuildProjectName)').StartsWith('AStarDev.'))</_HasCorrectPrefix>
+      <_HasCorrectPrefix>$([System.String]::new('$(MSBuildProjectName)').StartsWith('AStarDev.')) || [System.String]::new('$(MSBuildProjectName)').StartsWith('AStarDev.'))</_HasCorrectPrefix>
     </PropertyGroup>
 
     <Warning Condition="'$(_IsInPackagesFolder)' == 'true' AND '$(_HasCorrectPrefix)' == 'false'"
              Text="[$(MSBuildProjectName)] Projects in packages/ should be prefixed
-                   'AStar.Dev.' or 'AStarDev.' to match your NuGet package naming convention." />
+                   'AStarDev.' or 'AStarDev.' to match your NuGet package naming convention." />
 
   </Target>
 

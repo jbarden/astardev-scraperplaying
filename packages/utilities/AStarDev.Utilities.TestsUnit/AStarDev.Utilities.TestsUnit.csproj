@@ -11,6 +11,9 @@
     Uses a <ProjectReference> to the package rather than a <PackageReference>
     so changes to the package are immediately visible without a publish cycle.
   -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);IDE1006;</NoWarn>
+  </PropertyGroup>
 
   <ItemGroup>
       <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage"/>

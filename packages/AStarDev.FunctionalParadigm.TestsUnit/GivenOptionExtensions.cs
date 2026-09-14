@@ -1,5 +1,3 @@
-using AStarDev.FunctionalParadigm;
-
 namespace AStarDev.FunctionalParadigm.TestsUnit;
 
 public sealed class GivenOptionExtensions

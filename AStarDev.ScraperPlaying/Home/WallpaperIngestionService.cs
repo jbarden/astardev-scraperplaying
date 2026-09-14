@@ -44,18 +44,18 @@ public class WallpaperIngestionService(IFilesQuery filesQuery, IImageProcessor i
                             {
                                 progress.Report($"Failed to fetch tags for wallpaper {wallpaper.Id}: {ex.Message}");
 
-                                return UnitFp.Instance;
+                                return Unit.Instance;
                             }
                         );
 
-                    return UnitFp.Instance;
+                    return Unit.Instance;
                 }).MatchAsync(
                     _ => Task.CompletedTask,
                     y =>
                     {
                         progress.Report($"Failed to process image for wallpaper {wallpaper.Id}: {y.Message}");
 
-                        return UnitFp.Instance;
+                        return Unit.Instance;
                     }
                 );
             },

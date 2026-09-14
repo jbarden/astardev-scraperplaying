@@ -7,14 +7,10 @@ namespace AStarDev.SourceGenerators.OptionsBindingGeneration;
 /// </summary>
 public sealed class OptionsTypeInfo : IEquatable<OptionsTypeInfo>
 {
-    /// <summary>
-    ///  The <see cref="TypeName" /> property holds the simple name of the type (without namespace).
-    /// </summary>
+    /// <summary>The <see cref="TypeName" /> property holds the simple name of the type (without namespace).</summary>
     public string TypeName { get; }
 
-    /// <summary>
-    /// The <see cref="FullTypeName" /> property holds the fully qualified name of the type, including its namespace.
-    /// </summary>
+    /// <summary>The <see cref="FullTypeName" /> property holds the fully qualified name of the type, including its namespace.</summary>
     public string FullTypeName { get; }
 
     /// <summary>

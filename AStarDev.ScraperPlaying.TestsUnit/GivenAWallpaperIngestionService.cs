@@ -18,7 +18,7 @@ public sealed class GivenAWallpaperIngestionService
     public GivenAWallpaperIngestionService()
     {
         tagsProcessor.FetchAndLinkTagsAsync(Arg.Any<string>(), Arg.Any<FileId>(), Arg.Any<HttpClient>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
-            .Returns((Exceptional<UnitFp>)UnitFp.Instance);
+            .Returns((Exceptional<Unit>)Unit.Instance);
         service = new(filesQuery, imageProcessor, tagsProcessor, () => TimeSpan.FromMilliseconds(1));
     }
 
@@ -138,7 +138,7 @@ public sealed class GivenAWallpaperIngestionService
         imageProcessor.ProcessTheImageAsync(Arg.Any<IRepository<FileEntity, FileId>>(), Arg.Any<WallpaperFileRequest>(), Arg.Any<CancellationToken>()).Returns((Exceptional<FileEntity>)fileEntity);
         var exception = new InvalidOperationException("tag fetch failed");
         tagsProcessor.FetchAndLinkTagsAsync(Arg.Any<string>(), Arg.Any<FileId>(), Arg.Any<HttpClient>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
-            .Returns((Exceptional<UnitFp>)exception);
+            .Returns((Exceptional<Unit>)exception);
 
         await Ingest(wallpaper);
 

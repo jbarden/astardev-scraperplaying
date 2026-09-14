@@ -76,7 +76,7 @@ A single repository containing all AStar Development products and shared librari
 ### 1. Clone
 
 ```bash
-git clone https://github.com/astar.development/astar-dev-mono.git
+git clone https://github.com/AStarDevelopment/astar-dev-mono.git
 cd astar-dev-mono
 ```
 
@@ -92,7 +92,7 @@ dotnet nuget add source \
   --password YOUR_PAT_TOKEN \
   --store-password-in-clear-text \
   --name github \
-  "https://nuget.pkg.github.com/astar.development/index.json"
+  "https://nuget.pkg.github.com/AStarDevelopment/index.json"
 ```
 
 This writes to your user-level NuGet config (`~/.nuget/NuGet/NuGet.Config`) and is
@@ -296,13 +296,13 @@ All workflows require explicit permissions and run with least-privilege
 
 ### NuGet package naming
 
-All packages follow the `AStar.Dev.[Area].[Name]` pattern:
+All packages follow the `AStarDev.[Area].[Name]` pattern:
 
 ```
-AStar.Dev.Core.Domain
-AStar.Dev.Infra.DataAccess
-AStar.Dev.Infra.Auth
-AStar.Dev.Ui.Components
+AStarDev.Core.Domain
+AStarDev.Infra.DataAccess
+AStarDev.Infra.Auth
+AStarDev.Ui.Components
 ```
 
 ### Project structure

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace AStar.Dev.Velopack.Publishing.Avalonia.Updates;
+namespace AStarDev.VelopackPublishingAvalonia.Updates;
 
 /// <summary>Registers the shared update-available dialog service, view-model factory, and notification service.</summary>
 public static class UpdateNotificationServiceCollectionExtensions

@@ -1,17 +1,13 @@
 namespace AStarDev.Utilities;
 
-/// <summary>
-/// Provides extension methods for formatting byte counts.
-/// </summary>
+/// <summary>Provides extension methods for formatting byte counts.</summary>
 public static class ByteSizeExtensions
 {
     private static readonly string[] units = ["B", "KB", "MB", "GB", "TB"];
 
     extension(int bytes)
     {
-        /// <summary>
-        /// Formats the specified byte count using whichever unit reads best for its magnitude.
-        /// </summary>
+        /// <summary>Formats the specified byte count using whichever unit reads best for its magnitude.</summary>
         /// <returns>A human-readable size, e.g. "512 B", "42 KB", or "3.1 MB".</returns>
         public string ToFileSizeString()
         {

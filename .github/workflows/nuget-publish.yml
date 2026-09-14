@@ -19,8 +19,8 @@
 # Examples:
 #   AStarDev.Utilities/v1.6.6
 #   AStarDev.Utilities/v1.7.0
-#   AStar.Dev.SomeNewPackage/v1.0.0
-#   AStar.Dev.AnotherPackage/v2.1.0-beta.1
+#   AStarDev.SomeNewPackage/v1.0.0
+#   AStarDev.AnotherPackage/v2.1.0-beta.1
 # ════════════════════════════════════════════════════════════════════════════
 
 name: Publish NuGet package

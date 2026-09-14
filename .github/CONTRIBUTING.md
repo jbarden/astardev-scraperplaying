@@ -269,7 +269,7 @@ public async Task SyncAsync()
 - **Questions**: Open a GitHub Discussion
 - **Bugs**: Open a GitHub Issue with reproduction steps
 - **Features**: Open a GitHub Issue with use case and requirements
-- **Security**: Email security@astar.dev (do not open public issue)
+- **Security**: Email security@AStarDev (do not open public issue)
 
 ---
 

@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    AStar.Dev.Velopack.Publishing.Avalonia
+    AStarDev.VelopackPublishingAvalonia
     ═══════════════════════════════════════
     Shared Avalonia update-available dialog, view model, and notification
     services used by the AStar desktop apps (AStarDev.OneDriveSyncClient,
-    AStar.Dev.Wallpaper.Scraper), so each app shows the literal same
+    AStarDev.Wallpaper.Scraper), so each app shows the literal same
     themed update UX instead of hand-rolling its own.
 
-    Builds on AStar.Dev.Velopack.Publishing's low-level check/download/apply
+    Builds on AStarDev.VelopackPublishing's low-level check/download/apply
     plumbing and adds the MVVM presentation layer on top of it.
 
     Intentionally lean — TFM, nullable, analysers, IsPackable, GenerateDocumentationFile,
@@ -23,10 +23,11 @@
     <Title>AStar Dev Velopack Publishing Avalonia</Title>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
-    <Description>Shared Avalonia update-available dialog, view model, and notification services for AStar Development desktop apps, built on AStar.Dev.Velopack.Publishing.</Description>
+    <Description>Shared Avalonia update-available dialog, view model, and notification services for AStar Development desktop apps, built on AStarDev.VelopackPublishing.</Description>
     <PackageProjectUrl>https://github.com/astar-development/astar-dev-mono/tree/main/packages/core/utilities</PackageProjectUrl>
     <DocumentationFile>$(AssemblyName).xml</DocumentationFile>
     <PackageReleaseNotes>
+        v0.1.1 chore: solution cleanup - namespaces, XML doc formatting, test folder alignment
         v0.1.0 Rename infrastructure/ to packages/ and add fully automatic NuGet release pipeline
     v0.1.0 Initial release.
     </PackageReleaseNotes>

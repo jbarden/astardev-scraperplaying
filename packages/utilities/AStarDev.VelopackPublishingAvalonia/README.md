@@ -1,6 +1,6 @@
-# AStar.Dev.Velopack.Publishing.Avalonia
+# AStarDev.Velopack.Publishing.Avalonia
 
-Shared Avalonia update-available dialog, view model, and notification services used by AStar Development desktop apps, built on top of `AStar.Dev.Velopack.Publishing`.
+Shared Avalonia update-available dialog, view model, and notification services used by AStar Development desktop apps, built on top of `AStarDev.Velopack.Publishing`.
 
 ## Usage
 
@@ -25,4 +25,4 @@ The dialog follows the host app's own theme. It only defines non-theme-dependent
 - `BorderDefaultBrush`
 - `StatusErrorBrush`
 
-See `AStarDev.OneDriveSyncClient/Themes/Light.axaml`/`Dark.axaml`/`Hacker.axaml` or `AStar.Dev.Wallpaper.Scraper/Theming/UpdateDialogPalette.axaml` for examples.
+See `AStarDev.OneDriveSyncClient/Themes/Light.axaml`/`Dark.axaml`/`Hacker.axaml` or `AStarDev.Wallpaper.Scraper/Theming/UpdateDialogPalette.axaml` for examples.

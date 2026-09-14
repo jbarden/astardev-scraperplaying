@@ -7,9 +7,7 @@ namespace AStarDev.SourceGenerators.StrongIdCodeGeneration;
 /// </summary>
 public static partial class StrongIdModelExtensions
 {
-    /// <summary>
-    /// Extracts the underlying type from a StrongId attribute, defaulting to System.Guid if not specified.
-    /// </summary>
+    /// <summary>Extracts the underlying type from a StrongId attribute, defaulting to System.Guid if not specified.</summary>
     public static string CreateUnderlyingTypeFromAttribute(AttributeData attr)
     {
         if (attr?.ConstructorArguments.Length != 1)
