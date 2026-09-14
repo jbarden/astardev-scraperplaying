@@ -13,7 +13,7 @@ public class WallpaperIngestionService(IFilesQuery filesQuery, IImageProcessor i
     public async Task IngestAsync(Data wallpaper, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
     {
         var extension = wallpaper.Path.ToFileExtension();
-        var fileRequest = new WallpaperFileRequest(wallpaper, context.Directory, extension);
+        var fileRequest = new WallpaperFileRequest(wallpaper, context.Directory, extension, context.CategoryLabel);
 
         await (await filesQuery.CheckExistsByNameAsync(new FileName($"{wallpaper.Id}{extension}"), cancellationToken))
         .Match(

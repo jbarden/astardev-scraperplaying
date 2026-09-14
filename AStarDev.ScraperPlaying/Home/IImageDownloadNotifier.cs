@@ -7,9 +7,9 @@ namespace AStarDev.ScraperPlaying.Home;
 public interface IImageDownloadNotifier
 {
     /// <summary>Raised after a wallpaper's image has been written to disk.</summary>
-    event EventHandler<string>? ImageDownloaded;
+    event EventHandler<WallpaperDownloadDetails>? ImageDownloaded;
 
-    /// <summary>Raises <see cref="ImageDownloaded"/> for the image saved at <paramref name="filePath"/>.</summary>
-    /// <param name="filePath">The full path the image was saved to.</param>
-    void NotifyImageDownloaded(string filePath);
+    /// <summary>Raises <see cref="ImageDownloaded"/> for the image described by <paramref name="details"/>.</summary>
+    /// <param name="details">The details of the wallpaper image that was saved.</param>
+    void NotifyImageDownloaded(WallpaperDownloadDetails details);
 }

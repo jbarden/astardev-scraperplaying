@@ -4,16 +4,18 @@ namespace AStarDev.ScraperPlaying.TestsUnit;
 
 public sealed class GivenAnImageDownloadNotifier
 {
+    private static readonly WallpaperDownloadDetails details = new("/some/path/wallpaper-1.jpg", "wallpaper-1", "Top Wallpapers", 1234, 1920, 1080);
+
     [Fact]
-    public void when_an_image_download_is_notified_then_subscribers_receive_the_file_path()
+    public void when_an_image_download_is_notified_then_subscribers_receive_the_details()
     {
         var notifier = new ImageDownloadNotifier();
-        string? receivedPath = null;
-        notifier.ImageDownloaded += (_, path) => receivedPath = path;
+        WallpaperDownloadDetails? received = null;
+        notifier.ImageDownloaded += (_, value) => received = value;
 
-        notifier.NotifyImageDownloaded("/some/path/wallpaper-1.jpg");
+        notifier.NotifyImageDownloaded(details);
 
-        receivedPath.ShouldBe("/some/path/wallpaper-1.jpg");
+        received.ShouldBe(details);
     }
 
     [Fact]
@@ -21,6 +23,6 @@ public sealed class GivenAnImageDownloadNotifier
     {
         var notifier = new ImageDownloadNotifier();
 
-        Should.NotThrow(() => notifier.NotifyImageDownloaded("/some/path/wallpaper-1.jpg"));
+        Should.NotThrow(() => notifier.NotifyImageDownloaded(details));
     }
 }

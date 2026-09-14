@@ -65,8 +65,8 @@ public sealed class GivenAWallpaperIngestionService
         await Ingest(wallpaper, directory: "resolved-directory");
 
         await filesQuery.Received(1).CheckExistsByNameAsync(Arg.Is<FileName>(name => name.Value == "png-wallpaper.png"), Arg.Any<CancellationToken>());
-        await imageProcessor.Received(1).DownloadImageAsync(new WallpaperFileRequest(wallpaper, "resolved-directory", ".png"), progress, Arg.Any<HttpClient>(), Arg.Any<CancellationToken>());
-        await imageProcessor.Received(1).ProcessTheImageAsync(Arg.Any<IRepository<FileEntity, FileId>>(), new WallpaperFileRequest(wallpaper, "resolved-directory", ".png"), Arg.Any<CancellationToken>());
+        await imageProcessor.Received(1).DownloadImageAsync(new WallpaperFileRequest(wallpaper, "resolved-directory", ".png", "resolved-category"), progress, Arg.Any<HttpClient>(), Arg.Any<CancellationToken>());
+        await imageProcessor.Received(1).ProcessTheImageAsync(Arg.Any<IRepository<FileEntity, FileId>>(), new WallpaperFileRequest(wallpaper, "resolved-directory", ".png", "resolved-category"), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -81,8 +81,8 @@ public sealed class GivenAWallpaperIngestionService
         await Ingest(wallpaper, directory: "resolved-directory");
 
         await filesQuery.Received(1).CheckExistsByNameAsync(Arg.Is<FileName>(name => name.Value == "extensionless-wallpaper.jpg"), Arg.Any<CancellationToken>());
-        await imageProcessor.Received(1).DownloadImageAsync(new WallpaperFileRequest(wallpaper, "resolved-directory", ".jpg"), progress, Arg.Any<HttpClient>(), Arg.Any<CancellationToken>());
-        await imageProcessor.Received(1).ProcessTheImageAsync(Arg.Any<IRepository<FileEntity, FileId>>(), new WallpaperFileRequest(wallpaper, "resolved-directory", ".jpg"), Arg.Any<CancellationToken>());
+        await imageProcessor.Received(1).DownloadImageAsync(new WallpaperFileRequest(wallpaper, "resolved-directory", ".jpg", "resolved-category"), progress, Arg.Any<HttpClient>(), Arg.Any<CancellationToken>());
+        await imageProcessor.Received(1).ProcessTheImageAsync(Arg.Any<IRepository<FileEntity, FileId>>(), new WallpaperFileRequest(wallpaper, "resolved-directory", ".jpg", "resolved-category"), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public sealed class GivenAWallpaperIngestionService
     }
 
     private Task Ingest(Data wallpaper, string directory = "some-directory")
-        => service.IngestAsync(wallpaper, new WallpaperIngestionContext(directory, new HttpClient(), fileRepository), progress, CancellationToken.None);
+        => service.IngestAsync(wallpaper, new WallpaperIngestionContext(directory, new HttpClient(), fileRepository, "resolved-category"), progress, CancellationToken.None);
 
     private static Data CreateWallpaper(string id, string path = "")
         => new(id, "", "", 0, 0, "", "", "", 0, 0, "", "", 0, "", "", [], path, new Thumbs("", "", ""));

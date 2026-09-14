@@ -1,6 +1,7 @@
 using System.Text.Json;
 using AStar.Dev.Logging.Extensions;
 using AStarDev.FunctionalParadigm;
+using AStarDev.Utilities;
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
@@ -31,7 +32,7 @@ public partial class MainWindow : Window, IDisposable
         this.logger = logger;
         this.operationCoordinator = operationCoordinator;
         operationCoordinator.StateChanged += (_, _) => UpdateOperationControls();
-        imageDisplayCoordinator.ImageReady += (_, pngStream) => Dispatcher.UIThread.Post(() => DisplayImage(pngStream));
+        imageDisplayCoordinator.ImageReady += (_, preview) => Dispatcher.UIThread.Post(() => DisplayImage(preview));
         Closed += (_, _) => Dispose();
         Loaded += async (_, _) => await CheckRootDirectoryAvailabilityAsync();
         UpdateOperationControls();
@@ -164,15 +165,21 @@ public partial class MainWindow : Window, IDisposable
         UpdateOperationControls();
     }
 
-    private void DisplayImage(Stream pngStream)
+    private void DisplayImage(WallpaperPreviewImage preview)
     {
         var previousImage = DownloadedImage.Source;
-        using (pngStream)
+        using (preview.PngStream)
         {
-            DownloadedImage.Source = new Bitmap(pngStream);
+            DownloadedImage.Source = new Bitmap(preview.PngStream);
         }
 
         (previousImage as IDisposable)?.Dispose();
+
+        ImageNameText.Text = preview.Name;
+        ImageCategoryText.Text = $"Category: {preview.CategoryLabel}";
+        ImageSizeText.Text = $"Size: {preview.FileSizeBytes.ToFileSizeString()}";
+        ImageDimensionsText.Text = $"Dimensions: {preview.Width} x {preview.Height}";
+        ImageDetailsPanel.IsVisible = true;
     }
 
     private void SetStatusText(string message) => Dispatcher.UIThread.Post(() => StatusTextBlock.Text = message);

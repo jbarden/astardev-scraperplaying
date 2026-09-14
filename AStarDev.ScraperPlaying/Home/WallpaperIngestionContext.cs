@@ -9,4 +9,5 @@ namespace AStarDev.ScraperPlaying.Home;
 /// <param name="Directory">The directory to save wallpaper images into.</param>
 /// <param name="Client">The HTTP client used to make requests.</param>
 /// <param name="FileRepository">The repository used to store wallpapers' file entities.</param>
-public sealed record WallpaperIngestionContext(string Directory, HttpClient Client, IRepository<FileEntity, FileId> FileRepository);
+/// <param name="CategoryLabel">The search category being ingested, or "Top Wallpapers" when it is not a specific search category.</param>
+public sealed record WallpaperIngestionContext(string Directory, HttpClient Client, IRepository<FileEntity, FileId> FileRepository, string CategoryLabel);
