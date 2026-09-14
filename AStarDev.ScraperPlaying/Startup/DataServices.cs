@@ -4,7 +4,7 @@ using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.Utilities;
-using AStarDev.ScraperPlaying.SearchAPI;
+using AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 namespace AStarDev.ScraperPlaying.Startup;
 
