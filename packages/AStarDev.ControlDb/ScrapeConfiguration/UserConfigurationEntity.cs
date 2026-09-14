@@ -1,8 +1,6 @@
 namespace AStarDev.ControlDb.ScrapeConfiguration;
 
-/// <summary>
-/// Represents a user configuration entity in the database.
-/// </summary>
+/// <summary>Represents a user configuration entity in the database.</summary>
 /// <param name="Id">The unique identifier for the user configuration entity.</param>
 /// <param name="ScrapeConfigurationEntityId">The unique identifier for the associated scrape configuration entity.</param>
 /// <param name="EmailAddress">The email address of the user.</param>

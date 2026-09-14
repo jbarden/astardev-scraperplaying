@@ -1,5 +1,4 @@
 using System.Globalization;
-using AStarDev.FunctionalParadigm;
 
 namespace AStarDev.FunctionalParadigm.TestsUnit;
 

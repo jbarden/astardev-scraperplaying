@@ -1,4 +1,4 @@
-namespace AStar.Dev.Velopack.Publishing.Avalonia.Updates;
+namespace AStarDev.VelopackPublishingAvalonia.Updates;
 
 /// <summary>Abstracts showing the update-available modal dialog to keep consumers testable without Avalonia infrastructure.</summary>
 public interface IUpdateAvailableDialogService

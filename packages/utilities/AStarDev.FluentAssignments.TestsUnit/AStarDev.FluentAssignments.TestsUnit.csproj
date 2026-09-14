@@ -32,7 +32,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\AStarDev.FluentAssignments\AStar.Dev.FluentAssignments.csproj" />
+	  <ProjectReference Include="..\AStarDev.FluentAssignments\AStarDev.FluentAssignments.csproj" />
 	</ItemGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

@@ -1,5 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);IDE1006;CA1822;</NoWarn>
+  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\AStarDev.FunctionalParadigm\AStarDev.FunctionalParadigm.csproj" />
   </ItemGroup>

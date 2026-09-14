@@ -7,12 +7,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AStarDev.ControlDb;
 
-/// <summary>
-/// Represents the Entity Framework database context for managing file entities.
-/// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="ControlDbContext"/> class with the specified options.
-/// </remarks>
+/// <summary>Represents the Entity Framework database context for managing file entities.</summary>
+/// <remarks>Initializes a new instance of the <see cref="ControlDbContext"/> class with the specified options.</remarks>
 /// <param name="options">The options to be used by the DbContext.</param>
 /// <param name="scrapeConfigurationQuery">The query used to auto-include the sub-entities required by a <see cref="ScrapeConfigurationEntity"/> aggregate.</param>
 /// <param name="filesQuery">The query used to auto-include the sub-entities required by a <see cref="FileEntity"/> aggregate.</param>
@@ -45,11 +41,11 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
     => Try.RunAsync(async () => (Option<ScrapeConfigurationEntity>)await this.scrapeConfigurationQuery.Apply(ScrapeConfigurations).FirstOrDefaultAsync());
 
     /// <inheritdoc/>
-    Exceptional<UnitFp> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.Delete(ScrapeConfigurationEntity aggregate) =>
+    Exceptional<Unit> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.Delete(ScrapeConfigurationEntity aggregate) =>
         Try.Run(() =>
         {
             ScrapeConfigurations.Remove(aggregate);
-            return UnitFp.Instance;
+            return Unit.Instance;
         });
 
     /// <inheritdoc/>
@@ -73,11 +69,11 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
         });
 
     /// <inheritdoc/>
-    Exceptional<UnitFp> IRepository<FileEntity, FileId>.Delete(FileEntity aggregate) =>
+    Exceptional<Unit> IRepository<FileEntity, FileId>.Delete(FileEntity aggregate) =>
         Try.Run(() =>
         {
             Files.Remove(aggregate);
-            return UnitFp.Instance;
+            return Unit.Instance;
         });
 
     /// <inheritdoc/>
@@ -101,16 +97,14 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
         });
 
     /// <inheritdoc/>
-    Exceptional<UnitFp> IRepository<TagEntity, TagId>.Delete(TagEntity aggregate) =>
+    Exceptional<Unit> IRepository<TagEntity, TagId>.Delete(TagEntity aggregate) =>
         Try.Run(() =>
         {
             Tags.Remove(aggregate);
-            return UnitFp.Instance;
+            return Unit.Instance;
         });
 
-    /// <summary>
-    /// Gets the repository for managing scrape configuration entities in the database.
-    /// </summary>
+    /// <summary>Gets the repository for managing scrape configuration entities in the database.</summary>
     public DbSet<ScrapeConfigurationEntity> ScrapeConfigurations => Set<ScrapeConfigurationEntity>();
 
     public DbSet<FileEntity> Files => Set<FileEntity>();

@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    AStar.Dev.Velopack.Publishing.TestsUnit
+    AStarDev.VelopackPublishing.TestsUnit
     ═════════════════════════════════════════
-    Unit tests for AStar.Dev.Velopack.Publishing.
+    Unit tests for AStarDev.VelopackPublishing.
 
     IsPackable=false and VSTestBlame are inherited from the root
     Directory.Build.props / Directory.Build.targets — nothing to set here.
@@ -11,6 +11,9 @@
     Uses a <ProjectReference> to the package rather than a <PackageReference>
     so changes to the package are immediately visible without a publish cycle.
   -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);IDE1006;</NoWarn>
+  </PropertyGroup>
 
   <ItemGroup>
       <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage"/>

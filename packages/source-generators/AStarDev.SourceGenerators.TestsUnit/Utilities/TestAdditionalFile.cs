@@ -1,7 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 
-namespace AStarDev.SourceGenerators.TestsUnit.Utils;
+namespace AStarDev.SourceGenerators.TestsUnit.Utilities;
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1515", Justification = "Test helper intended for use in generator tests")]
 public sealed class TestAdditionalFile(string path, string text) : AdditionalText

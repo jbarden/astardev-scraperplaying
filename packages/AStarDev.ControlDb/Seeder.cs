@@ -3,13 +3,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AStarDev.ControlDb;
 
+/// <summary>Provides methods for seeding the database with initial data.</summary>
 public static class Seeder
 {
+    /// <summary>Seeds the database with initial data asynchronously.</summary>
+    /// <param name="context">The database context used for seeding data.</param>
+    /// <param name="cancellationToken">A cancellation token for the asynchronous operation.</param>
+    /// <returns>A task representing the asynchronous seeding operation.</returns>
     public static Task SeedAsync(DbContext context, CancellationToken cancellationToken = default)
     {
         SeedImpl(context);
         return context.SaveChangesAsync(cancellationToken);
     }
+
+    /// <summary>Seeds the database with initial data synchronously.</summary>
+    /// <param name="context">The database context used for seeding data.</param>
     public static void Seed(DbContext context)
     {
         SeedImpl(context);

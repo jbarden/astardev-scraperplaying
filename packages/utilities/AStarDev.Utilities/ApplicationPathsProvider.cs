@@ -1,8 +1,6 @@
 namespace AStarDev.Utilities;
 
-/// <summary>
-/// Provides methods to retrieve application-specific paths for data storage, logs, and user files based on the operating system.
-/// </summary>
+/// <summary>Provides methods to retrieve application-specific paths for data storage, logs, and user files based on the operating system.</summary>
 public static class ApplicationPathsProvider
 {
     /// <param name="applicationName"></param>
@@ -10,22 +8,16 @@ public static class ApplicationPathsProvider
     extension(string applicationName)
 #pragma warning restore CA1034
     {
-        /// <summary>
-        ///
-        /// </summary>
-        /// <returns></returns>
+        /// <summary>Gets the application-specific data directory.</summary>
+        /// <returns>The path to the application-specific data directory.</returns>
         public string ApplicationDirectory() => GetPlatformDataDirectory(applicationName);
 
-        /// <summary>
-        ///
-        /// </summary>
-        /// <returns></returns>
+        /// <summary>Gets the application-specific logs directory.</summary>
+        /// <returns>The path to the application-specific logs directory.</returns>
         public string LogsDirectory() => ResolveLogsDirectory(applicationName);
 
-        /// <summary>
-        ///
-        /// </summary>
-        /// <returns></returns>
+        /// <summary>Gets the application-specific user directory.</summary>
+        /// <returns>The path to the application-specific user directory.</returns>
         public string UserDirectory() => ResolveUsersDirectory(applicationName);
     }
 

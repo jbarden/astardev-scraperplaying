@@ -1,8 +1,9 @@
+using AStarDev.VelopackPublishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace AStar.Dev.Velopack.Publishing.TestsUnit;
+namespace AStarDev.VelopackPublishing.TestsUnit;
 
 public sealed class GivenVelopackUpdateSettings
 {

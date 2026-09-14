@@ -1,4 +1,4 @@
-# AStar.Dev.Velopack.Publishing
+# AStarDev.Velopack.Publishing
 
 Shared Velopack update check/download/apply plumbing used by AStar Development desktop apps.
 

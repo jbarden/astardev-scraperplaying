@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 
-namespace AStar.Dev.Velopack.Publishing.Avalonia.Updates;
+namespace AStarDev.VelopackPublishingAvalonia.Updates;
 
 /// <summary>The shared update-available dialog window, showing title/version/release notes and a Restart-now/Later choice.</summary>
 public partial class UpdateAvailableView : Window

@@ -1,9 +1,6 @@
 namespace AStarDev.ScraperPlaying.Home;
 
-/// <summary>
-/// The details of a wallpaper image that has just been written to disk, published via
-/// <see cref="IImageDownloadNotifier"/> so interested parties (such as a live preview) can react.
-/// </summary>
+/// <summary>The details of a wallpaper image that has just been written to disk, published via <see cref="IImageDownloadNotifier"/> so interested parties (such as a live preview) can react.</summary>
 /// <param name="FilePath">The full path the image was saved to.</param>
 /// <param name="Name">The wallpaper's name, matching the saved file's base name.</param>
 /// <param name="CategoryLabel">The search category the wallpaper came from, or "Top Wallpapers" when it did not come from a specific search category.</param>

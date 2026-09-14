@@ -8,7 +8,7 @@ namespace AStarDev.ScraperPlaying.Home;
 public sealed class ScrapeConfigurationFileService(IScrapeConfigurationImportService importService, IScrapeConfigurationExportService exportService, IConfigurationFilePicker configurationFilePicker) : IScrapeConfigurationFileService
 {
     /// <inheritdoc/>
-    public async Task<Option<UnitFp>> ImportViaPickerAsync(Window owner, CancellationToken cancellationToken)
+    public async Task<Option<Unit>> ImportViaPickerAsync(Window owner, CancellationToken cancellationToken)
     {
         var path = await configurationFilePicker.PickAsync(owner);
 
@@ -18,9 +18,9 @@ public sealed class ScrapeConfigurationFileService(IScrapeConfigurationImportSer
                 cancellationToken.ThrowIfCancellationRequested();
                 await importService.ImportAsync(selectedPath, cancellationToken);
 
-                return Option.Some(UnitFp.Instance);
+                return Option.Some(Unit.Instance);
             },
-            Option.None<UnitFp>);
+            Option.None<Unit>);
     }
 
     /// <inheritdoc/>

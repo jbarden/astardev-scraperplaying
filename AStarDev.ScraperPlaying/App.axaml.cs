@@ -6,7 +6,7 @@ using Avalonia.Markup.Xaml;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using ApplicationMessages = AStar.Dev.Logging.Extensions.ApplicationMessages;
+using ApplicationMessages = AStarDev.LoggingExtensions.ApplicationMessages;
 
 namespace AStarDev.ScraperPlaying;
 

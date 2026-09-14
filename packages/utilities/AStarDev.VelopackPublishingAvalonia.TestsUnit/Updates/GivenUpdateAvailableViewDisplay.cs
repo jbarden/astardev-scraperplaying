@@ -1,12 +1,11 @@
-using AStar.Dev.Velopack.Publishing;
-using AStar.Dev.Velopack.Publishing.Avalonia.Updates;
-using AStarDev.VelopackPublishingAvalonia.TestsUnit.Updates;
+using AStarDev.VelopackPublishing;
+using AStarDev.VelopackPublishingAvalonia.Updates;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Microsoft.Extensions.Logging;
 using Velopack;
 
-namespace AStarDev.VelopackPublishingAvalonia.TestsUnit.Views;
+namespace AStarDev.VelopackPublishingAvalonia.TestsUnit.Updates;
 
 public sealed class GivenUpdateAvailableViewDisplay
 {

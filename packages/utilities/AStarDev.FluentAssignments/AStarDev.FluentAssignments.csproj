@@ -15,7 +15,7 @@
 
   <PropertyGroup>
 	<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-	<Title>AStar.Dev.FluentAssignments</Title>
+	<Title>AStarDev.FluentAssignments</Title>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
 
 	<IncludeSymbols>True</IncludeSymbols>

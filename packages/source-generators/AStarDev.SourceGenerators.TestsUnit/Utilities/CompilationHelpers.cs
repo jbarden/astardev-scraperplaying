@@ -10,9 +10,7 @@ internal static class CompilationHelpers
                                                    namespace AStarDev.SourceGeneratorAttributes {
                                                        public sealed class StrongIdAttribute(Type? idType = null) : Attribute
                                                        {
-                                                           /// <summary>
-                                                           /// The type of the ID property (e.g., typeof(Guid), typeof(int)).
-                                                           /// </summary>
+                                                           /// <summary>The type of the ID property (e.g., typeof(Guid), typeof(int)).</summary>
                                                            public Type IdType { get; } = idType ?? typeof(Guid);
                                                        }
                                                    }

@@ -1,6 +1,6 @@
 using Velopack;
 
-namespace AStar.Dev.Velopack.Publishing;
+namespace AStarDev.VelopackPublishing;
 
 /// <summary>Abstracts Velopack update checking/downloading/applying so consumers stay testable.</summary>
 public interface IVelopackUpdateService

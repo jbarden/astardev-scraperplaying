@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    AStar.Dev.Velopack.Publishing
+    AStarDev.VelopackPublishing
     ══════════════════════════════
     Shared Velopack update check/download/apply plumbing used by the AStar
-    desktop apps (AStarDev.OneDriveSyncClient, AStar.Dev.Wallpaper.Scraper),
+    desktop apps (AStarDev.OneDriveSyncClient, AStarDev.Wallpaper.Scraper),
     so each app doesn't duplicate UpdateManager/GithubSource wiring.
 
     Intentionally lean — TFM, nullable, analysers, IsPackable, GenerateDocumentationFile,

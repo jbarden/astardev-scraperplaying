@@ -3,17 +3,12 @@ using System.Text.Json;
 
 namespace AStarDev.Utilities;
 
-/// <summary>
-///     The <see cref="StringExtensions" /> class contains some useful methods to enable checks to be
-///     performed in a more fluid, English sentence, style
-/// </summary>
+/// <summary>The <see cref="StringExtensions" /> class contains some useful methods to enable checks to be performed in a more fluid, English sentence, style</summary>
 public static class StringExtensions
 {
     extension([NotNullWhen(false)] string? value)
     {
-        /// <summary>
-        ///     The IsNull method, as you might expect, checks whether the string is, in fact, null
-        /// </summary>
+        /// <summary>The IsNull method, as you might expect, checks whether the string is, in fact, null</summary>
         /// <returns>True if the string is null, False otherwise</returns>
         /// <remarks>
         ///     Kept as a method rather than a property: the [NotNullWhen] attribute on the receiver
@@ -23,10 +18,7 @@ public static class StringExtensions
         public bool IsNull() =>
             value is null;
 
-        /// <summary>
-        ///     The IsNullOrWhiteSpace method, as you might expect, checks whether the string is, in fact, null, empty or
-        ///     whitespace
-        /// </summary>
+        /// <summary>The IsNullOrWhiteSpace method, as you might expect, checks whether the string is, in fact, null, empty or whitespace</summary>
         /// <returns>True if the string is null, empty or whitespace, False otherwise</returns>
         /// <remarks>
         ///     Kept as a method rather than a property: its name is identical to the BCL's own
@@ -40,9 +32,7 @@ public static class StringExtensions
 
     extension([NotNullWhen(true)] string? value)
     {
-        /// <summary>
-        ///     The IsNotNull method, as you might expect, checks whether the string is not null
-        /// </summary>
+        /// <summary>The IsNotNull method, as you might expect, checks whether the string is not null</summary>
         /// <returns>True if the string is not null, False otherwise</returns>
         /// <remarks>
         ///     Kept as a method rather than a property: the [NotNullWhen] attribute on the receiver
@@ -52,9 +42,7 @@ public static class StringExtensions
         public bool IsNotNull() =>
             !value.IsNull();
 
-        /// <summary>
-        ///     The IsNotNullOrWhiteSpace method, as you might expect, checks whether the string is not null, empty or whitespace
-        /// </summary>
+        /// <summary>The IsNotNullOrWhiteSpace method, as you might expect, checks whether the string is not null, empty or whitespace</summary>
         /// <returns>True if the string is not null, empty or whitespace, False otherwise</returns>
         public bool IsNotNullOrWhiteSpace() =>
             !value.IsNullOrWhiteSpace();
@@ -99,32 +87,21 @@ public static class StringExtensions
         /// <summary>
         /// </summary>
         /// <returns></returns>
-        public bool IsImage
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(fileName)) return false;
-
-                return fileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
+        public bool IsImage => fileName.IsNotNullOrWhiteSpace() && (fileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
                 || fileName.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)
                 || fileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
                 || fileName.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase)
-                || fileName.EndsWith(".gif", StringComparison.OrdinalIgnoreCase);
-            }
-        }
+                || fileName.EndsWith(".gif", StringComparison.OrdinalIgnoreCase));
 
         /// <summary>
         /// </summary>
         /// <returns></returns>
-        public bool IsNumberOnly =>
-            fileName.All(c => char.IsDigit(c) || c == '_' || c == '.');
+        public bool IsNumberOnly => fileName.All(c => char.IsDigit(c) || c == '_' || c == '.');
     }
 
     extension(string value)
     {
-        /// <summary>
-        ///     The TruncateIfRequired method will, as the name suggests, truncate the string if the length exceeds the specified length
-        /// </summary>
+        /// <summary>The TruncateIfRequired method will, as the name suggests, truncate the string if the length exceeds the specified length</summary>
         /// <param name="truncateLength">The maximum length the string should be truncated to if required</param>
         /// <returns>The specified string or the truncated version</returns>
         public string TruncateIfRequired(int truncateLength)
@@ -134,9 +111,7 @@ public static class StringExtensions
             return value.Length > truncateLength ? value[..truncateLength] : value;
         }
 
-        /// <summary>
-        ///     The RemoveTrailing method will, as the name suggests, remove the specified character from the end if it exists
-        /// </summary>
+        /// <summary>The RemoveTrailing method will, as the name suggests, remove the specified character from the end if it exists</summary>
         /// <param name="removeTrailing">The character to remove from the end if it exists</param>
         /// <returns>The original or updated string</returns>
         public string RemoveTrailing(string removeTrailing)
@@ -148,9 +123,7 @@ public static class StringExtensions
                 : value;
         }
 
-        /// <summary>
-        ///     The EnsureTrailing method will, as the name suggests, ensure the string ends with the specified character
-        /// </summary>
+        /// <summary>The EnsureTrailing method will, as the name suggests, ensure the string ends with the specified character</summary>
         /// <param name="ensureTrailing">The character to ensure is at the end of the string</param>
         /// <returns>The original or updated string</returns>
         public string EnsureTrailing(string ensureTrailing)
@@ -162,25 +135,19 @@ public static class StringExtensions
                 : value + ensureTrailing;
         }
 
-        /// <summary>
-        ///     The CaseInsensitiveContains method checks if the string contains the specified substring, ignoring case.
-        /// </summary>
+        /// <summary>The CaseInsensitiveContains method checks if the string contains the specified substring, ignoring case.</summary>
         /// <param name="contains">The substring to search for</param>
         /// <returns>True if the value contains the substring, false otherwise</returns>
         public bool CaseInsensitiveContains(string contains)
             => value.Contains(contains, StringComparison.OrdinalIgnoreCase);
 
-        /// <summary>
-        ///     The CaseInsensitiveEquals method checks if the string equals the specified substring, ignoring case.
-        /// </summary>
+        /// <summary>The CaseInsensitiveEquals method checks if the string equals the specified substring, ignoring case.</summary>
         /// <param name="equals">The string to compare with</param>
         /// <returns>True if the value equals the specified string, false otherwise</returns>
         public bool CaseInsensitiveEquals(string equals)
             => value.Equals(equals, StringComparison.OrdinalIgnoreCase);
 
-        /// <summary>
-        ///   The TitleCased method converts a string to title case using the specified culture.
-        /// </summary>
+        /// <summary>The TitleCased method converts a string to title case using the specified culture.</summary>
         /// <param name="cultureName">The culture to use for title casing</param>
         /// <returns>The title-cased string</returns>
         public string ToTitleCase(string cultureName = "en-GB")
@@ -190,9 +157,7 @@ public static class StringExtensions
                 : new System.Globalization.CultureInfo(cultureName, false).TextInfo.ToTitleCase(value.ToLowerInvariant());
 #pragma warning restore CA1308 // Normalize strings to uppercase
 
-        /// <summary>
-        ///     The ToDirectorySlug method converts a string to a directory-safe slug by lower-casing it and replacing spaces with hyphens.
-        /// </summary>
+        /// <summary>The ToDirectorySlug method converts a string to a directory-safe slug by lower-casing it and replacing spaces with hyphens.</summary>
         /// <returns>The slugified string</returns>
         public string ToDirectorySlug()
 #pragma warning disable CA1308 // Normalize strings to uppercase
@@ -202,9 +167,7 @@ public static class StringExtensions
 
     extension(Uri value)
     {
-        /// <summary>
-        ///     The EnsureTrailing method will, as the name suggests, ensure the string ends with the specified character
-        /// </summary>
+        /// <summary>The EnsureTrailing method will, as the name suggests, ensure the string ends with the specified character</summary>
         /// <param name="ensureTrailing">The character to ensure is at the end of the string</param>
         /// <returns>The original or updated string</returns>
         public string EnsureTrailing(string ensureTrailing)
@@ -217,9 +180,7 @@ public static class StringExtensions
                 : valueString + ensureTrailing;
         }
 
-        /// <summary>
-        ///     The EnsureTrailing method will, as the name suggests, ensure the string ends with the specified character
-        /// </summary>
+        /// <summary>The EnsureTrailing method will, as the name suggests, ensure the string ends with the specified character</summary>
         /// <returns>The original or updated string</returns>
         public string EnsureTrailingSlash()
             => value.EnsureTrailing("/");
@@ -227,9 +188,7 @@ public static class StringExtensions
 
     extension(string path)
     {
-        /// <summary>
-        ///    The NormalizeLinux method normalizes a file path to a Linux-style format by replacing backslashes with forward slashes,
-        /// </summary>
+        /// <summary>The NormalizeLinux method normalizes a file path to a Linux-style format by replacing backslashes with forward slashes,</summary>
         /// <returns>The normalized file path, prefixed with a forward slash if not already prefixed</returns>
         public string NormalizeLinux()
         {
@@ -243,9 +202,7 @@ public static class StringExtensions
             return normalized.StartsWith('/') ? normalized : "/" + normalized;
         }
 
-        /// <summary>
-        ///   The NormalizeWindows method normalizes a file path to a Windows-style format by replacing forward slashes with backslashes,
-        /// </summary>
+        /// <summary>The NormalizeWindows method normalizes a file path to a Windows-style format by replacing forward slashes with backslashes,</summary>
         /// <returns>The normalized file path, prefixed with a backslash if not already prefixed</returns>
         public string NormalizeWindows()
         {
@@ -262,9 +219,7 @@ public static class StringExtensions
 
     extension(long fileSize)
     {
-        /// <summary>
-        ///    The FileSizeText method converts a file size in bytes to a human-readable string format (B, KB, MB).
-        /// </summary>
+        /// <summary>The FileSizeText method converts a file size in bytes to a human-readable string format (B, KB, MB).</summary>
         /// <returns>The human-readable string format</returns>
         public string FileSizeToText() => fileSize switch
         {

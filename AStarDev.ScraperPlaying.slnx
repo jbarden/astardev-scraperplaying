@@ -22,7 +22,7 @@
     <Project Path="packages/source-generators/AStarDev.SourceGenerators.TestsUnit/AStarDev.SourceGenerators.TestsUnit.csproj" />
     <Project Path="packages/source-generators/AStarDev.SourceGenerators/AStarDev.SourceGenerators.csproj" />
     <Project Path="packages/utilities/AStarDev.FluentAssignments.TestsUnit/AStarDev.FluentAssignments.TestsUnit.csproj" />
-    <Project Path="packages/utilities/AStarDev.FluentAssignments/AStar.Dev.FluentAssignments.csproj" />
+    <Project Path="packages/utilities/AStarDev.FluentAssignments/AStarDev.FluentAssignments.csproj" />
     <Project Path="packages/utilities/AStarDev.GuardClauses.TestsUnit/AStarDev.GuardClauses.TestsUnit.csproj" />
     <Project Path="packages/utilities/AStarDev.GuardClauses/AStarDev.GuardClauses.csproj" />
     <Project Path="packages/utilities/AStarDev.TechnicalDebtReporting.TestsUnit/AStarDev.TechnicalDebtReporting.TestsUnit.csproj" />

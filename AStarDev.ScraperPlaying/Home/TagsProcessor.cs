@@ -20,7 +20,7 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
     private readonly Dictionary<int, TagEntity> resolvedTags = [];
 
     /// <inheritdoc/>
-    public Task<Exceptional<UnitFp>> FetchAndLinkTagsAsync(string wallpaperId, FileId fileId, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
+    public Task<Exceptional<Unit>> FetchAndLinkTagsAsync(string wallpaperId, FileId fileId, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
         => Try.RunAsync(async () =>
         {
             progress.Report($"Fetching tags for wallpaper {wallpaperId}.");
@@ -59,9 +59,9 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
                 }
 
                 fileTagRepository.Add(new FileTagEntity { FileId = fileId, TagId = tagEntity.Id })
-                    .Match(_ => UnitFp.Instance, ex => throw ex);
+                    .Match(_ => Unit.Instance, ex => throw ex);
             }
 
-            return UnitFp.Instance;
+            return Unit.Instance;
         });
 }

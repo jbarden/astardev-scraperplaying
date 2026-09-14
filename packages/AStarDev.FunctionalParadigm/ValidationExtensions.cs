@@ -75,9 +75,7 @@ public static class ValidationExtensions
                 _ => throw new InvalidOperationException(UnexpectedValidationTypeMessage)
             };
 
-        /// <summary>
-        ///     Attempts to extract the value from a <see cref="Validation{T}" />.
-        /// </summary>
+        /// <summary>Attempts to extract the value from a <see cref="Validation{T}" />.</summary>
         public bool TryGetValue(out T value)
         {
             if (validation is Valid<T> valid)
@@ -92,9 +90,7 @@ public static class ValidationExtensions
             return false;
         }
 
-        /// <summary>
-        ///     Attempts to extract the accumulated errors from a <see cref="Validation{T}" />.
-        /// </summary>
+        /// <summary>Attempts to extract the accumulated errors from a <see cref="Validation{T}" />.</summary>
         public bool TryGetErrors(out IReadOnlyList<ValidationError> errors)
         {
             if (validation is Invalid<T> invalid)
@@ -109,10 +105,7 @@ public static class ValidationExtensions
             return false;
         }
 
-        /// <summary>
-        ///     Lifts a <see cref="Validation{T}" /> into a <see cref="Result{TResult,TError}" />, mapping the
-        ///     accumulated errors to a domain error via <paramref name="mapErrors" />.
-        /// </summary>
+        /// <summary>Lifts a <see cref="Validation{T}" /> into a <see cref="Result{TResult,TError}" />, mapping the accumulated errors to a domain error via <paramref name="mapErrors" />.</summary>
         public Result<T, TError> ToResult<TError>(Func<IReadOnlyList<ValidationError>, TError> mapErrors)
             => validation switch
             {

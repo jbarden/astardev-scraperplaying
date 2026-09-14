@@ -5,9 +5,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace AStarDev.ControlDb.Configurations.ScrapeConfiguration;
 
-/// <summary>
-/// Provides the configuration for the <see cref="ScrapeDirectoriesEntity"/> entity.
-/// </summary>
+/// <summary>Provides the configuration for the <see cref="ScrapeDirectoriesEntity"/> entity.</summary>
 public sealed class ScrapeDirectoriesEntityConfiguration : IEntityTypeConfiguration<ScrapeDirectoriesEntity>
 {
     ///<inheritdoc/>

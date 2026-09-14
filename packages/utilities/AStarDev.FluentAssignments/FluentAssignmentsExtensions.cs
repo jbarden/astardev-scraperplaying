@@ -1,10 +1,8 @@
 using System.Numerics;
 
-namespace AStar.Dev.FluentAssignments;
+namespace AStarDev.FluentAssignments;
 
-/// <summary>
-/// The <see cref="FluentAssignmentsExtensions"/> class contains the initial extension methods. Over time, this may be separated into separate classes.
-/// </summary>
+/// <summary>The <see cref="FluentAssignmentsExtensions"/> class contains the initial extension methods. Over time, this may be separated into separate classes.</summary>
 public static class FluentAssignmentsExtensions
 {
     /// <summary>
@@ -24,48 +22,34 @@ public static class FluentAssignmentsExtensions
     /// <returns></returns>
     public static T IfItIs<T>(this T value) where T : INumber<T> => value;
 
-    /// <summary>
-    /// This method will check whether the specified object is null or not.
-    /// </summary>
+    /// <summary>This method will check whether the specified object is null or not.</summary>
     /// <typeparam name="T">
     /// Specifies the generic object to check for null.
     /// </typeparam>
-    /// <param name="obj">
-    /// The object to check for null.
-    /// </param>
-    /// <returns>
-    /// The original object if it is not null.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown when the object is, in fact, null.
-    /// </exception>
+    /// <param name="obj">The object to check for null.</param>
+    /// <returns>The original object if it is not null.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when the object is, in fact, null.</exception>
     public static T NotNull<T>(this T obj) => obj is null ? throw new ArgumentNullException(nameof(obj)) : obj;
 
-    /// <summary>
-    /// Here just to make the checks more fluent...
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <summary>The <see cref="And{T}"/> method provides a simple pass-through for the assignment, allowing for more fluent syntax.</summary>
+    /// <typeparam name="T">The type of the value being passed through the method.</typeparam>
+    /// <param name="value">The value being passed through the method.</param>
+    /// <returns>The same value that was passed in.</returns>
     public static T And<T>(this T value) where T : INumber<T> => value;
 
-    /// <summary>
-    ///
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="value"></param>
-    /// <param name="minimum"></param>
-    /// <returns></returns>
+    /// <summary>The <see cref="ItIsGreaterThan{T}"/> method checks if the specified value is greater than the given minimum.</summary>
+    /// <typeparam name="T">The type of the value being checked.</typeparam>
+    /// <param name="value">The value being checked.</param>
+    /// <param name="minimum">The minimum value to compare against.</param>
+    /// <returns>The original value if it is greater than the specified minimum.</returns>
     /// <exception cref="ArgumentException"></exception>
     public static T ItIsGreaterThan<T>(this T value, T minimum) where T : INumber<T> => value <= minimum ? throw new ArgumentException($"The specified value of {value} was not greater than the specified minimum of {minimum}", nameof(minimum)) : value;
 
-    /// <summary>
-    ///
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="value"></param>
-    /// <param name="maximum"></param>
-    /// <returns></returns>
+    /// <summary>The <see cref="ItIsLessThan{T}"/> method checks if the specified value is less than the given maximum.</summary>
+    /// <typeparam name="T">The type of the value being checked.</typeparam>
+    /// <param name="value">The value being checked.</param>
+    /// <param name="maximum">The maximum value to compare against.</param>
+    /// <returns>The original value if it is less than the specified maximum.</returns>
     /// <exception cref="ArgumentException"></exception>
     public static T ItIsLessThan<T>(this T value, T maximum) where T : INumber<T> => value >= maximum ? throw new ArgumentException($"The specified value of {value} was not less than the specified maximum of {maximum}", nameof(maximum)) : value;
 }

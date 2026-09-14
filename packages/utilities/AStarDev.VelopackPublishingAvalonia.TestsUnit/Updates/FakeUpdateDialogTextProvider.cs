@@ -1,4 +1,4 @@
-using AStar.Dev.Velopack.Publishing.Avalonia.Updates;
+using AStarDev.VelopackPublishingAvalonia.Updates;
 
 namespace AStarDev.VelopackPublishingAvalonia.TestsUnit.Updates;
 

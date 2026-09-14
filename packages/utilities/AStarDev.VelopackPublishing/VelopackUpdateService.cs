@@ -1,11 +1,11 @@
-using AStar.Dev.Logging.Extensions;
 using Velopack;
 using Velopack.Locators;
 using Velopack.Sources;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using AStarDev.LoggingExtensions;
 
-namespace AStar.Dev.Velopack.Publishing;
+namespace AStarDev.VelopackPublishing;
 
 /// <inheritdoc />
 public sealed class VelopackUpdateService : IVelopackUpdateService

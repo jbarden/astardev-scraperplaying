@@ -1,5 +1,5 @@
-using AStar.Dev.Velopack.Publishing;
-using AStar.Dev.Velopack.Publishing.Avalonia.Updates;
+using AStarDev.VelopackPublishing;
+using AStarDev.VelopackPublishingAvalonia.Updates;
 using Microsoft.Extensions.Logging;
 using Velopack;
 

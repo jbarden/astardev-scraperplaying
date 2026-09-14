@@ -21,7 +21,7 @@ public sealed class GivenAScrapeConfigurationFileService
 
         var result = await service.ImportViaPickerAsync(null!, CancellationToken.None);
 
-        result.ShouldBe(Option.Some(UnitFp.Instance));
+        result.ShouldBe(Option.Some(Unit.Instance));
         await importService.Received(1).ImportAsync("path/to/import.json", Arg.Any<CancellationToken>());
     }
 
@@ -32,7 +32,7 @@ public sealed class GivenAScrapeConfigurationFileService
 
         var result = await service.ImportViaPickerAsync(null!, CancellationToken.None);
 
-        result.ShouldBe(Option.None<UnitFp>());
+        result.ShouldBe(Option.None<Unit>());
         await importService.DidNotReceive().ImportAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 

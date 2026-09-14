@@ -1,15 +1,15 @@
 <?xml version="1.0"?>
 <doc>
     <assembly>
-        <name>AStar.Dev.Guard.Clauses</name>
+        <name>AStarDev.Guard.Clauses</name>
     </assembly>
     <members>
-        <member name="T:AStar.Dev.Guard.Clauses.GuardAgainst">
+        <member name="T:AStarDev.Guard.Clauses.GuardAgainst">
             <summary>
                 The root <seealso href="GuardAgainst"></seealso> class.
             </summary>
         </member>
-        <member name="M:AStar.Dev.Guard.Clauses.GuardAgainst.Null``1(``0)">
+        <member name="M:AStarDev.Guard.Clauses.GuardAgainst.Null``1(``0)">
             <summary>
                 This method will check whether the specified object is null or not.
             </summary>
@@ -26,7 +26,7 @@
                 Thrown when the object is, in fact, null.
             </exception>
         </member>
-        <member name="M:AStar.Dev.Guard.Clauses.GuardAgainst.Negative``1(``0)">
+        <member name="M:AStarDev.Guard.Clauses.GuardAgainst.Negative``1(``0)">
              <summary>
             
              </summary>

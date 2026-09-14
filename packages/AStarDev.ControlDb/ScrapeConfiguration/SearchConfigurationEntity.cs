@@ -1,15 +1,11 @@
 namespace AStarDev.ControlDb.ScrapeConfiguration;
 
-/// <summary>
-/// Represents a search configuration entity in the database.
-/// </summary>
+/// <summary>Represents a search configuration entity in the database.</summary>
 public class SearchConfigurationEntity : AuditableEntity
 {
     private SearchConfigurationEntity() { }
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="SearchConfigurationEntity"/> class with the specified parameters.
-    /// </summary>
+    /// <summary>Initializes a new instance of the <see cref="SearchConfigurationEntity"/> class with the specified parameters.</summary>
     /// <param name="searchConfigurationId">The unique identifier for the search configuration entity.</param>
     /// <param name="scrapeConfigurationId">The unique identifier for the associated scrape configuration entity.</param>
     /// <param name="searchTerm">The search term used for scraping wallpapers.</param>
@@ -24,24 +20,16 @@ public class SearchConfigurationEntity : AuditableEntity
         SearchCategories = searchCategories;
     }
 
-    /// <summary>
-    /// Gets or sets the unique identifier for the search configuration entity.
-    /// </summary>
+    /// <summary>Gets or sets the unique identifier for the search configuration entity.</summary>
     public SearchConfigurationId Id { get; init; } = new SearchConfigurationId(Guid.Empty);
 
-    /// <summary>
-    /// Gets or sets the unique identifier for the associated scrape configuration entity.
-    /// </summary>
+    /// <summary>Gets or sets the unique identifier for the associated scrape configuration entity.</summary>
     public ScrapeConfigurationId ScrapeConfigurationId { get; init; } = new ScrapeConfigurationId(Guid.Empty);
 
-    /// <summary>
-    /// Gets or sets the search term used for scraping wallpapers.
-    /// </summary>
+    /// <summary>Gets or sets the search term used for scraping wallpapers.</summary>
     public string SearchTerm { get; init; } = string.Empty;
 
-    /// <summary>
-    /// Gets or sets the maximum number of results to retrieve for the search configuration entity. This property is optional and can be null.
-    /// </summary>
+    /// <summary>Gets or sets the maximum number of results to retrieve for the search configuration entity. This property is optional and can be null.</summary>
     public int? MaxResults { get; init; }
 
     /// <summary>The categories the scraper targets.</summary>

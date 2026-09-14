@@ -2,9 +2,7 @@ using AStarDev.ControlDb.ScrapeConfiguration;
 
 namespace AStarDev.ScraperPlaying.Home;
 
-/// <summary>
-/// Builds the Wallhaven page URLs used to fetch "top wallpapers" and search-category results.
-/// </summary>
+/// <summary>Builds the Wallhaven page URLs used to fetch "top wallpapers" and search-category results.</summary>
 public static class WallhavenUrlBuilder
 {
     /// <summary>Builds the URL for the given page of the "top wallpapers" search.</summary>

@@ -122,7 +122,7 @@ public sealed class GivenATagsProcessor
         fileTagRepository.DidNotReceive().Add(Arg.Any<FileTagEntity>());
     }
 
-    private Task<Exceptional<UnitFp>> Run()
+    private Task<Exceptional<Unit>> Run()
         => processor.FetchAndLinkTagsAsync("wallpaper-1", FileId.Create(), new HttpClient(), progress, CancellationToken.None);
 
     private void SetUpDetailResponse(params Tag[] tags)

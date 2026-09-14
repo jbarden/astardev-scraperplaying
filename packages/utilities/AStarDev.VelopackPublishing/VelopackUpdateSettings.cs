@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace AStar.Dev.Velopack.Publishing;
+namespace AStarDev.VelopackPublishing;
 
 /// <summary>Configuration for checking application updates published as GitHub Releases via Velopack.</summary>
 public record VelopackUpdateSettings

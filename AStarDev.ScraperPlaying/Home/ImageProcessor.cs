@@ -2,7 +2,6 @@ using System.IO.Abstractions;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
-using AStarDev.ScraperPlaying.SearchAPI.SearchResponse;
 using AStarDev.Utilities;
 
 namespace AStarDev.ScraperPlaying.Home;

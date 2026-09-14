@@ -1,4 +1,4 @@
-namespace AStar.Dev.Velopack.Publishing.Avalonia.Updates;
+namespace AStarDev.VelopackPublishingAvalonia.Updates;
 
 /// <summary>Supplies the display text shown in the update-available dialog, decoupled from any specific localisation mechanism.</summary>
 public interface IUpdateDialogTextProvider
