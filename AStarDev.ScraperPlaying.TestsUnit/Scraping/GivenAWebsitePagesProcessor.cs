@@ -17,7 +17,7 @@ public sealed class GivenAWebsitePagesProcessor
 
     public GivenAWebsitePagesProcessor()
     {
-        browserSession.GetPageAsync(Arg.Any<CancellationToken>()).Returns(page);
+        browserSession.GetPageAsync(Arg.Any<bool>(), Arg.Any<CancellationToken>()).Returns(page);
         page.GotoAsync(Arg.Any<string>(), Arg.Any<PageGotoOptions>())
             .Returns(callInfo =>
             {

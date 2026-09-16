@@ -19,7 +19,7 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, Fun
     {
         try
         {
-            var page = await browserSession.GetPageAsync(cancellationToken);
+            var page = await browserSession.GetPageAsync(connection.UseHeadless, cancellationToken);
             var pageNumber = 1;
             await Task.Delay(pacingDelay(), cancellationToken);
 
