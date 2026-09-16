@@ -20,7 +20,7 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
         var startTime = Stopwatch.GetTimestamp();
         try
         {
-            using var scope = scopeFactory.CreateScope();
+            await using var scope = scopeFactory.CreateAsyncScope();
             var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
             var pagesProcessor = scope.ServiceProvider.GetRequiredService<IPagesProcessor>();
 
