@@ -12,17 +12,11 @@ public static class WallhavenUrlBuilder
         => topWallpapersUrl + page;
 
     /// <summary>
-    /// Builds the URL for the given page of a search category, substituting <paramref name="category"/>'s id
-    /// into the "%7Bid%7D" placeholder in <paramref name="searchCategoriesUrl"/>. The page number is omitted
-    /// for page 1 to match Wallhaven's URL convention.
+    /// Builds the URL for the given page of a search category by appending <paramref name="category"/>'s id
+    /// to <paramref name="searchCategoriesUrl"/>, followed by the page number.
     /// </summary>
-    /// <param name="searchCategoriesUrl">The configured search URL template, containing a "%7Bid%7D" placeholder.</param>
+    /// <param name="searchCategoriesUrl">The configured search URL prefix, e.g. "https://wallhaven.cc/search?q=id:".</param>
     /// <param name="category">The search category whose id is substituted into the template.</param>
     /// <param name="page">The page number to append, omitted for page 1.</param>
-    public static string BuildCategoryPageUrl(string searchCategoriesUrl, SearchCategoryEntity category, int page)
-    {
-        var url = searchCategoriesUrl.Replace("%7Bid%7D", category.Id);
-
-        return page == 1 ? url : url + page;
-    }
+    public static string BuildCategoryPageUrl(string searchCategoriesUrl, SearchCategoryEntity category, int page) => $"{searchCategoriesUrl}{category.Id}&page={page}";
 }

@@ -4,6 +4,7 @@ using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.UI;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Playwright;
 using Testably.Abstractions.Testing;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.Scraping;
@@ -46,8 +47,8 @@ public sealed class GivenAScrapeService : IDisposable
         await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category cat1", Option.Some("category one"), Arg.Any<Func<int, string>>(), new WallhavenConnection("api-key", new Uri("https://example.test")), progress, Arg.Any<CancellationToken>());
         await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category cat2", Option.Some("category two"), Arg.Any<Func<int, string>>(), new WallhavenConnection("api-key", new Uri("https://example.test")), progress, Arg.Any<CancellationToken>());
         await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category cat3", Option.Some("category three"), Arg.Any<Func<int, string>>(), new WallhavenConnection("api-key", new Uri("https://example.test")), progress, Arg.Any<CancellationToken>());
-        await pagesProcessor.DidNotReceive().FetchAndProcessPagesAsync("search category cat4", Arg.Any<Option<string>>(), Arg.Any<Func<int, string>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
-        await pagesProcessor.DidNotReceive().FetchAndProcessPagesAsync("search category cat5", Arg.Any<Option<string>>(), Arg.Any<Func<int, string>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
+        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category cat4", Arg.Any<Option<string>>(), Arg.Any<Func<int, string>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
+        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category cat5", Arg.Any<Option<string>>(), Arg.Any<Func<int, string>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
         operationCoordinator.IsOperationRunning.ShouldBeFalse();
     }
 
@@ -86,6 +87,19 @@ public sealed class GivenAScrapeService : IDisposable
         await Run();
 
         progress.Messages.ShouldContain("Request error: boom");
+        operationCoordinator.IsOperationRunning.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task when_fetching_pages_raises_a_playwright_error_then_it_is_reported_not_thrown()
+    {
+        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration());
+        pagesProcessor.FetchAndProcessPagesAsync(Arg.Any<string>(), Arg.Any<Option<string>>(), Arg.Any<Func<int, string>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
+            .Returns(_ => throw new PlaywrightException("boom"));
+
+        await Run();
+
+        progress.Messages.ShouldContain("Website scraping error: boom");
         operationCoordinator.IsOperationRunning.ShouldBeFalse();
     }
 

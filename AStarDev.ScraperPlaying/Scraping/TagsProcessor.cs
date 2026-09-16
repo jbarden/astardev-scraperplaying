@@ -11,7 +11,7 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
 {
     /// <summary>
     /// Caches resolved tags for the lifetime of this instance (one scrape run - <see cref="TagsProcessor"/> is
-    /// Scoped). <see cref="PagesProcessor"/> batches <c>SaveChangesAsync</c> once per page, so without this,
+    /// Scoped). Wallpaper ingestion batches <c>SaveChangesAsync</c> once per page, so without this,
     /// two different wallpapers on the same page introducing the same new tag would both miss
     /// <see cref="ITagsQuery.TryFindByWallhavenIdAsync"/>'s database fast-path (the first one's insert isn't
     /// saved yet) and both try to add a duplicate <see cref="TagEntity"/>, failing the whole page's save on the

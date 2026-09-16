@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using AStarDev.ScraperPlaying.Scraping;
 
 namespace AStarDev.ScraperPlaying.Startup;
 
@@ -13,6 +14,11 @@ public static class ConfigurationServices
     public static IServiceCollection AddConfigurationServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton(configuration);
+
+        services.AddOptions<ScraperAppSettings>()
+            .Bind(configuration.GetSection(ScraperAppSettings.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         return services;
     }
