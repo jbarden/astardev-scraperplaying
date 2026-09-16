@@ -9,9 +9,12 @@ public sealed record ScraperAppSettings
     public static string SectionName => "scraperAppConfiguration";
 
     /// <summary>
-    /// The directory Playwright persists the Chromium browser profile in, so cookies and login
-    /// state survive between scrape runs.
+    /// The Chrome DevTools Protocol endpoint (e.g. "http://localhost:9222") Playwright attaches to.
+    /// The browser must already be running under this endpoint, launched normally (not by Playwright)
+    /// with a "--remote-debugging-port" flag, so it carries none of the automation flags a
+    /// Playwright-launched browser would - and so it can be logged in and past any bot-detection
+    /// challenge before a scrape starts.
     /// </summary>
     [Required]
-    public required string UserDataDirectory { get; init; }
+    public required string CdpEndpointUrl { get; init; }
 }

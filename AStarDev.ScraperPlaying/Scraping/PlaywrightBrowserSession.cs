@@ -4,24 +4,25 @@ using Microsoft.Playwright;
 namespace AStarDev.ScraperPlaying.Scraping;
 
 /// <summary>
-/// Manages a single Chromium persistent-context browser and page for the lifetime of the owning DI
-/// scope (one scrape run). The context is launched against <see cref="ScraperAppSettings.UserDataDirectory" />
-/// so cookies and login state persist between runs, using the real installed Google Chrome binary
-/// (rather than Playwright's bundled Chromium build) since Cloudflare's bot detection fingerprints the
-/// bundled build specifically. Reusing a single page across a scrape that can run for hours avoids the
-/// overhead and resource churn of repeatedly launching a browser per page/category.
+/// Attaches, via Chrome DevTools Protocol, to an already-running Chrome instance for the lifetime of
+/// the owning DI scope (one scrape run), and reuses its default context and page. The browser is
+/// launched normally by the user (not by this class) at <see cref="ScraperAppSettings.CdpEndpointUrl" />,
+/// so it carries none of the automation flags a Playwright-launched browser would, and can be logged
+/// in and past any bot-detection challenge before a scrape starts. Reusing a single page across a
+/// scrape that can run for hours avoids the overhead and resource churn of repeatedly resolving a
+/// page per page/category. Disposal only disconnects the Playwright driver - it never closes the
+/// browser, context, or page, since those belong to the user's own already-running browser.
 /// </summary>
-/// <param name="settings">The scraper app settings, providing the persistent-context user data directory.</param>
+/// <param name="settings">The scraper app settings, providing the CDP endpoint to attach to.</param>
 /// <inheritdoc/>
 public sealed class PlaywrightBrowserSession(IOptions<ScraperAppSettings> settings) : IPlaywrightBrowserSession, IAsyncDisposable
 {
     private readonly SemaphoreSlim initializationLock = new(1, 1);
     private IPlaywright? playwright;
-    private IBrowserContext? context;
     private IPage? page;
 
     /// <inheritdoc/>
-    public async Task<IPage> GetPageAsync(bool useHeadless, CancellationToken cancellationToken)
+    public async Task<IPage> GetPageAsync(CancellationToken cancellationToken)
     {
         if (page is not null) return page;
 
@@ -31,11 +32,8 @@ public sealed class PlaywrightBrowserSession(IOptions<ScraperAppSettings> settin
             if (page is not null) return page;
 
             playwright = await Playwright.CreateAsync();
-            context = await playwright.Chromium.LaunchPersistentContextAsync(settings.Value.UserDataDirectory, new BrowserTypeLaunchPersistentContextOptions
-            {
-                Headless = useHeadless,
-                Channel = "chrome",
-            });
+            var browser = await playwright.Chromium.ConnectOverCDPAsync(settings.Value.CdpEndpointUrl);
+            var context = browser.Contexts.Count > 0 ? browser.Contexts[0] : await browser.NewContextAsync();
             context.SetDefaultTimeout(30_000);
             page = context.Pages.Count > 0 ? context.Pages[0] : await context.NewPageAsync();
 
@@ -48,10 +46,11 @@ public sealed class PlaywrightBrowserSession(IOptions<ScraperAppSettings> settin
     }
 
     /// <inheritdoc/>
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        if (context is not null) await context.CloseAsync();
         playwright?.Dispose();
         initializationLock.Dispose();
+
+        return ValueTask.CompletedTask;
     }
 }

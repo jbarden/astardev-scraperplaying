@@ -6,10 +6,9 @@ namespace AStarDev.ScraperPlaying.Scraping;
 public interface IPlaywrightBrowserSession
 {
     /// <summary>
-    /// Returns the session's page, lazily launching the browser, context, and page on the first call.
-    /// Subsequent calls return the same page.
+    /// Returns the session's page, lazily attaching to the already-running browser and resolving its
+    /// context and page on the first call. Subsequent calls return the same page.
     /// </summary>
-    /// <param name="useHeadless">Whether the browser should be launched headless.</param>
-    /// <param name="cancellationToken">The cancellation token to cancel the launch.</param>
-    Task<IPage> GetPageAsync(bool useHeadless, CancellationToken cancellationToken);
+    /// <param name="cancellationToken">The cancellation token to cancel the connection attempt.</param>
+    Task<IPage> GetPageAsync(CancellationToken cancellationToken);
 }
