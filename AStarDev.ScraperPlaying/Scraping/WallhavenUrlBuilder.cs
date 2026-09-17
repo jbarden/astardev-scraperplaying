@@ -18,5 +18,5 @@ public static class WallhavenUrlBuilder
     /// <param name="searchCategoriesUrl">The configured search URL prefix, e.g. "https://wallhaven.cc/search?q=id:".</param>
     /// <param name="category">The search category whose id is substituted into the template.</param>
     /// <param name="page">The page number to append, omitted for page 1.</param>
-    public static string BuildCategoryPageUrl(string searchCategoriesUrl, SearchCategoryEntity category, int page) => $"{searchCategoriesUrl}{category.Id}&page={page}";
+    public static string BuildCategoryPageUrl(string searchCategoriesUrl, SearchCategoryEntity category, string searchCategoriesSuffix, int page) => $"{searchCategoriesUrl}{category.Id}{searchCategoriesSuffix}{page}";
 }
