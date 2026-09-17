@@ -14,8 +14,8 @@ public sealed class GivenAWallhavenUrlBuilder
     {
         var category = new SearchCategoryEntity { SearchConfigurationId = new SearchConfigurationId(Guid.CreateVersion7()), Id = "cat1", Name = "category one" };
 
-        WallhavenUrlBuilder.BuildCategoryPageUrl("https://example.test/search?q=id:", category, 1)
-            .ShouldBe("https://example.test/search?q=id:cat1&page=1");
+        WallhavenUrlBuilder.BuildCategoryPageUrl("https://example.test/search?q=id:", category, "&suffix=doesnt-matter&page=", 1)
+            .ShouldBe("https://example.test/search?q=id:cat1&suffix=doesnt-matter&page=1");
     }
 
     [Fact]
@@ -23,8 +23,8 @@ public sealed class GivenAWallhavenUrlBuilder
     {
         var category = new SearchCategoryEntity { SearchConfigurationId = new SearchConfigurationId(Guid.CreateVersion7()), Id = "cat1", Name = "category one" };
 
-        WallhavenUrlBuilder.BuildCategoryPageUrl("https://example.test/search?q=id:", category, 2)
-            .ShouldBe("https://example.test/search?q=id:cat1&page=2");
+        WallhavenUrlBuilder.BuildCategoryPageUrl("https://example.test/search?q=id:", category, "&suffix=doesnt-matter&page=", 2)
+            .ShouldBe("https://example.test/search?q=id:cat1&suffix=doesnt-matter&page=2");
     }
 }
 //https://wallhaven.cc/search?q=id:10193
