@@ -2,12 +2,11 @@ using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.ControlDb.TagDetail;
 using AStarDev.FunctionalParadigm;
-using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse;
 
 namespace AStarDev.ScraperPlaying.Scraping;
 
 /// <inheritdoc/>
-public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQuery tagsQuery, IUnitOfWork unitOfWork, IFileTagRepository fileTagRepository) : ITagsProcessor
+public class TagsProcessor(ITagsQuery tagsQuery, IUnitOfWork unitOfWork, IFileTagRepository fileTagRepository) : ITagsProcessor
 {
     /// <summary>
     /// Caches resolved tags for the lifetime of this instance (one scrape run - <see cref="TagsProcessor"/> is
@@ -18,24 +17,6 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
     /// unique-index violation.
     /// </summary>
     private readonly Dictionary<int, TagEntity> resolvedTags = [];
-
-    /// <inheritdoc/>
-    public Task<Exceptional<Unit>> FetchAndLinkTagsAsync(string wallpaperId, FileId fileId, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
-        => Try.RunAsync(async () =>
-        {
-            progress.Report($"Fetching tags for wallpaper {wallpaperId}.");
-
-            var detailResponse = (await jsonResponseProcessor.GetFromJsonAsync<DetailResponse>($"{ApplicationConstants.WallhavenDetailPathTemplate}{wallpaperId}", client, cancellationToken))
-                .Match(
-                    option => option.Match(value => value, () => throw new InvalidOperationException($"No response body received for wallpaper {wallpaperId} detail.")),
-                    exception => throw exception);
-
-            var tags = detailResponse.Data.Tags
-                .Select(tag => new WallpaperTag(tag.Id, tag.Name, tag.Alias, tag.CategoryId, tag.Category, tag.Purity))
-                .ToArray();
-
-            return (await LinkTagsAsync(fileId, tags, cancellationToken)).Match(unit => unit, ex => throw ex);
-        });
 
     /// <inheritdoc/>
     public Task<Exceptional<Unit>> LinkTagsAsync(FileId fileId, IReadOnlyList<WallpaperTag> tags, CancellationToken cancellationToken)
