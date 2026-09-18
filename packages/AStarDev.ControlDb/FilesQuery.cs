@@ -20,4 +20,8 @@ public class FilesQuery(ControlDbContext context) : IFilesQuery
     /// <inheritdoc/>
     public async Task<Exceptional<bool>> CheckExistsByNameAsync(FileName name, CancellationToken cancellationToken = default)
             => await context.Files.AnyAsync(f => f.FileName.Value.Contains(name.Value), cancellationToken);
+
+    /// <inheritdoc/>
+    public async Task<Exceptional<bool>> CheckExistsByHandleAsync(FileHandle handle, CancellationToken cancellationToken = default)
+            => await context.Files.AnyAsync(f => f.FileHandle == handle, cancellationToken);
 }
