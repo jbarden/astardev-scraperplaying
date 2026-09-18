@@ -27,4 +27,3 @@ public sealed class GivenAWallhavenUrlBuilder
             .ShouldBe("https://example.test/search?q=id:cat1&suffix=doesnt-matter&page=2");
     }
 }
-//https://wallhaven.cc/search?q=id:10193
