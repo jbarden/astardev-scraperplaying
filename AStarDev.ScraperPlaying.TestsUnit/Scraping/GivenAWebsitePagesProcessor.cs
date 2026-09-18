@@ -26,6 +26,7 @@ public sealed class GivenAWebsitePagesProcessor
     private readonly WebsitePagesProcessor processor;
 
     private int currentPageNumber;
+    private int pacingDelayCount;
 
     public GivenAWebsitePagesProcessor()
     {
@@ -48,7 +49,12 @@ public sealed class GivenAWebsitePagesProcessor
         imageProcessor.DownloadAndRecordAsync(Arg.Any<WallpaperDetail>(), page, Arg.Any<string>(), Arg.Any<string>(), fileRepository, Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
             .Returns(callInfo => (Exceptional<Option<FileEntity>>)Option.Some(RecordedFile(callInfo.Arg<WallpaperDetail>().WallpaperId)));
         tagsProcessor.LinkTagsAsync(Arg.Any<FileId>(), Arg.Any<IReadOnlyList<WallpaperTag>>(), Arg.Any<CancellationToken>()).Returns((Exceptional<Unit>)Unit.Instance);
-        processor = new(browserSession, detailPageScraper, imageProcessor, tagsProcessor, saveDirectoryResolver, filesQuery, unitOfWork, () => TimeSpan.FromMilliseconds(1));
+        processor = new(browserSession, detailPageScraper, imageProcessor, tagsProcessor, saveDirectoryResolver, filesQuery, unitOfWork, () =>
+        {
+            pacingDelayCount++;
+
+            return TimeSpan.FromMilliseconds(1);
+        });
     }
 
     [Fact]
@@ -171,6 +177,20 @@ public sealed class GivenAWebsitePagesProcessor
         progress.Messages.ShouldContain("Wallpaper wallpaper-1 was already downloaded - skipping.");
         await detailPageScraper.DidNotReceive().ScrapeAsync("wallpaper-1", Arg.Any<IPage>(), Arg.Any<Uri>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
         await detailPageScraper.Received(1).ScrapeAsync("wallpaper-2", Arg.Any<IPage>(), Arg.Any<Uri>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task when_a_wallpaper_was_already_downloaded_then_no_pacing_delay_is_applied_for_it()
+    {
+        wallpapersByPage[1] = ["wallpaper-1"];
+        await Run();
+        var delaysWhenDownloading = pacingDelayCount;
+        pacingDelayCount = 0;
+        filesQuery.CheckExistsByHandleAsync(Arg.Any<FileHandle>(), Arg.Any<CancellationToken>()).Returns((Exceptional<bool>)true);
+
+        await Run();
+
+        pacingDelayCount.ShouldBe(delaysWhenDownloading - 2);
     }
 
     [Fact]
