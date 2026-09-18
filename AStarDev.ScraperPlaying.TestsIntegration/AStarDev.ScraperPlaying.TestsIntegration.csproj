@@ -16,6 +16,9 @@
     <ProjectReference Include="../AStarDev.ScraperPlaying/AStarDev.ScraperPlaying.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Scraping/WallpaperDetailPage.html" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
       <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage" />
   </ItemGroup>
 </Project>

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AStarDev.ScraperPlaying.Scraping;
 using Microsoft.Playwright;
 
@@ -24,12 +25,12 @@ public sealed class GivenAWallpaperDetailPageScraper
     [Fact]
     public async Task when_a_detail_page_is_scraped_then_the_image_dimensions_and_tags_are_returned()
     {
-        page.EvaluateAsync<WallpaperDetailScrapeResult>(Arg.Any<string>())
-            .Returns(new WallpaperDetailScrapeResult(
+        page.EvaluateAsync<string>(Arg.Any<string>())
+            .Returns(ScrapeResultJson(new WallpaperDetailScrapeResult(
                 "https://w.wallhaven.cc/full/ab/wallhaven-abc123.jpg",
                 1920,
                 1080,
-                [new WallpaperTag(1, "anime"), new WallpaperTag(2, "landscape")]));
+                [new WallpaperTag(1, "anime"), new WallpaperTag(2, "landscape")])));
 
         var result = await scraper.ScrapeAsync("abc123", page, new Uri("https://example.test"), progress, CancellationToken.None);
 
@@ -43,8 +44,8 @@ public sealed class GivenAWallpaperDetailPageScraper
     [Fact]
     public async Task when_a_detail_page_is_scraped_then_its_own_url_is_navigated_to()
     {
-        page.EvaluateAsync<WallpaperDetailScrapeResult>(Arg.Any<string>())
-            .Returns(new WallpaperDetailScrapeResult(string.Empty, 0, 0, []));
+        page.EvaluateAsync<string>(Arg.Any<string>())
+            .Returns(ScrapeResultJson(new WallpaperDetailScrapeResult(string.Empty, 0, 0, [])));
 
         await scraper.ScrapeAsync("abc123", page, new Uri("https://example.test"), progress, CancellationToken.None);
 
@@ -54,14 +55,17 @@ public sealed class GivenAWallpaperDetailPageScraper
     [Fact]
     public async Task when_a_detail_page_is_scraped_then_progress_is_reported()
     {
-        page.EvaluateAsync<WallpaperDetailScrapeResult>(Arg.Any<string>())
-            .Returns(new WallpaperDetailScrapeResult(string.Empty, 0, 0, [new WallpaperTag(1, "anime")]));
+        page.EvaluateAsync<string>(Arg.Any<string>())
+            .Returns(ScrapeResultJson(new WallpaperDetailScrapeResult(string.Empty, 0, 0, [new WallpaperTag(1, "anime")])));
 
         await scraper.ScrapeAsync("abc123", page, new Uri("https://example.test"), progress, CancellationToken.None);
 
         progress.Messages.ShouldContain("Navigating to wallpaper abc123 detail page.");
         progress.Messages.ShouldContain("Scraped wallpaper abc123: 1 tag(s).");
     }
+
+    private static string ScrapeResultJson(WallpaperDetailScrapeResult result)
+        => JsonSerializer.Serialize(result, JsonSerializerOptions.Web);
 
     private sealed class CapturingProgress : IProgress<string>
     {
