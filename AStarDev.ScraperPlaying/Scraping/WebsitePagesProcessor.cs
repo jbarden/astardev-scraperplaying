@@ -26,7 +26,9 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, Fun
             int wallpaperCount;
             do
             {
-                wallpaperCount = await FetchPageAsync(logLabel, pageUrlFactory, pageNumber, page, connection.BaseUrl, progress, cancellationToken);
+                var wallpaperIds = await FetchPageAsync(logLabel, pageUrlFactory, pageNumber, page, connection.BaseUrl, progress, cancellationToken);
+                wallpaperCount = wallpaperIds?.Length ?? 0;
+                progress.Report($"Found {wallpaperCount} wallpaper(s) on {logLabel} page {pageNumber}.");
                 await Task.Delay(pacingDelay(), cancellationToken);
                 pageNumber++;
             } while (wallpaperCount > 0 && pageNumber <= MaxPagesPerSearch);
@@ -45,7 +47,7 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, Fun
         }
     }
 
-    private static async Task<int> FetchPageAsync(string logLabel, Func<int, string> pageUrlFactory, int pageNumber, IPage page, Uri baseUrl, IProgress<string> progress, CancellationToken cancellationToken)
+    private static async Task<string[]?> FetchPageAsync(string logLabel, Func<int, string> pageUrlFactory, int pageNumber, IPage page, Uri baseUrl, IProgress<string> progress, CancellationToken cancellationToken)
     {
         progress.Report($"Navigating to {logLabel} page {pageNumber}.");
         var targetUrl = new Uri(baseUrl, pageUrlFactory(pageNumber));
@@ -60,6 +62,6 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, Fun
             ? $"No wallpapers found on {logLabel} page {pageNumber}."
             : $"Found {wallpaperIds.Length} wallpaper(s) on {logLabel} page {pageNumber}: {string.Join(", ", wallpaperIds)}.");
 
-        return wallpaperIds.Length;
+        return wallpaperIds;
     }
 }
