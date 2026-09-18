@@ -30,23 +30,34 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
                     option => option.Match(value => value, () => throw new InvalidOperationException($"No response body received for wallpaper {wallpaperId} detail.")),
                     exception => throw exception);
 
+            var tags = detailResponse.Data.Tags
+                .Select(tag => new WallpaperTag(tag.Id, tag.Name, tag.Alias, tag.CategoryId, tag.Category, tag.Purity))
+                .ToArray();
+
+            return (await LinkTagsAsync(fileId, tags, cancellationToken)).Match(unit => unit, ex => throw ex);
+        });
+
+    /// <inheritdoc/>
+    public Task<Exceptional<Unit>> LinkTagsAsync(FileId fileId, IReadOnlyList<WallpaperTag> tags, CancellationToken cancellationToken)
+        => Try.RunAsync(async () =>
+        {
             var tagRepository = unitOfWork.GetRepository<TagEntity, TagId>();
             var linkedTagIds = new HashSet<int>();
 
-            foreach (var tag in detailResponse.Data.Tags)
+            foreach (var tag in tags)
             {
-                if (!linkedTagIds.Add(tag.Id)) continue;
+                if (!linkedTagIds.Add(tag.WallhavenTagId)) continue;
 
-                if (!resolvedTags.TryGetValue(tag.Id, out var tagEntity))
+                if (!resolvedTags.TryGetValue(tag.WallhavenTagId, out var tagEntity))
                 {
-                    tagEntity = (await tagsQuery.TryFindByWallhavenIdAsync(tag.Id, cancellationToken))
+                    tagEntity = (await tagsQuery.TryFindByWallhavenIdAsync(tag.WallhavenTagId, cancellationToken))
                         .Match(
                             option => option.Match(
                                 existing => existing,
                                 () => tagRepository.Add(new TagEntity
                                 {
                                     Id = TagId.Empty,
-                                    WallhavenTagId = tag.Id,
+                                    WallhavenTagId = tag.WallhavenTagId,
                                     Name = tag.Name,
                                     Alias = tag.Alias,
                                     CategoryId = tag.CategoryId,
@@ -55,7 +66,7 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
                                 }).Match(added => added, ex => throw ex)),
                             exception => throw exception);
 
-                    resolvedTags.Add(tag.Id, tagEntity);
+                    resolvedTags.Add(tag.WallhavenTagId, tagEntity);
                 }
 
                 fileTagRepository.Add(new FileTagEntity { FileId = fileId, TagId = tagEntity.Id })

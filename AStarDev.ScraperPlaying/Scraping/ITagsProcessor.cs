@@ -14,4 +14,11 @@ public interface ITagsProcessor
     /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation, containing an <see cref="Exceptional{T}"/> indicating success or the captured failure.</returns>
     Task<Exceptional<Unit>> FetchAndLinkTagsAsync(string wallpaperId, FileId fileId, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken);
+
+    /// <summary>Links each of the given tags to <paramref name="fileId"/>, creating any tag not already stored and reusing any that is - regardless of where the tags were fetched or scraped from.</summary>
+    /// <param name="fileId">The id of the already-persisted <see cref="FileEntity"/> to link the tags to.</param>
+    /// <param name="tags">The tags to link. Duplicates by <see cref="WallpaperTag.WallhavenTagId"/> are linked only once.</param>
+    /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous operation, containing an <see cref="Exceptional{T}"/> indicating success or the captured failure.</returns>
+    Task<Exceptional<Unit>> LinkTagsAsync(FileId fileId, IReadOnlyList<WallpaperTag> tags, CancellationToken cancellationToken);
 }
