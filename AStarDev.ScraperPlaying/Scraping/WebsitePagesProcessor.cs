@@ -1,16 +1,19 @@
+using AStarDev.ControlDb;
+using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
+using AStarDev.ScraperPlaying.WallpaperIngestion;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Playwright;
 
 namespace AStarDev.ScraperPlaying.Scraping;
 
 /// <summary>
 /// Fetches wallhaven.cc search-result pages by driving a real browser via Playwright instead of
-/// calling the JSON API. This is a basic, investigative implementation: it proves out navigating the
-/// site's listing pages and identifying the wallpapers present, but it does not yet download images or
-/// extract full wallpaper metadata - that requires visiting each wallpaper's own detail page.
+/// calling the JSON API. For each wallpaper found on a listing page it visits the wallpaper's own
+/// detail page, downloads the image, records the file, and links its tags.
 /// </summary>
 /// <inheritdoc/>
-public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, Func<TimeSpan> pacingDelay) : IPagesProcessor
+public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, IWallpaperDetailPageScraper detailPageScraper, IWallpaperDetailImageProcessor imageProcessor, ITagsProcessor tagsProcessor, ISaveDirectoryResolver saveDirectoryResolver, IUnitOfWork unitOfWork, Func<TimeSpan> pacingDelay) : IPagesProcessor
 {
     private const int MaxPagesPerSearch = 4;
 
@@ -20,6 +23,9 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, Fun
         try
         {
             var page = await browserSession.GetPageAsync(connection.UseHeadless, cancellationToken);
+            var fileRepository = unitOfWork.GetRepository<FileEntity, FileId>();
+            var directory = await saveDirectoryResolver.ResolveSaveDirectoryAsync(categoryName, cancellationToken);
+            var categoryLabel = categoryName.Match(name => name, () => "Top Wallpapers");
             var pageNumber = 1;
             await Task.Delay(pacingDelay(), cancellationToken);
 
@@ -29,6 +35,14 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, Fun
                 var wallpaperIds = await FetchPageAsync(logLabel, pageUrlFactory, pageNumber, page, connection.BaseUrl, progress, cancellationToken);
                 wallpaperCount = wallpaperIds?.Length ?? 0;
                 progress.Report($"Found {wallpaperCount} wallpaper(s) on {logLabel} page {pageNumber}.");
+
+                foreach (var wallpaperId in wallpaperIds ?? [])
+                {
+                    await IngestWallpaperAsync(wallpaperId, page, connection.BaseUrl, directory, categoryLabel, fileRepository, progress, cancellationToken);
+                    await Task.Delay(pacingDelay(), cancellationToken);
+                }
+
+                await unitOfWork.SaveChangesAsync(cancellationToken);
                 await Task.Delay(pacingDelay(), cancellationToken);
                 pageNumber++;
             } while (wallpaperCount > 0 && pageNumber <= MaxPagesPerSearch);
@@ -36,6 +50,7 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, Fun
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             progress.Report("Scrape cancelled.");
+            await SavePartiallyIngestedPageAsync(progress);
 
             throw;
         }
@@ -44,6 +59,56 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, Fun
             progress.Report($"An error occurred navigating the website during {logLabel}: {ex.Message}");
 
             throw;
+        }
+    }
+
+    private async Task IngestWallpaperAsync(string wallpaperId, IPage page, Uri baseUrl, string directory, string categoryLabel, IRepository<FileEntity, FileId> fileRepository, IProgress<string> progress, CancellationToken cancellationToken)
+        => await (await Try.RunAsync(() => detailPageScraper.ScrapeAsync(wallpaperId, page, baseUrl, progress, cancellationToken), cancellationToken))
+            .Match(
+                async detail =>
+                {
+                    await Task.Delay(pacingDelay(), cancellationToken);
+
+                    await (await imageProcessor.DownloadAndRecordAsync(detail, page, directory, categoryLabel, fileRepository, progress, cancellationToken))
+                        .Match(
+                            recorded => recorded.Match(
+                                file => LinkTagsAsync(wallpaperId, file, detail, progress, cancellationToken),
+                                () => Task.CompletedTask),
+                            exception =>
+                            {
+                                progress.Report($"Failed to process image for wallpaper {wallpaperId}: {exception.Message}");
+
+                                return Task.CompletedTask;
+                            });
+                },
+                exception =>
+                {
+                    progress.Report($"Failed to scrape wallpaper {wallpaperId}: {exception.Message}");
+
+                    return Task.CompletedTask;
+                });
+
+    private async Task LinkTagsAsync(string wallpaperId, FileEntity file, WallpaperDetail detail, IProgress<string> progress, CancellationToken cancellationToken)
+        => (await tagsProcessor.LinkTagsAsync(file.Id, detail.Tags, cancellationToken))
+            .Match(
+                _ => Unit.Instance,
+                exception =>
+                {
+                    progress.Report($"Failed to link tags for wallpaper {wallpaperId}: {exception.Message}");
+
+                    return Unit.Instance;
+                });
+
+    private async Task SavePartiallyIngestedPageAsync(IProgress<string> progress)
+    {
+        try
+        {
+            await unitOfWork.SaveChangesAsync(CancellationToken.None);
+            progress.Report("Scrape cancelled - saved wallpapers downloaded so far this page.");
+        }
+        catch (DbUpdateException ex)
+        {
+            progress.Report($"Scrape cancelled - failed to save wallpapers downloaded so far this page: {ex.Message}");
         }
     }
 
