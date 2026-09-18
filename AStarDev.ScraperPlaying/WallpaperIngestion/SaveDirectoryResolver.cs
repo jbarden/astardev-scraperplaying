@@ -12,17 +12,17 @@ public class SaveDirectoryResolver(IFileSystem fileSystem, IUnitOfWork unitOfWor
     private const string TopWallpapersDirectorySegment = "top-wallpapers";
 
     /// <inheritdoc/>
-    public async Task<string> ResolveSaveDirectoryAsync(Option<string> categoryName, CancellationToken cancellationToken)
+    public async Task<string> ResolveSaveDirectoryAsync(Option<string> categoryName, bool isFamous, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         var directorySegment = categoryName.Match(name => name.ToDirectorySlug(), () => TopWallpapersDirectorySegment);
-        var rootDirectory = await LoadRootDirectoryAsync();
+        var rootDirectory = await LoadRootDirectoryAsync(isFamous);
 
         return fileSystem.Path.Combine(rootDirectory, directorySegment);
     }
 
-    private async Task<string> LoadRootDirectoryAsync()
+    private async Task<string> LoadRootDirectoryAsync(bool isFamous)
     {
         var configuration = (await unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().TryGetFirstAsync())
             .Match(
@@ -30,6 +30,10 @@ public class SaveDirectoryResolver(IFileSystem fileSystem, IUnitOfWork unitOfWor
                 exception => throw exception
             );
 
-        return configuration.ScrapeDirectories.RootDirectory;
+        if (!isFamous) return configuration.ScrapeDirectories.RootDirectory;
+
+        return string.IsNullOrWhiteSpace(configuration.ScrapeDirectories.RootDirectoryFamous)
+            ? throw new InvalidOperationException("The famous root directory is not configured.")
+            : configuration.ScrapeDirectories.RootDirectoryFamous;
     }
 }

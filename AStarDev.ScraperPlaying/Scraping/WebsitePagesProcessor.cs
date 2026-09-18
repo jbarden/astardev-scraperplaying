@@ -24,7 +24,6 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, IWa
         {
             var page = await browserSession.GetPageAsync(connection.UseHeadless, cancellationToken);
             var fileRepository = unitOfWork.GetRepository<FileEntity, FileId>();
-            var directory = await saveDirectoryResolver.ResolveSaveDirectoryAsync(categoryName, cancellationToken);
             var categoryLabel = categoryName.Match(name => name, () => "Top Wallpapers");
             var pageNumber = 1;
             await Task.Delay(pacingDelay(), cancellationToken);
@@ -38,7 +37,7 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, IWa
 
                 foreach (var wallpaperId in wallpaperIds ?? [])
                 {
-                    await IngestWallpaperAsync(wallpaperId, page, connection.BaseUrl, directory, categoryLabel, fileRepository, progress, cancellationToken);
+                    await IngestWallpaperAsync(wallpaperId, page, connection.BaseUrl, categoryName, categoryLabel, fileRepository, progress, cancellationToken);
                     await Task.Delay(pacingDelay(), cancellationToken);
                 }
 
@@ -62,21 +61,19 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, IWa
         }
     }
 
-    private async Task IngestWallpaperAsync(string wallpaperId, IPage page, Uri baseUrl, string directory, string categoryLabel, IRepository<FileEntity, FileId> fileRepository, IProgress<string> progress, CancellationToken cancellationToken)
+    private async Task IngestWallpaperAsync(string wallpaperId, IPage page, Uri baseUrl, Option<string> categoryName, string categoryLabel, IRepository<FileEntity, FileId> fileRepository, IProgress<string> progress, CancellationToken cancellationToken)
         => await (await Try.RunAsync(() => detailPageScraper.ScrapeAsync(wallpaperId, page, baseUrl, progress, cancellationToken), cancellationToken))
             .Match(
                 async detail =>
                 {
                     await Task.Delay(pacingDelay(), cancellationToken);
 
-                    await (await imageProcessor.DownloadAndRecordAsync(detail, page, directory, categoryLabel, fileRepository, progress, cancellationToken))
+                    await (await Try.RunAsync(() => saveDirectoryResolver.ResolveSaveDirectoryAsync(categoryName, FamousTags.AreFamous(detail.Tags), cancellationToken), cancellationToken))
                         .Match(
-                            recorded => recorded.Match(
-                                file => LinkTagsAsync(wallpaperId, file, detail, progress, cancellationToken),
-                                () => Task.CompletedTask),
+                            directory => DownloadAndLinkAsync(wallpaperId, detail, page, directory, categoryLabel, fileRepository, progress, cancellationToken),
                             exception =>
                             {
-                                progress.Report($"Failed to process image for wallpaper {wallpaperId}: {exception.Message}");
+                                progress.Report($"Failed to resolve the save directory for wallpaper {wallpaperId}: {exception.Message}");
 
                                 return Task.CompletedTask;
                             });
@@ -84,6 +81,19 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, IWa
                 exception =>
                 {
                     progress.Report($"Failed to scrape wallpaper {wallpaperId}: {exception.Message}");
+
+                    return Task.CompletedTask;
+                });
+
+    private async Task DownloadAndLinkAsync(string wallpaperId, WallpaperDetail detail, IPage page, string directory, string categoryLabel, IRepository<FileEntity, FileId> fileRepository, IProgress<string> progress, CancellationToken cancellationToken)
+        => await (await imageProcessor.DownloadAndRecordAsync(detail, page, directory, categoryLabel, fileRepository, progress, cancellationToken))
+            .Match(
+                recorded => recorded.Match(
+                    file => LinkTagsAsync(wallpaperId, file, detail, progress, cancellationToken),
+                    () => Task.CompletedTask),
+                exception =>
+                {
+                    progress.Report($"Failed to process image for wallpaper {wallpaperId}: {exception.Message}");
 
                     return Task.CompletedTask;
                 });

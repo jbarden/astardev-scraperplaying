@@ -40,7 +40,7 @@ public sealed class GivenAWebsitePagesProcessor
         locator.EvaluateAllAsync<string[]>(Arg.Any<string>(), Arg.Any<object?>())
             .Returns(_ => wallpapersByPage.GetValueOrDefault(currentPageNumber, []));
         unitOfWork.GetRepository<FileEntity, FileId>().Returns(fileRepository);
-        saveDirectoryResolver.ResolveSaveDirectoryAsync(Arg.Any<Option<string>>(), Arg.Any<CancellationToken>()).Returns("some-directory");
+        saveDirectoryResolver.ResolveSaveDirectoryAsync(Arg.Any<Option<string>>(), Arg.Any<bool>(), Arg.Any<CancellationToken>()).Returns(callInfo => callInfo.Arg<bool>() ? "famous-directory" : "some-directory");
         detailPageScraper.ScrapeAsync(Arg.Any<string>(), page, Arg.Any<Uri>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
             .Returns(callInfo => CreateDetail((string)callInfo[0]));
         imageProcessor.DownloadAndRecordAsync(Arg.Any<WallpaperDetail>(), page, Arg.Any<string>(), Arg.Any<string>(), fileRepository, Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
@@ -124,8 +124,38 @@ public sealed class GivenAWebsitePagesProcessor
 
         await processor.FetchAndProcessPagesAsync("nature", Option.Some("Nature"), page => $"page/{page}", Connection, progress, CancellationToken.None);
 
-        await saveDirectoryResolver.Received(1).ResolveSaveDirectoryAsync(Arg.Is<Option<string>>(name => name.Match(value => value == "Nature", () => false)), Arg.Any<CancellationToken>());
+        await saveDirectoryResolver.Received(1).ResolveSaveDirectoryAsync(Arg.Is<Option<string>>(name => name.Match(value => value == "Nature", () => false)), false, Arg.Any<CancellationToken>());
         await imageProcessor.Received(1).DownloadAndRecordAsync(Arg.Any<WallpaperDetail>(), page, "some-directory", "Nature", fileRepository, progress, Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [InlineData("actress")]
+    [InlineData("Model")]
+    [InlineData("female singer")]
+    [InlineData("SINGER-songwriter")]
+    public async Task when_a_wallpaper_has_a_famous_tag_then_it_is_saved_under_the_famous_directory(string tagName)
+    {
+        wallpapersByPage[1] = ["wallpaper-1"];
+        detailPageScraper.ScrapeAsync("wallpaper-1", page, Arg.Any<Uri>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
+            .Returns(new WallpaperDetail("wallpaper-1", "https://example.test/wallpaper-1.jpg", 1920, 1080, [new WallpaperTag(1, "anime"), new WallpaperTag(2, tagName)]));
+
+        await Run();
+
+        await imageProcessor.Received(1).DownloadAndRecordAsync(Arg.Any<WallpaperDetail>(), page, "famous-directory", "Top Wallpapers", fileRepository, progress, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task when_resolving_the_directory_fails_then_it_is_reported_and_the_wallpaper_is_skipped()
+    {
+        wallpapersByPage[1] = ["wallpaper-1", "wallpaper-2"];
+        saveDirectoryResolver.ResolveSaveDirectoryAsync(Arg.Any<Option<string>>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            .Returns<string>(_ => throw new InvalidOperationException("The famous root directory is not configured."), _ => "some-directory");
+
+        await Run();
+
+        progress.Messages.ShouldContain("Failed to resolve the save directory for wallpaper wallpaper-1: The famous root directory is not configured.");
+        await imageProcessor.DidNotReceive().DownloadAndRecordAsync(Arg.Is<WallpaperDetail>(detail => detail.WallpaperId == "wallpaper-1"), page, Arg.Any<string>(), Arg.Any<string>(), fileRepository, Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
+        await tagsProcessor.Received(1).LinkTagsAsync(recordedFiles["wallpaper-2"].Id, Arg.Any<IReadOnlyList<WallpaperTag>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
