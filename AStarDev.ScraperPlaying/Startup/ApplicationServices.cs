@@ -36,6 +36,7 @@ public static class ApplicationServices
             .AddScoped<IPlaywrightBrowserSession, PlaywrightBrowserSession>()
             .AddScoped<IJsonResponseProcessor, JsonResponseProcessor>()
             .AddScoped<IImageProcessor, ImageProcessor>()
+            .AddScoped<IWallpaperDetailImageProcessor, WallpaperDetailImageProcessor>()
             .AddScoped<ISaveDirectoryResolver, SaveDirectoryResolver>()
             .AddScoped<ITagsProcessor, TagsProcessor>()
             .AddScoped<IWallpaperIngestionService, WallpaperIngestionService>()
