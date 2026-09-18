@@ -38,7 +38,6 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, IWa
                 foreach (var wallpaperId in wallpaperIds ?? [])
                 {
                     await IngestWallpaperAsync(wallpaperId, page, connection.BaseUrl, categoryName, categoryLabel, fileRepository, progress, cancellationToken);
-                    await Task.Delay(pacingDelay(), cancellationToken);
                 }
 
                 await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -66,7 +65,7 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, IWa
             .Match(
                 alreadyDownloaded => alreadyDownloaded
                     ? ReportAlreadyDownloaded(wallpaperId, progress)
-                    : ScrapeAndDownloadAsync(wallpaperId, page, baseUrl, categoryName, categoryLabel, fileRepository, progress, cancellationToken),
+                    : ScrapeDownloadAndPaceAsync(wallpaperId, page, baseUrl, categoryName, categoryLabel, fileRepository, progress, cancellationToken),
                 exception =>
                 {
                     progress.Report($"Failed to check whether wallpaper {wallpaperId} was already downloaded: {exception.Message}");
@@ -79,6 +78,12 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, IWa
         progress.Report($"Wallpaper {wallpaperId} was already downloaded - skipping.");
 
         return Task.CompletedTask;
+    }
+
+    private async Task ScrapeDownloadAndPaceAsync(string wallpaperId, IPage page, Uri baseUrl, Option<string> categoryName, string categoryLabel, IRepository<FileEntity, FileId> fileRepository, IProgress<string> progress, CancellationToken cancellationToken)
+    {
+        await ScrapeAndDownloadAsync(wallpaperId, page, baseUrl, categoryName, categoryLabel, fileRepository, progress, cancellationToken);
+        await Task.Delay(pacingDelay(), cancellationToken);
     }
 
     private async Task ScrapeAndDownloadAsync(string wallpaperId, IPage page, Uri baseUrl, Option<string> categoryName, string categoryLabel, IRepository<FileEntity, FileId> fileRepository, IProgress<string> progress, CancellationToken cancellationToken)
