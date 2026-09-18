@@ -17,6 +17,7 @@ public sealed class GivenAWebsitePagesProcessor
     private readonly IWallpaperDetailImageProcessor imageProcessor = Substitute.For<IWallpaperDetailImageProcessor>();
     private readonly ITagsProcessor tagsProcessor = Substitute.For<ITagsProcessor>();
     private readonly ISaveDirectoryResolver saveDirectoryResolver = Substitute.For<ISaveDirectoryResolver>();
+    private readonly IFilesQuery filesQuery = Substitute.For<IFilesQuery>();
     private readonly IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly IRepository<FileEntity, FileId> fileRepository = Substitute.For<IRepository<FileEntity, FileId>>();
     private readonly Dictionary<string, FileEntity> recordedFiles = [];
@@ -39,6 +40,7 @@ public sealed class GivenAWebsitePagesProcessor
         page.Locator("figure.thumb", Arg.Any<PageLocatorOptions?>()).Returns(locator);
         locator.EvaluateAllAsync<string[]>(Arg.Any<string>(), Arg.Any<object?>())
             .Returns(_ => wallpapersByPage.GetValueOrDefault(currentPageNumber, []));
+        filesQuery.CheckExistsByHandleAsync(Arg.Any<FileHandle>(), Arg.Any<CancellationToken>()).Returns((Exceptional<bool>)false);
         unitOfWork.GetRepository<FileEntity, FileId>().Returns(fileRepository);
         saveDirectoryResolver.ResolveSaveDirectoryAsync(Arg.Any<Option<string>>(), Arg.Any<bool>(), Arg.Any<CancellationToken>()).Returns(callInfo => callInfo.Arg<bool>() ? "famous-directory" : "some-directory");
         detailPageScraper.ScrapeAsync(Arg.Any<string>(), page, Arg.Any<Uri>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
@@ -46,7 +48,7 @@ public sealed class GivenAWebsitePagesProcessor
         imageProcessor.DownloadAndRecordAsync(Arg.Any<WallpaperDetail>(), page, Arg.Any<string>(), Arg.Any<string>(), fileRepository, Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
             .Returns(callInfo => (Exceptional<Option<FileEntity>>)Option.Some(RecordedFile(callInfo.Arg<WallpaperDetail>().WallpaperId)));
         tagsProcessor.LinkTagsAsync(Arg.Any<FileId>(), Arg.Any<IReadOnlyList<WallpaperTag>>(), Arg.Any<CancellationToken>()).Returns((Exceptional<Unit>)Unit.Instance);
-        processor = new(browserSession, detailPageScraper, imageProcessor, tagsProcessor, saveDirectoryResolver, unitOfWork, () => TimeSpan.FromMilliseconds(1));
+        processor = new(browserSession, detailPageScraper, imageProcessor, tagsProcessor, saveDirectoryResolver, filesQuery, unitOfWork, () => TimeSpan.FromMilliseconds(1));
     }
 
     [Fact]
@@ -156,6 +158,31 @@ public sealed class GivenAWebsitePagesProcessor
         progress.Messages.ShouldContain("Failed to resolve the save directory for wallpaper wallpaper-1: The famous root directory is not configured.");
         await imageProcessor.DidNotReceive().DownloadAndRecordAsync(Arg.Is<WallpaperDetail>(detail => detail.WallpaperId == "wallpaper-1"), page, Arg.Any<string>(), Arg.Any<string>(), fileRepository, Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
         await tagsProcessor.Received(1).LinkTagsAsync(recordedFiles["wallpaper-2"].Id, Arg.Any<IReadOnlyList<WallpaperTag>>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task when_a_wallpaper_was_already_downloaded_then_its_detail_page_is_not_visited_and_the_rest_of_the_page_is_still_processed()
+    {
+        wallpapersByPage[1] = ["wallpaper-1", "wallpaper-2"];
+        filesQuery.CheckExistsByHandleAsync(FileHandle.Create("wallpaper-1"), Arg.Any<CancellationToken>()).Returns((Exceptional<bool>)true);
+
+        await Run();
+
+        progress.Messages.ShouldContain("Wallpaper wallpaper-1 was already downloaded - skipping.");
+        await detailPageScraper.DidNotReceive().ScrapeAsync("wallpaper-1", Arg.Any<IPage>(), Arg.Any<Uri>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
+        await detailPageScraper.Received(1).ScrapeAsync("wallpaper-2", Arg.Any<IPage>(), Arg.Any<Uri>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task when_checking_whether_a_wallpaper_was_already_downloaded_fails_then_it_is_reported_and_the_wallpaper_is_skipped()
+    {
+        wallpapersByPage[1] = ["wallpaper-1"];
+        filesQuery.CheckExistsByHandleAsync(Arg.Any<FileHandle>(), Arg.Any<CancellationToken>()).Returns((Exceptional<bool>)new InvalidOperationException("db down"));
+
+        await Run();
+
+        progress.Messages.ShouldContain("Failed to check whether wallpaper wallpaper-1 was already downloaded: db down");
+        await detailPageScraper.DidNotReceive().ScrapeAsync(Arg.Any<string>(), Arg.Any<IPage>(), Arg.Any<Uri>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]

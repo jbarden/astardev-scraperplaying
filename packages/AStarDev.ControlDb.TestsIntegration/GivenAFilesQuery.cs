@@ -75,6 +75,32 @@ public sealed class GivenAFilesQuery : IDisposable
         result.Match(exists => exists, exception => throw exception).ShouldBeFalse();
     }
 
+    [Fact]
+    public async Task when_a_file_with_a_matching_handle_exists_then_check_exists_by_handle_returns_true()
+    {
+        var fileEntity = FileEntityFactory.CreateFileEntity();
+        await context.Files.AddAsync(fileEntity, TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var query = new FilesQuery(context);
+
+        var result = await query.CheckExistsByHandleAsync(fileEntity.FileHandle, TestContext.Current.CancellationToken);
+
+        result.Match(exists => exists, exception => throw exception).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task when_no_file_with_a_matching_handle_exists_then_check_exists_by_handle_returns_false()
+    {
+        var fileEntity = FileEntityFactory.CreateFileEntity();
+        await context.Files.AddAsync(fileEntity, TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var query = new FilesQuery(context);
+
+        var result = await query.CheckExistsByHandleAsync(FileHandle.Create("does-not-exist"), TestContext.Current.CancellationToken);
+
+        result.Match(exists => exists, exception => throw exception).ShouldBeFalse();
+    }
+
     public void Dispose()
     {
         Dispose(true);

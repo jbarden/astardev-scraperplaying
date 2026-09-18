@@ -13,7 +13,7 @@ namespace AStarDev.ScraperPlaying.Scraping;
 /// detail page, downloads the image, records the file, and links its tags.
 /// </summary>
 /// <inheritdoc/>
-public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, IWallpaperDetailPageScraper detailPageScraper, IWallpaperDetailImageProcessor imageProcessor, ITagsProcessor tagsProcessor, ISaveDirectoryResolver saveDirectoryResolver, IUnitOfWork unitOfWork, Func<TimeSpan> pacingDelay) : IPagesProcessor
+public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, IWallpaperDetailPageScraper detailPageScraper, IWallpaperDetailImageProcessor imageProcessor, ITagsProcessor tagsProcessor, ISaveDirectoryResolver saveDirectoryResolver, IFilesQuery filesQuery, IUnitOfWork unitOfWork, Func<TimeSpan> pacingDelay) : IPagesProcessor
 {
     private const int MaxPagesPerSearch = 4;
 
@@ -62,6 +62,26 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, IWa
     }
 
     private async Task IngestWallpaperAsync(string wallpaperId, IPage page, Uri baseUrl, Option<string> categoryName, string categoryLabel, IRepository<FileEntity, FileId> fileRepository, IProgress<string> progress, CancellationToken cancellationToken)
+        => await (await filesQuery.CheckExistsByHandleAsync(FileHandle.Create(wallpaperId), cancellationToken))
+            .Match(
+                alreadyDownloaded => alreadyDownloaded
+                    ? ReportAlreadyDownloaded(wallpaperId, progress)
+                    : ScrapeAndDownloadAsync(wallpaperId, page, baseUrl, categoryName, categoryLabel, fileRepository, progress, cancellationToken),
+                exception =>
+                {
+                    progress.Report($"Failed to check whether wallpaper {wallpaperId} was already downloaded: {exception.Message}");
+
+                    return Task.CompletedTask;
+                });
+
+    private static Task ReportAlreadyDownloaded(string wallpaperId, IProgress<string> progress)
+    {
+        progress.Report($"Wallpaper {wallpaperId} was already downloaded - skipping.");
+
+        return Task.CompletedTask;
+    }
+
+    private async Task ScrapeAndDownloadAsync(string wallpaperId, IPage page, Uri baseUrl, Option<string> categoryName, string categoryLabel, IRepository<FileEntity, FileId> fileRepository, IProgress<string> progress, CancellationToken cancellationToken)
         => await (await Try.RunAsync(() => detailPageScraper.ScrapeAsync(wallpaperId, page, baseUrl, progress, cancellationToken), cancellationToken))
             .Match(
                 async detail =>
