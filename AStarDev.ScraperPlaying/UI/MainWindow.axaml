@@ -53,7 +53,13 @@
                   CornerRadius="12"
                   ClipToBounds="True">
             <Grid RowDefinitions="*,Auto">
-              <Image x:Name="DownloadedImage" Grid.Row="0" Stretch="Uniform" />
+              <Border Grid.Row="0"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      CornerRadius="12"
+                      ClipToBounds="True">
+                <Image x:Name="DownloadedImage" Stretch="Uniform" />
+              </Border>
               <StackPanel x:Name="ImageDetailsPanel" Grid.Row="1" Orientation="Vertical" Spacing="2" Margin="16" IsVisible="False">
                 <TextBlock x:Name="ImageNameText" FontWeight="SemiBold" FontSize="14" />
                 <TextBlock x:Name="ImageCategoryText" FontSize="12" />
