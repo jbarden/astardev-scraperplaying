@@ -1,3 +1,4 @@
+using AStarDev.Utilities;
 using Microsoft.Playwright;
 
 namespace AStarDev.ScraperPlaying.Scraping;
@@ -8,19 +9,20 @@ public class WallpaperDetailPageScraper : IWallpaperDetailPageScraper
     private const string ScrapeScript = """
         () => {
             const image = document.getElementById('wallpaper');
-            const resolutionText = document.querySelector('.showcase-resolution')?.textContent ?? '';
-            const [widthText, heightText] = resolutionText.split('x');
-            const tags = Array.from(document.querySelectorAll('#tags a.tag')).map(anchor => ({
-                WallhavenTagId: parseInt((anchor.getAttribute('href') ?? '').split('/').pop(), 10),
-                Name: anchor.textContent.trim()
-            }));
+            const dimension = name => parseInt(image?.dataset[name] ?? '', 10) || 0;
+            const tags = Array.from(document.querySelectorAll('#tags li.tag'))
+                .map(item => ({
+                    wallhavenTagId: parseInt(item.dataset.tagId ?? '', 10),
+                    name: (item.querySelector('a.tagname')?.textContent ?? '').trim()
+                }))
+                .filter(tag => tag.wallhavenTagId && tag.name);
 
-            return {
-                ImageUrl: image ? image.src : '',
-                DimensionX: parseInt((widthText ?? '').trim(), 10) || 0,
-                DimensionY: parseInt((heightText ?? '').trim(), 10) || 0,
-                Tags: tags
-            };
+            return JSON.stringify({
+                imageUrl: image ? image.src : '',
+                dimensionX: dimension('wallpaperWidth'),
+                dimensionY: dimension('wallpaperHeight'),
+                tags: tags
+            });
         }
         """;
 
@@ -32,7 +34,7 @@ public class WallpaperDetailPageScraper : IWallpaperDetailPageScraper
 
         await page.GotoAsync(targetUrl.ToString(), new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded }).WaitAsync(cancellationToken);
 
-        var scraped = await page.EvaluateAsync<WallpaperDetailScrapeResult>(ScrapeScript).WaitAsync(cancellationToken);
+        var scraped = (await page.EvaluateAsync<string>(ScrapeScript).WaitAsync(cancellationToken)).FromJson<WallpaperDetailScrapeResult>();
 
         progress.Report($"Scraped wallpaper {wallpaperId}: {scraped.Tags.Count} tag(s).");
 
