@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO.Abstractions;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ControlDb.ScrapeConfiguration;
+using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using AStarDev.ControlDb;
 using AStarDev.ScraperPlaying.UI;
 using AStarDev.Utilities;
@@ -25,7 +26,7 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
             var pagesProcessor = scope.ServiceProvider.GetRequiredService<IPagesProcessor>();
 
             progress.Report("Starting scrape operation.");
-            var configuration = await LoadConfigurationAsync(unitOfWork);
+            var configuration = await ScrapeConfigurationLoader.LoadAsync(unitOfWork);
 
             await RunSearchesAsync(pagesProcessor, configuration, progress, cancellationToken);
 
@@ -54,17 +55,10 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
     {
         using var scope = scopeFactory.CreateScope();
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-        var configuration = await LoadConfigurationAsync(unitOfWork);
+        var configuration = await ScrapeConfigurationLoader.LoadAsync(unitOfWork);
 
         return fileSystem.Directory.Exists(configuration.ScrapeDirectories.RootDirectory);
     }
-
-    private static async Task<ScrapeConfigurationEntity> LoadConfigurationAsync(IUnitOfWork unitOfWork)
-        => (await unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().TryGetFirstAsync())
-            .Match(
-                option => option.Match(scrapeConfig => scrapeConfig, () => throw new InvalidOperationException("Scrape configuration not found")),
-                exception => throw exception
-            );
 
     private static async Task RunSearchesAsync(IPagesProcessor pagesProcessor, ScrapeConfigurationEntity configuration, IProgress<string> progress, CancellationToken cancellationToken)
     {
