@@ -6,4 +6,8 @@ namespace AStarDev.ScraperPlaying.Scraping;
 /// <param name="LogLabel">A label used to identify the search in progress messages.</param>
 /// <param name="CategoryName">The search category name when a category search is being performed, or <see cref="Option{T}.None"/> for the "Top Wallpapers" scrape.</param>
 /// <param name="PageUrlFactory">A function that generates the search's page URLs based on the page number.</param>
-public sealed record SearchRequest(string LogLabel, Option<string> CategoryName, Func<int, string> PageUrlFactory);
+public sealed record SearchRequest(string LogLabel, Option<string> CategoryName, Func<int, string> PageUrlFactory)
+{
+    /// <summary>Gets the category name, or "Top Wallpapers" when the search is not for a specific category.</summary>
+    public string CategoryLabel => CategoryName.Match(name => name, () => "Top Wallpapers");
+}
