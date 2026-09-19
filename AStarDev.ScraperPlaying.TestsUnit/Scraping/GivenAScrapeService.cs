@@ -2,8 +2,9 @@ using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Scraping;
-using AStarDev.ScraperPlaying.UI;
+using AStarDev.ScraperPlaying.Operations;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Playwright;
 using Testably.Abstractions.Testing;
 
@@ -30,7 +31,7 @@ public sealed class GivenAScrapeService : IDisposable
         services.AddSingleton(pagesProcessor);
         var scopeFactory = services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
 
-        service = new(operationCoordinator, scopeFactory, new RootDirectoryValidator(fileSystem));
+        service = new(new OperationRunner(operationCoordinator, NullLogger<OperationRunner>.Instance), scopeFactory, new RootDirectoryValidator(fileSystem));
     }
 
     [Fact]

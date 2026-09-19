@@ -1,20 +1,17 @@
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
-using Microsoft.Extensions.DependencyInjection;
+using AStarDev.ScraperPlaying.UI;
 
-namespace AStarDev.ScraperPlaying.TestsUnit.ScrapeConfiguration;
+namespace AStarDev.ScraperPlaying.TestsUnit.UI;
 
 public sealed class GivenAScrapeConfigurationFileService
 {
-    private readonly IScrapeConfigurationImportService importService = Substitute.For<IScrapeConfigurationImportService>();
-    private readonly IScrapeConfigurationExportService exportService = Substitute.For<IScrapeConfigurationExportService>();
+    private readonly IScrapeConfigurationTransferService transferService = Substitute.For<IScrapeConfigurationTransferService>();
     private readonly IConfigurationFilePicker configurationFilePicker = Substitute.For<IConfigurationFilePicker>();
     private readonly ScrapeConfigurationFileService service;
 
     public GivenAScrapeConfigurationFileService()
-        => service = new(
-            new ServiceCollection().AddScoped(_ => importService).AddScoped(_ => exportService).BuildServiceProvider().GetRequiredService<IServiceScopeFactory>(),
-            configurationFilePicker);
+        => service = new(transferService, configurationFilePicker);
 
     [Fact]
     public async Task when_a_file_is_picked_to_import_then_it_is_imported_and_some_is_returned()
@@ -24,7 +21,7 @@ public sealed class GivenAScrapeConfigurationFileService
         var result = await service.ImportViaPickerAsync(null!, CancellationToken.None);
 
         result.ShouldBe(Option.Some(Unit.Instance));
-        await importService.Received(1).ImportAsync("path/to/import.json", Arg.Any<CancellationToken>());
+        await transferService.Received(1).ImportAsync("path/to/import.json", Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -35,14 +32,14 @@ public sealed class GivenAScrapeConfigurationFileService
         var result = await service.ImportViaPickerAsync(null!, CancellationToken.None);
 
         result.ShouldBe(Option.None<Unit>());
-        await importService.DidNotReceive().ImportAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await transferService.DidNotReceive().ImportAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task when_a_file_is_picked_to_export_to_and_a_configuration_exists_then_it_is_exported_and_true_is_returned()
     {
         configurationFilePicker.PickSaveAsync(Arg.Any<Avalonia.Controls.Window>()).Returns(Option.Some("path/to/export.json"));
-        exportService.ExportAsync("path/to/export.json", Arg.Any<CancellationToken>()).Returns(true);
+        transferService.ExportAsync("path/to/export.json", Arg.Any<CancellationToken>()).Returns(true);
 
         var result = await service.ExportViaPickerAsync(null!, CancellationToken.None);
 
@@ -53,7 +50,7 @@ public sealed class GivenAScrapeConfigurationFileService
     public async Task when_a_file_is_picked_to_export_to_but_no_configuration_exists_then_false_is_returned()
     {
         configurationFilePicker.PickSaveAsync(Arg.Any<Avalonia.Controls.Window>()).Returns(Option.Some("path/to/export.json"));
-        exportService.ExportAsync("path/to/export.json", Arg.Any<CancellationToken>()).Returns(false);
+        transferService.ExportAsync("path/to/export.json", Arg.Any<CancellationToken>()).Returns(false);
 
         var result = await service.ExportViaPickerAsync(null!, CancellationToken.None);
 
@@ -68,6 +65,6 @@ public sealed class GivenAScrapeConfigurationFileService
         var result = await service.ExportViaPickerAsync(null!, CancellationToken.None);
 
         result.ShouldBe(Option.None<bool>());
-        await exportService.DidNotReceive().ExportAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await transferService.DidNotReceive().ExportAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 }

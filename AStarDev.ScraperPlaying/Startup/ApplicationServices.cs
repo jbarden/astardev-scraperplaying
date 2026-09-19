@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using AStarDev.ScraperPlaying.Scraping;
+using AStarDev.ScraperPlaying.Operations;
 using AStarDev.ScraperPlaying.UI;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
 
@@ -25,11 +26,13 @@ public static class ApplicationServices
             .AddSingleton<IScrapeConfigurationFileWriter, ScrapeConfigurationFileWriter>()
             .AddScoped<IScrapeConfigurationExportService, ScrapeConfigurationExportService>()
             .AddScoped<IScrapeConfigurationExporter, ScrapeConfigurationExporter>()
+            .AddSingleton<IScrapeConfigurationTransferService, ScrapeConfigurationTransferService>()
             .AddSingleton<IScrapeConfigurationFileService, ScrapeConfigurationFileService>()
             .AddSingleton<IImageDownloadNotifier, ImageDownloadNotifier>()
             .AddSingleton<IDownloadedImageDecoder, DownloadedImageDecoder>()
             .AddSingleton<ImageDisplayCoordinator>()
             .AddSingleton<OperationCoordinator>()
+            .AddSingleton<OperationRunner>()
             .AddScoped<IPagesProcessor, WebsitePagesProcessor>()
             .AddScoped<IListingPageScraper, ListingPageScraper>()
             .AddScoped<IWallpaperIngestor, WallpaperIngestor>()

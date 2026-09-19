@@ -1,7 +1,7 @@
 using AStarDev.FunctionalParadigm;
 using Avalonia.Controls;
 
-namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
+namespace AStarDev.ScraperPlaying.UI;
 
 /// <summary>Interface for importing/exporting the scrape configuration via a file picker anchored to a window.</summary>
 public interface IScrapeConfigurationFileService
