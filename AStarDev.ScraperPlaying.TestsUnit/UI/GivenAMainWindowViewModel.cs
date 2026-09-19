@@ -1,5 +1,6 @@
 using System.Text.Json;
 using AStarDev.FunctionalParadigm;
+using AStarDev.ScraperPlaying.Operations;
 using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.UI;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -16,7 +17,7 @@ public sealed class GivenAMainWindowViewModel : IDisposable
     public GivenAMainWindowViewModel()
     {
         scrapeService.ValidateRootDirectoriesAsync().Returns(Problems());
-        viewModel = new(scrapeService, operationCoordinator, NullLogger<MainWindowViewModel>.Instance);
+        viewModel = new(scrapeService, operationCoordinator, new OperationRunner(operationCoordinator, NullLogger<OperationRunner>.Instance));
         viewModel.Changed += (_, _) => changedCount++;
     }
 

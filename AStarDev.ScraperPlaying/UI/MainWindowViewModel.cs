@@ -1,8 +1,7 @@
 using System.Text.Json;
 using AStarDev.FunctionalParadigm;
-using AStarDev.LoggingExtensions;
+using AStarDev.ScraperPlaying.Operations;
 using AStarDev.ScraperPlaying.Scraping;
-using Microsoft.Extensions.Logging;
 
 namespace AStarDev.ScraperPlaying.UI;
 
@@ -16,14 +15,14 @@ public sealed class MainWindowViewModel : IDisposable
     private readonly StatusMessageLog statusMessageLog = new(MaximumStatusMessages);
     private readonly IScrapeService scrapeService;
     private readonly OperationCoordinator operationCoordinator;
-    private readonly ILogger<MainWindowViewModel> logger;
+    private readonly OperationRunner operationRunner;
     private bool areRootDirectoriesAvailable = true;
 
-    public MainWindowViewModel(IScrapeService scrapeService, OperationCoordinator operationCoordinator, ILogger<MainWindowViewModel> logger)
+    public MainWindowViewModel(IScrapeService scrapeService, OperationCoordinator operationCoordinator, OperationRunner operationRunner)
     {
         this.scrapeService = scrapeService;
         this.operationCoordinator = operationCoordinator;
-        this.logger = logger;
+        this.operationRunner = operationRunner;
         operationCoordinator.StateChanged += OnOperationStateChanged;
     }
 
@@ -94,30 +93,19 @@ public sealed class MainWindowViewModel : IDisposable
     /// <inheritdoc/>
     public void Dispose() => operationCoordinator.StateChanged -= OnOperationStateChanged;
 
-    private async Task RunConfigurationOperationAsync(Func<CancellationToken, Task<string>> operation, string operationName, Func<Exception, bool> isExpectedFailure)
-    {
-        if (!operationCoordinator.TryStart(out var cancellationToken)) return;
-
-        try
-        {
-            StatusText = await operation(cancellationToken);
-            OnChanged();
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            AppendStatusMessage($"Scrape configuration {operationName} cancelled.");
-        }
-        catch (Exception exception) when (isExpectedFailure(exception))
-        {
-            var message = $"Unable to {operationName} scrape configuration.";
-            LogMessage.Error(logger, message, exception);
-            AppendStatusMessage($"{message} {exception.Message}");
-        }
-        finally
-        {
-            operationCoordinator.Complete();
-        }
-    }
+    private Task RunConfigurationOperationAsync(Func<CancellationToken, Task<string>> operation, string operationName, Func<Exception, bool> isExpectedFailure)
+        => operationRunner.RunAsync(
+            async cancellationToken =>
+            {
+                StatusText = await operation(cancellationToken);
+                OnChanged();
+            },
+            new OperationReporting(
+                AppendStatusMessage,
+                $"Scrape configuration {operationName} cancelled.",
+                exception => isExpectedFailure(exception)
+                    ? Option.Some($"Unable to {operationName} scrape configuration. {exception.Message}")
+                    : Option.None<string>()));
 
     private void OnOperationStateChanged(object? sender, EventArgs eventArgs) => OnChanged();
 

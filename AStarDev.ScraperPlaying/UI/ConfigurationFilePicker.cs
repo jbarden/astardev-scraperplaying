@@ -2,7 +2,7 @@ using AStarDev.FunctionalParadigm;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 
-namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
+namespace AStarDev.ScraperPlaying.UI;
 
 public sealed class ConfigurationFilePicker : IConfigurationFilePicker
 {

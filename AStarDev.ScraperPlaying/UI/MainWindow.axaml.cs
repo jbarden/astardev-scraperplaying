@@ -1,4 +1,3 @@
-using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
 using AStarDev.Utilities;
 using Avalonia.Controls;
