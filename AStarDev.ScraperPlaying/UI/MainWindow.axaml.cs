@@ -23,6 +23,7 @@ public partial class MainWindow : Window, IDisposable
     private readonly IScrapeService scrapeService;
     private readonly ILogger<MainWindow> logger;
     private readonly OperationCoordinator operationCoordinator;
+    private readonly ImageDisplayCoordinator imageDisplayCoordinator;
     private bool isDisposing;
     private bool isRootDirectoryAvailable = true;
     private bool isImageDisplayEnabled = true;
@@ -34,6 +35,7 @@ public partial class MainWindow : Window, IDisposable
         this.scrapeService = scrapeService;
         this.logger = logger;
         this.operationCoordinator = operationCoordinator;
+        this.imageDisplayCoordinator = imageDisplayCoordinator;
         operationCoordinator.StateChanged += (_, _) => UpdateOperationControls();
         imageDisplayCoordinator.ImageReady += (_, preview) => Dispatcher.UIThread.Post(() => DisplayImage(preview));
         Closed += (_, _) => Dispose();
@@ -111,6 +113,7 @@ public partial class MainWindow : Window, IDisposable
     public void ToggleImageDisplay(object? sender, RoutedEventArgs eventArgs)
     {
         isImageDisplayEnabled = ImageDisplayToggle.IsChecked == true;
+        imageDisplayCoordinator.IsEnabled = isImageDisplayEnabled;
         if (!isImageDisplayEnabled) ClearDisplayedImage();
     }
 
