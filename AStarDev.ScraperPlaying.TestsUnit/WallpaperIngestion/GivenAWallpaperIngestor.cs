@@ -28,8 +28,8 @@ public sealed class GivenAWallpaperIngestor
         saveDirectoryResolver.ResolveSaveDirectoryAsync(Arg.Any<Option<string>>(), Arg.Any<bool>(), Arg.Any<CancellationToken>()).Returns(callInfo => callInfo.Arg<bool>() ? "famous-directory" : "some-directory");
         detailPageScraper.ScrapeAsync(Arg.Any<string>(), page, Arg.Any<Uri>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
             .Returns(callInfo => CreateDetail((string)callInfo[0]));
-        imageProcessor.DownloadAndRecordAsync(Arg.Any<WallpaperDetail>(), page, Arg.Any<string>(), Arg.Any<string>(), fileRepository, Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
-            .Returns(callInfo => (Exceptional<Option<FileEntity>>)Option.Some(RecordedFile(callInfo.Arg<WallpaperDetail>().WallpaperId)));
+        imageProcessor.DownloadAndRecordAsync(Arg.Any<ImageDownloadRequest>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
+            .Returns(callInfo => (Exceptional<FileEntity>)RecordedFile(callInfo.Arg<ImageDownloadRequest>().Detail.WallpaperId));
         tagsProcessor.LinkTagsAsync(Arg.Any<FileId>(), Arg.Any<IReadOnlyList<WallpaperTag>>(), Arg.Any<CancellationToken>()).Returns((Exceptional<Unit>)Unit.Instance);
         ingestor = new(detailPageScraper, saveDirectoryResolver, imageProcessor, tagsProcessor, () =>
         {
@@ -45,7 +45,7 @@ public sealed class GivenAWallpaperIngestor
         await Run("wallpaper-1");
 
         await detailPageScraper.Received(1).ScrapeAsync("wallpaper-1", page, new Uri("https://example.test"), progress, Arg.Any<CancellationToken>());
-        await imageProcessor.Received(1).DownloadAndRecordAsync(Arg.Is<WallpaperDetail>(detail => detail.WallpaperId == "wallpaper-1"), page, "some-directory", "Top Wallpapers", fileRepository, progress, Arg.Any<CancellationToken>());
+        await imageProcessor.Received(1).DownloadAndRecordAsync(Arg.Is<ImageDownloadRequest>(request => request.Detail.WallpaperId == "wallpaper-1" && request.Page == page && request.Directory == "some-directory" && request.CategoryLabel == "Top Wallpapers" && request.FileRepository == fileRepository), progress, Arg.Any<CancellationToken>());
         await tagsProcessor.Received(1).LinkTagsAsync(recordedFiles["wallpaper-1"].Id, Arg.Is<IReadOnlyList<WallpaperTag>>(tags => tags.Count == 1 && tags[0].Name == "anime"), Arg.Any<CancellationToken>());
     }
 
@@ -65,7 +65,7 @@ public sealed class GivenAWallpaperIngestor
         await ingestor.IngestAsync("wallpaper-1", categoryContext, progress, CancellationToken.None);
 
         await saveDirectoryResolver.Received(1).ResolveSaveDirectoryAsync(Arg.Is<Option<string>>(name => name.Match(value => value == "Nature", () => false)), false, Arg.Any<CancellationToken>());
-        await imageProcessor.Received(1).DownloadAndRecordAsync(Arg.Any<WallpaperDetail>(), page, "some-directory", "Nature", fileRepository, progress, Arg.Any<CancellationToken>());
+        await imageProcessor.Received(1).DownloadAndRecordAsync(Arg.Is<ImageDownloadRequest>(request => request.Detail.WallpaperId == "wallpaper-1" && request.Page == page && request.Directory == "some-directory" && request.CategoryLabel == "Nature" && request.FileRepository == fileRepository), progress, Arg.Any<CancellationToken>());
     }
 
     [Theory]
@@ -80,7 +80,7 @@ public sealed class GivenAWallpaperIngestor
 
         await Run("wallpaper-1");
 
-        await imageProcessor.Received(1).DownloadAndRecordAsync(Arg.Any<WallpaperDetail>(), page, "famous-directory", "Top Wallpapers", fileRepository, progress, Arg.Any<CancellationToken>());
+        await imageProcessor.Received(1).DownloadAndRecordAsync(Arg.Is<ImageDownloadRequest>(request => request.Detail.WallpaperId == "wallpaper-1" && request.Page == page && request.Directory == "famous-directory" && request.CategoryLabel == "Top Wallpapers" && request.FileRepository == fileRepository), progress, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -92,18 +92,7 @@ public sealed class GivenAWallpaperIngestor
         await Run("wallpaper-1");
 
         progress.Messages.ShouldContain("Failed to resolve the save directory for wallpaper wallpaper-1: The famous root directory is not configured.");
-        await imageProcessor.DidNotReceive().DownloadAndRecordAsync(Arg.Any<WallpaperDetail>(), Arg.Any<IPage>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<IRepository<FileEntity, FileId>>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task when_a_wallpaper_already_exists_then_its_tags_are_not_linked()
-    {
-        imageProcessor.DownloadAndRecordAsync(Arg.Any<WallpaperDetail>(), page, Arg.Any<string>(), Arg.Any<string>(), fileRepository, Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
-            .Returns((Exceptional<Option<FileEntity>>)Option.None<FileEntity>());
-
-        await Run("wallpaper-1");
-
-        await tagsProcessor.DidNotReceive().LinkTagsAsync(Arg.Any<FileId>(), Arg.Any<IReadOnlyList<WallpaperTag>>(), Arg.Any<CancellationToken>());
+        await imageProcessor.DidNotReceive().DownloadAndRecordAsync(Arg.Any<ImageDownloadRequest>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -115,14 +104,14 @@ public sealed class GivenAWallpaperIngestor
         await Run("wallpaper-1");
 
         progress.Messages.ShouldContain("Failed to scrape wallpaper wallpaper-1: detail page timed out");
-        await imageProcessor.DidNotReceive().DownloadAndRecordAsync(Arg.Any<WallpaperDetail>(), Arg.Any<IPage>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<IRepository<FileEntity, FileId>>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
+        await imageProcessor.DidNotReceive().DownloadAndRecordAsync(Arg.Any<ImageDownloadRequest>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task when_downloading_the_wallpaper_fails_then_it_is_reported_and_its_tags_are_not_linked()
     {
-        imageProcessor.DownloadAndRecordAsync(Arg.Any<WallpaperDetail>(), page, Arg.Any<string>(), Arg.Any<string>(), fileRepository, Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
-            .Returns((Exceptional<Option<FileEntity>>)new HttpRequestException("status 403"));
+        imageProcessor.DownloadAndRecordAsync(Arg.Any<ImageDownloadRequest>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
+            .Returns((Exceptional<FileEntity>)new HttpRequestException("status 403"));
 
         await Run("wallpaper-1");
 
