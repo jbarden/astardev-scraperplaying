@@ -19,4 +19,10 @@ public interface IUnitOfWork
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>The number of state entries written to the database.</returns>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Runs <paramref name="work"/> in a single database transaction: everything saved during it is committed together, or rolled back if it throws.</summary>
+    /// <param name="work">The work to run; it may call <see cref="SaveChangesAsync"/> more than once.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task InTransactionAsync(Func<Task> work, CancellationToken cancellationToken = default);
 }

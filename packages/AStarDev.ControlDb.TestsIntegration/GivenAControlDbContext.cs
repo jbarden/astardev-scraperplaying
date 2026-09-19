@@ -25,6 +25,41 @@ public sealed class GivenAControlDbContext : IDisposable
     }
 
     [Fact]
+    public async Task when_work_in_a_transaction_completes_then_every_save_is_committed()
+    {
+        var first = TagEntityFactory.CreateTagEntity(wallhavenTagId: 501);
+        var second = TagEntityFactory.CreateTagEntity(wallhavenTagId: 502);
+
+        await context.InTransactionAsync(async () =>
+        {
+            context.Tags.Add(first);
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            context.Tags.Add(second);
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }, TestContext.Current.CancellationToken);
+
+        context.ChangeTracker.Clear();
+        (await context.Tags.CountAsync(TestContext.Current.CancellationToken)).ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task when_work_in_a_transaction_throws_then_earlier_saves_are_rolled_back()
+    {
+        var first = TagEntityFactory.CreateTagEntity(wallhavenTagId: 503);
+
+        await Should.ThrowAsync<InvalidOperationException>(() => context.InTransactionAsync(async () =>
+        {
+            context.Tags.Add(first);
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+            throw new InvalidOperationException("boom");
+        }, TestContext.Current.CancellationToken));
+
+        context.ChangeTracker.Clear();
+        (await context.Tags.CountAsync(TestContext.Current.CancellationToken)).ShouldBe(0);
+    }
+
+    [Fact]
     public void when_the_model_is_built_then_no_exception_is_thrown() => context.Model.ShouldNotBeNull();
 
     [Fact]

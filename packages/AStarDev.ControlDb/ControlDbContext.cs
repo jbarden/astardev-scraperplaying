@@ -19,6 +19,14 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
     private readonly IQuery<FileEntity> filesQuery = filesQuery ?? new FileQuery();
 
     /// <inheritdoc/>
+    public async Task InTransactionAsync(Func<Task> work, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await Database.BeginTransactionAsync(cancellationToken);
+        await work();
+        await transaction.CommitAsync(cancellationToken);
+    }
+
+    /// <inheritdoc/>
     public IRepository<TAggregate, TKey> GetRepository<TAggregate, TKey>() where TAggregate : IAggregateRoot
     => (IRepository<TAggregate, TKey>)this;
 
