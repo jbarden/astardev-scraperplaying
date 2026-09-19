@@ -46,7 +46,7 @@ public partial class App : Application, IDisposable
             .AddInfrastructureServices()
             .AddApplicationServices(configuration)
             .AddLogging()
-            .BuildServiceProvider();
+            .BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
 
         var applicationDirectories = serviceProvider.GetRequiredService<IApplicationDirectories>();
         applicationDirectories.CreateIfRequired();
