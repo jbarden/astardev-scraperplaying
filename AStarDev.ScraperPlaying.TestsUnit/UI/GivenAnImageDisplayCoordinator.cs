@@ -5,7 +5,7 @@ namespace AStarDev.ScraperPlaying.TestsUnit.UI;
 
 public sealed class GivenAnImageDisplayCoordinator
 {
-    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(1);
     private readonly IImageDownloadNotifier notifier = new ImageDownloadNotifier();
     private readonly IDownloadedImageDecoder decoder = Substitute.For<IDownloadedImageDecoder>();
 
