@@ -18,21 +18,21 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, ILi
     private const int MaxPagesPerSearch = 4;
 
     /// <inheritdoc/>
-    public async Task FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Func<int, string> pageUrlFactory, WallhavenConnection connection, IProgress<string> progress, CancellationToken cancellationToken)
+    public async Task FetchAndProcessPagesAsync(SearchRequest request, WallhavenConnection connection, IProgress<string> progress, CancellationToken cancellationToken)
     {
         try
         {
             var page = await browserSession.GetPageAsync(connection.UseHeadless, cancellationToken);
-            var context = new PageIngestionContext(page, connection.BaseUrl, categoryName, categoryName.Match(name => name, () => "Top Wallpapers"), unitOfWork.GetRepository<FileEntity, FileId>());
+            var context = new PageIngestionContext(page, connection.BaseUrl, request.CategoryName, request.CategoryName.Match(name => name, () => "Top Wallpapers"), unitOfWork.GetRepository<FileEntity, FileId>());
             var pageNumber = 1;
 
             int wallpaperCount;
             do
             {
-                var request = new ListingPageRequest(logLabel, pageNumber, new Uri(connection.BaseUrl, pageUrlFactory(pageNumber)));
-                var wallpaperIds = await listingPageScraper.ScrapeWallpaperIdsAsync(request, page, progress, cancellationToken);
+                var listingPage = new ListingPageRequest(request.LogLabel, pageNumber, new Uri(connection.BaseUrl, request.PageUrlFactory(pageNumber)));
+                var wallpaperIds = await listingPageScraper.ScrapeWallpaperIdsAsync(listingPage, page, progress, cancellationToken);
                 wallpaperCount = wallpaperIds.Length;
-                progress.Report($"Found {wallpaperCount} wallpaper(s) on {logLabel} page {pageNumber}.");
+                progress.Report($"Found {wallpaperCount} wallpaper(s) on {request.LogLabel} page {pageNumber}.");
 
                 foreach (var wallpaperId in await ExcludeAlreadyDownloadedAsync(wallpaperIds, progress, cancellationToken))
                 {
@@ -52,7 +52,7 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, ILi
         }
         catch (PlaywrightException ex)
         {
-            progress.Report($"An error occurred navigating the website during {logLabel}: {ex.Message}");
+            progress.Report($"An error occurred navigating the website during {request.LogLabel}: {ex.Message}");
 
             throw;
         }

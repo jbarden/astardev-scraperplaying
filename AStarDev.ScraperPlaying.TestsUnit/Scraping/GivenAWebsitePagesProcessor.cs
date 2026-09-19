@@ -118,7 +118,7 @@ public sealed class GivenAWebsitePagesProcessor
     {
         wallpapersByPage[1] = ["wallpaper-1"];
 
-        await processor.FetchAndProcessPagesAsync("nature", Option.Some("Nature"), pageNumber => $"page/{pageNumber}", Connection, progress, CancellationToken.None);
+        await processor.FetchAndProcessPagesAsync(new SearchRequest("nature", Option.Some("Nature"), pageNumber => $"page/{pageNumber}"), Connection, progress, CancellationToken.None);
 
         await wallpaperIngestor.Received(1).IngestAsync("wallpaper-1", Arg.Is<PageIngestionContext>(context => context.CategoryLabel == "Nature" && context.CategoryName.Match(name => name == "Nature", () => false)), progress, Arg.Any<CancellationToken>());
     }
@@ -210,7 +210,7 @@ public sealed class GivenAWebsitePagesProcessor
     private Task Run() => RunWith(TestContext.Current.CancellationToken);
 
     private Task RunWith(CancellationToken cancellationToken)
-        => processor.FetchAndProcessPagesAsync("wallpapers", Option.None<string>(), pageNumber => $"page/{pageNumber}", Connection, progress, cancellationToken);
+        => processor.FetchAndProcessPagesAsync(new SearchRequest("wallpapers", Option.None<string>(), pageNumber => $"page/{pageNumber}"), Connection, progress, cancellationToken);
 
     private sealed class CapturingProgress : IProgress<string>
     {
