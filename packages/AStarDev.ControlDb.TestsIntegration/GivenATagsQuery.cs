@@ -22,31 +22,39 @@ public sealed class GivenATagsQuery : IDisposable
     }
 
     [Fact]
-    public async Task when_a_tag_with_a_matching_wallhaven_id_exists_then_it_is_returned()
+    public async Task when_some_of_the_requested_tags_exist_then_only_those_are_returned()
     {
-        var tagEntity = TagEntityFactory.CreateTagEntity(wallhavenTagId: 99);
-        await context.Tags.AddAsync(tagEntity, TestContext.Current.CancellationToken);
+        var firstTag = TagEntityFactory.CreateTagEntity(wallhavenTagId: 99);
+        var secondTag = TagEntityFactory.CreateTagEntity(wallhavenTagId: 100);
+        await context.Tags.AddRangeAsync([firstTag, secondTag], TestContext.Current.CancellationToken);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var query = new TagsQuery(context);
 
-        var result = await query.TryFindByWallhavenIdAsync(99, TestContext.Current.CancellationToken);
+        var result = await query.FindByWallhavenIdsAsync([99, 999], TestContext.Current.CancellationToken);
 
-        var found = result.Match(option => option, exception => throw exception).Match(entity => entity, () => null!);
-
-        found.ShouldNotBeNull();
-        found.Name.ShouldBe(tagEntity.Name);
+        var found = result.Match(tags => tags, exception => throw exception);
+        found.Count.ShouldBe(1);
+        found[0].Name.ShouldBe(firstTag.Name);
     }
 
     [Fact]
-    public async Task when_no_tag_with_a_matching_wallhaven_id_exists_then_none_is_returned()
+    public async Task when_none_of_the_requested_tags_exist_then_an_empty_list_is_returned()
     {
         var query = new TagsQuery(context);
 
-        var result = await query.TryFindByWallhavenIdAsync(999, TestContext.Current.CancellationToken);
+        var result = await query.FindByWallhavenIdsAsync([999], TestContext.Current.CancellationToken);
 
-        var found = result.Match(option => option, exception => throw exception).Match(_ => true, () => false);
+        result.Match(tags => tags, exception => throw exception).ShouldBeEmpty();
+    }
 
-        found.ShouldBeFalse();
+    [Fact]
+    public async Task when_no_tags_are_requested_then_an_empty_list_is_returned()
+    {
+        var query = new TagsQuery(context);
+
+        var result = await query.FindByWallhavenIdsAsync([], TestContext.Current.CancellationToken);
+
+        result.Match(tags => tags, exception => throw exception).ShouldBeEmpty();
     }
 
     public void Dispose()
