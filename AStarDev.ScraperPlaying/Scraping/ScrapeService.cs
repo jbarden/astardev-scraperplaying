@@ -45,15 +45,21 @@ public class ScrapeService(OperationRunner operationRunner, IServiceScopeFactory
         progress.Report("Starting scrape operation.");
         var configuration = await ScrapeConfigurationLoader.LoadAsync(unitOfWork);
 
-        await RunSearchesAsync(pagesProcessor, configuration, progress, cancellationToken);
+        var connection = new WallhavenConnection(configuration.UserConfiguration.ApiKey, configuration.BaseUrl, configuration.UseHeadless);
+        if (!await scope.ServiceProvider.GetRequiredService<ISiteStatusChecker>().IsAvailableAsync(connection, progress, cancellationToken))
+        {
+            progress.Report("Scrape abandoned: wallhaven.cc is not available.");
+
+            return;
+        }
+
+        await RunSearchesAsync(pagesProcessor, configuration, connection, progress, cancellationToken);
 
         progress.Report($"Search completed in: {Stopwatch.GetElapsedTime(startTime).ToDurationString()}.");
     }
 
-    private static async Task RunSearchesAsync(IPagesProcessor pagesProcessor, ScrapeConfigurationEntity configuration, IProgress<string> progress, CancellationToken cancellationToken)
+    private static async Task RunSearchesAsync(IPagesProcessor pagesProcessor, ScrapeConfigurationEntity configuration, WallhavenConnection connection, IProgress<string> progress, CancellationToken cancellationToken)
     {
-        var connection = new WallhavenConnection(configuration.UserConfiguration.ApiKey, configuration.BaseUrl, configuration.UseHeadless);
-
         foreach (var search in SearchPlan.Build(configuration))
         {
             if (search.CategoryName.Match(_ => false, () => true)) progress.Report("Fetching top wallpapers.");
