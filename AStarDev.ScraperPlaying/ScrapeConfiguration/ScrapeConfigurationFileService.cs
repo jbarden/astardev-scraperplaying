@@ -1,11 +1,13 @@
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using Avalonia.Controls;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 /// <inheritdoc/>
-public sealed class ScrapeConfigurationFileService(IScrapeConfigurationImportService importService, IScrapeConfigurationExportService exportService, IConfigurationFilePicker configurationFilePicker) : IScrapeConfigurationFileService
+/// <remarks>Singleton: the import and export services use the scoped database context, so each operation resolves them from a scope of its own.</remarks>
+public sealed class ScrapeConfigurationFileService(IServiceScopeFactory scopeFactory, IConfigurationFilePicker configurationFilePicker) : IScrapeConfigurationFileService
 {
     /// <inheritdoc/>
     public async Task<Option<Unit>> ImportViaPickerAsync(Window owner, CancellationToken cancellationToken)
@@ -16,7 +18,8 @@ public sealed class ScrapeConfigurationFileService(IScrapeConfigurationImportSer
             async selectedPath =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                await importService.ImportAsync(selectedPath, cancellationToken);
+                await using var scope = scopeFactory.CreateAsyncScope();
+                await scope.ServiceProvider.GetRequiredService<IScrapeConfigurationImportService>().ImportAsync(selectedPath, cancellationToken);
 
                 return Option.Some(Unit.Instance);
             },
@@ -32,7 +35,8 @@ public sealed class ScrapeConfigurationFileService(IScrapeConfigurationImportSer
             async selectedPath =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var exported = await exportService.ExportAsync(selectedPath, cancellationToken);
+                await using var scope = scopeFactory.CreateAsyncScope();
+                var exported = await scope.ServiceProvider.GetRequiredService<IScrapeConfigurationExportService>().ExportAsync(selectedPath, cancellationToken);
 
                 return Option.Some(exported);
             },

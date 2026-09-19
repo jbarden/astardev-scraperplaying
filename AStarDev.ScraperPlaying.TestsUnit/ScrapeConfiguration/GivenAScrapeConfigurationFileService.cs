@@ -1,5 +1,6 @@
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.ScrapeConfiguration;
 
@@ -11,7 +12,9 @@ public sealed class GivenAScrapeConfigurationFileService
     private readonly ScrapeConfigurationFileService service;
 
     public GivenAScrapeConfigurationFileService()
-        => service = new(importService, exportService, configurationFilePicker);
+        => service = new(
+            new ServiceCollection().AddScoped(_ => importService).AddScoped(_ => exportService).BuildServiceProvider().GetRequiredService<IServiceScopeFactory>(),
+            configurationFilePicker);
 
     [Fact]
     public async Task when_a_file_is_picked_to_import_then_it_is_imported_and_some_is_returned()
