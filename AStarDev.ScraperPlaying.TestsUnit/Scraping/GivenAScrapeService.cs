@@ -30,7 +30,7 @@ public sealed class GivenAScrapeService : IDisposable
         services.AddSingleton(pagesProcessor);
         var scopeFactory = services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
 
-        service = new(operationCoordinator, scopeFactory, fileSystem);
+        service = new(operationCoordinator, scopeFactory, new RootDirectoryValidator(fileSystem));
     }
 
     [Fact]
@@ -134,24 +134,25 @@ public sealed class GivenAScrapeService : IDisposable
     }
 
     [Fact]
-    public async Task when_the_root_directory_exists_on_disk_then_root_directory_exists_async_returns_true()
+    public async Task when_both_root_directories_exist_on_disk_then_validation_finds_no_problems()
     {
         fileSystem.Directory.CreateDirectory("/scrapes/root");
+        fileSystem.Directory.CreateDirectory("famous");
         repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration(rootDirectory: "/scrapes/root"));
 
-        var exists = await service.RootDirectoryExistsAsync();
+        var problems = await service.ValidateRootDirectoriesAsync();
 
-        exists.ShouldBeTrue();
+        problems.ShouldBeEmpty();
     }
 
     [Fact]
-    public async Task when_the_root_directory_does_not_exist_on_disk_then_root_directory_exists_async_returns_false()
+    public async Task when_a_root_directory_does_not_exist_on_disk_then_validation_reports_it()
     {
         repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration(rootDirectory: "/scrapes/missing"));
 
-        var exists = await service.RootDirectoryExistsAsync();
+        var problems = await service.ValidateRootDirectoriesAsync();
 
-        exists.ShouldBeFalse();
+        problems.ShouldContain("Root directory could not be found.");
     }
 
     public void Dispose() => operationCoordinator.Dispose();

@@ -8,7 +8,7 @@ public interface IScrapeService
     /// <returns>A task representing the asynchronous operation.</returns>
     Task RunScraperAsync(IProgress<string> progress);
 
-    /// <summary>Checks whether the current scrape configuration's root directory exists on disk.</summary>
-    /// <returns><see langword="true"/> if the root directory exists; otherwise, <see langword="false"/>.</returns>
-    Task<bool> RootDirectoryExistsAsync();
+    /// <summary>Checks the current scrape configuration's root directory exists on disk, and that its famous root directory is configured and exists.</summary>
+    /// <returns>A message for each problem found, empty when both root directories are usable.</returns>
+    Task<IReadOnlyList<string>> ValidateRootDirectoriesAsync();
 }

@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.IO.Abstractions;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
@@ -11,7 +10,7 @@ using Microsoft.Playwright;
 
 namespace AStarDev.ScraperPlaying.Scraping;
 
-public class ScrapeService(OperationCoordinator operationCoordinator, IServiceScopeFactory scopeFactory, IFileSystem fileSystem) : IScrapeService
+public class ScrapeService(OperationCoordinator operationCoordinator, IServiceScopeFactory scopeFactory, IRootDirectoryValidator rootDirectoryValidator) : IScrapeService
 {
     /// <inheritdoc/>
     public async Task RunScraperAsync(IProgress<string> progress)
@@ -51,33 +50,24 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
     }
 
     /// <inheritdoc/>
-    public async Task<bool> RootDirectoryExistsAsync()
+    public async Task<IReadOnlyList<string>> ValidateRootDirectoriesAsync()
     {
         using var scope = scopeFactory.CreateScope();
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
         var configuration = await ScrapeConfigurationLoader.LoadAsync(unitOfWork);
 
-        return fileSystem.Directory.Exists(configuration.ScrapeDirectories.RootDirectory);
+        return rootDirectoryValidator.Validate(configuration.ScrapeDirectories);
     }
 
     private static async Task RunSearchesAsync(IPagesProcessor pagesProcessor, ScrapeConfigurationEntity configuration, IProgress<string> progress, CancellationToken cancellationToken)
     {
         var connection = new WallhavenConnection(configuration.UserConfiguration.ApiKey, configuration.BaseUrl, configuration.UseHeadless);
-        var topWallpapersUrl = configuration.TopWallpapers;
-        var searchCategoriesUrl = configuration.SearchStringPrefix;
-        var searchCategoriesSuffix = configuration.SearchStringSuffix;
-        var searchCategories = configuration.SearchConfiguration.SearchCategories;
 
-        foreach (var category in searchCategories)
+        foreach (var search in SearchPlan.Build(configuration))
         {
-            await pagesProcessor.FetchAndProcessPagesAsync(
-                new SearchRequest($"search category {category.Id}", Option.Some(category.Name), page => WallhavenUrlBuilder.BuildCategoryPageUrl(searchCategoriesUrl, category, searchCategoriesSuffix, page)),
-                connection, progress, cancellationToken);
-        }
+            if (search.CategoryName.Match(_ => false, () => true)) progress.Report("Fetching top wallpapers.");
 
-        progress.Report("Fetching top wallpapers.");
-        await pagesProcessor.FetchAndProcessPagesAsync(
-            new SearchRequest("top wallpapers", Option.None<string>(), page => WallhavenUrlBuilder.BuildTopWallpapersPageUrl(topWallpapersUrl, page)),
-            connection, progress, cancellationToken);
+            await pagesProcessor.FetchAndProcessPagesAsync(search, connection, progress, cancellationToken);
+        }
     }
 }

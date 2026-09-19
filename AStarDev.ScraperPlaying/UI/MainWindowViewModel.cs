@@ -17,7 +17,7 @@ public sealed class MainWindowViewModel : IDisposable
     private readonly IScrapeService scrapeService;
     private readonly OperationCoordinator operationCoordinator;
     private readonly ILogger<MainWindowViewModel> logger;
-    private bool isRootDirectoryAvailable = true;
+    private bool areRootDirectoriesAvailable = true;
 
     public MainWindowViewModel(IScrapeService scrapeService, OperationCoordinator operationCoordinator, ILogger<MainWindowViewModel> logger)
     {
@@ -37,7 +37,7 @@ public sealed class MainWindowViewModel : IDisposable
     public bool AreConfigurationOperationsEnabled => !operationCoordinator.IsOperationRunning;
 
     /// <summary>Whether the run scraper button is enabled.</summary>
-    public bool IsRunEnabled => !operationCoordinator.IsOperationRunning && isRootDirectoryAvailable;
+    public bool IsRunEnabled => !operationCoordinator.IsOperationRunning && areRootDirectoriesAvailable;
 
     /// <summary>Whether the cancel button is enabled.</summary>
     public bool IsCancelEnabled => operationCoordinator.IsOperationRunning;
@@ -58,12 +58,13 @@ public sealed class MainWindowViewModel : IDisposable
     /// <summary>Requests cancellation of the running operation.</summary>
     public void CancelOperation() => operationCoordinator.Cancel();
 
-    /// <summary>Checks the root directory is available, reporting when it is not, and updates whether the scraper can run.</summary>
+    /// <summary>Checks the root directories are usable, reporting each problem, and updates whether the scraper can run.</summary>
     /// <returns>A task representing the asynchronous operation.</returns>
     public async Task CheckRootDirectoryAvailabilityAsync()
     {
-        isRootDirectoryAvailable = await scrapeService.RootDirectoryExistsAsync();
-        if (!isRootDirectoryAvailable) AppendStatusMessage("Root directory could not be found.");
+        var problems = await scrapeService.ValidateRootDirectoriesAsync();
+        areRootDirectoriesAvailable = problems.Count == 0;
+        foreach (var problem in problems) AppendStatusMessage(problem);
 
         OnChanged();
     }

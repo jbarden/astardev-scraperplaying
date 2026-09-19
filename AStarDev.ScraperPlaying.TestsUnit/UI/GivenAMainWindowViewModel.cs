@@ -15,10 +15,12 @@ public sealed class GivenAMainWindowViewModel : IDisposable
 
     public GivenAMainWindowViewModel()
     {
-        scrapeService.RootDirectoryExistsAsync().Returns(true);
+        scrapeService.ValidateRootDirectoriesAsync().Returns(Problems());
         viewModel = new(scrapeService, operationCoordinator, NullLogger<MainWindowViewModel>.Instance);
         viewModel.Changed += (_, _) => changedCount++;
     }
+
+    private static IReadOnlyList<string> Problems(params string[] problems) => problems;
 
     public void Dispose()
     {
@@ -78,12 +80,23 @@ public sealed class GivenAMainWindowViewModel : IDisposable
     [Fact]
     public async Task when_the_root_directory_is_missing_then_it_is_reported_and_the_scraper_cannot_run()
     {
-        scrapeService.RootDirectoryExistsAsync().Returns(false);
+        scrapeService.ValidateRootDirectoriesAsync().Returns(Problems("Root directory could not be found."));
 
         await viewModel.CheckRootDirectoryAvailabilityAsync();
 
         viewModel.IsRunEnabled.ShouldBeFalse();
         viewModel.StatusText.ShouldBe("Root directory could not be found.");
+    }
+
+    [Fact]
+    public async Task when_several_root_directory_problems_exist_then_each_is_reported_and_the_scraper_cannot_run()
+    {
+        scrapeService.ValidateRootDirectoriesAsync().Returns(Problems("Root directory could not be found.", "Famous root directory is not configured."));
+
+        await viewModel.CheckRootDirectoryAvailabilityAsync();
+
+        viewModel.IsRunEnabled.ShouldBeFalse();
+        viewModel.StatusText.ShouldBe($"Root directory could not be found.{Environment.NewLine}Famous root directory is not configured.");
     }
 
     [Fact]
