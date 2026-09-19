@@ -46,7 +46,7 @@ public sealed class GivenAWebsitePagesProcessor
 
                 return Task.CompletedTask;
             });
-        processor = new(browserSession, listingPageScraper, new NewWallpaperFilter(filesQuery), wallpaperIngestor, new IngestionStore(unitOfWork));
+        processor = new(browserSession, listingPageScraper, new NewWallpaperFilter(filesQuery), wallpaperIngestor, new IngestionStore(unitOfWork, Substitute.For<ITagsProcessor>()));
     }
 
     [Fact]
@@ -205,6 +205,20 @@ public sealed class GivenAWebsitePagesProcessor
         await Should.ThrowAsync<OperationCanceledException>(() => RunWith(cancellationTokenSource.Token));
 
         progress.Messages.ShouldContain("Scrape cancelled - failed to save wallpapers downloaded so far this page: save failed");
+    }
+
+    [Fact]
+    public async Task when_saving_a_page_fails_then_the_failure_is_reported_and_the_next_page_is_still_ingested()
+    {
+        wallpapersByPage[1] = ["wallpaper-1"];
+        wallpapersByPage[2] = ["wallpaper-2"];
+        var saveCount = 0;
+        unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(_ => ++saveCount == 1 ? throw new DbUpdateException("unique violation") : Task.FromResult(1));
+
+        await Run();
+
+        progress.Messages.ShouldContain("Failed to save the wallpapers ingested from this page, continuing with the next page: unique violation");
+        ingestedWallpaperIds.ShouldBe(["wallpaper-1", "wallpaper-2"]);
     }
 
     private static Exceptional<IReadOnlySet<FileHandle>> ExistingHandles(params string[] wallpaperIds)

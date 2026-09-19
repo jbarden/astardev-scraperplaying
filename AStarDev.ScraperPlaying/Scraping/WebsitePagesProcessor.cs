@@ -34,7 +34,7 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, ILi
                     await wallpaperIngestor.IngestAsync(wallpaperId, context, progress, cancellationToken);
                 }
 
-                await ingestionStore.SavePageAsync(cancellationToken);
+                await ingestionStore.SavePageAsync(progress, cancellationToken);
                 pageNumber++;
             } while (wallpaperCount > 0 && pageNumber <= MaxPagesPerSearch);
         }

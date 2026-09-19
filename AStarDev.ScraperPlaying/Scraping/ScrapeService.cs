@@ -22,10 +22,9 @@ public class ScrapeService(OperationRunner operationRunner, IServiceScopeFactory
     public async Task<IReadOnlyList<string>> ValidateRootDirectoriesAsync()
     {
         using var scope = scopeFactory.CreateScope();
-        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-        var configuration = await ScrapeConfigurationLoader.LoadAsync(unitOfWork);
+        var directories = await ScrapeDirectoriesLoader.LoadAsync(scope.ServiceProvider.GetRequiredService<IScrapeDirectoriesQuery>());
 
-        return rootDirectoryValidator.Validate(configuration.ScrapeDirectories);
+        return rootDirectoryValidator.Validate(directories);
     }
 
     private static Option<string> DescribeFailure(Exception exception)
