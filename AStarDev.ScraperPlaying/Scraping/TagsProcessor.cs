@@ -18,6 +18,20 @@ public class TagsProcessor(ITagsQuery tagsQuery, IUnitOfWork unitOfWork, IFileTa
     /// </summary>
     private readonly Dictionary<int, TagEntity> resolvedTags = [];
 
+    /// <summary>Tags created since the last <see cref="AcceptPendingTags"/>: not stored until the page is saved, and dropped if that save fails.</summary>
+    private readonly Dictionary<int, TagEntity> pendingTags = [];
+
+    /// <inheritdoc/>
+    public void AcceptPendingTags()
+    {
+        foreach (var (wallhavenTagId, tag) in pendingTags) resolvedTags[wallhavenTagId] = tag;
+
+        pendingTags.Clear();
+    }
+
+    /// <inheritdoc/>
+    public void DiscardPendingTags() => pendingTags.Clear();
+
     /// <inheritdoc/>
     public Task<Exceptional<Unit>> LinkTagsAsync(FileId fileId, IReadOnlyList<WallpaperTag> tags, CancellationToken cancellationToken)
         => Try.RunAsync(async () =>
@@ -27,7 +41,7 @@ public class TagsProcessor(ITagsQuery tagsQuery, IUnitOfWork unitOfWork, IFileTa
 
             foreach (var tag in distinctTags)
             {
-                fileTagRepository.Add(new FileTagEntity { FileId = fileId, TagId = resolvedTags[tag.WallhavenTagId].Id })
+                fileTagRepository.Add(new FileTagEntity { FileId = fileId, TagId = KnownTag(tag.WallhavenTagId).Id })
                     .Match(_ => Unit.Instance, ex => throw ex);
             }
 
@@ -36,7 +50,7 @@ public class TagsProcessor(ITagsQuery tagsQuery, IUnitOfWork unitOfWork, IFileTa
 
     private async Task ResolveUncachedTagsAsync(List<WallpaperTag> distinctTags, CancellationToken cancellationToken)
     {
-        var uncachedTags = distinctTags.Where(tag => !resolvedTags.ContainsKey(tag.WallhavenTagId)).ToList();
+        var uncachedTags = distinctTags.Where(tag => !IsKnown(tag.WallhavenTagId)).ToList();
         if (uncachedTags.Count == 0) return;
 
         var existingTags = (await tagsQuery.FindByWallhavenIdsAsync([.. uncachedTags.Select(tag => tag.WallhavenTagId)], cancellationToken))
@@ -44,9 +58,9 @@ public class TagsProcessor(ITagsQuery tagsQuery, IUnitOfWork unitOfWork, IFileTa
         foreach (var existing in existingTags) resolvedTags[existing.WallhavenTagId] = existing;
 
         var tagRepository = unitOfWork.GetRepository<TagEntity, TagId>();
-        foreach (var tag in uncachedTags.Where(tag => !resolvedTags.ContainsKey(tag.WallhavenTagId)))
+        foreach (var tag in uncachedTags.Where(tag => !IsKnown(tag.WallhavenTagId)))
         {
-            resolvedTags[tag.WallhavenTagId] = tagRepository.Add(new TagEntity
+            pendingTags[tag.WallhavenTagId] = tagRepository.Add(new TagEntity
             {
                 Id = TagId.Empty,
                 WallhavenTagId = tag.WallhavenTagId,
@@ -58,4 +72,8 @@ public class TagsProcessor(ITagsQuery tagsQuery, IUnitOfWork unitOfWork, IFileTa
             }).Match(added => added, ex => throw ex);
         }
     }
+
+    private bool IsKnown(int wallhavenTagId) => resolvedTags.ContainsKey(wallhavenTagId) || pendingTags.ContainsKey(wallhavenTagId);
+
+    private TagEntity KnownTag(int wallhavenTagId) => resolvedTags.TryGetValue(wallhavenTagId, out var tag) ? tag : pendingTags[wallhavenTagId];
 }

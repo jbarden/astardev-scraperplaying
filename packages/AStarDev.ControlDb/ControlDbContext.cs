@@ -19,6 +19,9 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
     private readonly IQuery<FileEntity> filesQuery = filesQuery ?? new FileQuery();
 
     /// <inheritdoc/>
+    public void ClearChangeTracker() => ChangeTracker.Clear();
+
+    /// <inheritdoc/>
     public async Task InTransactionAsync(Func<Task> work, CancellationToken cancellationToken = default)
     {
         await using var transaction = await Database.BeginTransactionAsync(cancellationToken);

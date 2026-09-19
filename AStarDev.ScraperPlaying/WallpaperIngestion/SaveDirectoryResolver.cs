@@ -9,7 +9,7 @@ namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 
 /// <inheritdoc/>
 /// <remarks>Scoped: the configured root directories are loaded once and reused for every wallpaper resolved during the scope (one scrape run).</remarks>
-public class SaveDirectoryResolver(IFileSystem fileSystem, IUnitOfWork unitOfWork) : ISaveDirectoryResolver
+public class SaveDirectoryResolver(IFileSystem fileSystem, IScrapeDirectoriesQuery directoriesQuery) : ISaveDirectoryResolver
 {
     private const string TopWallpapersDirectorySegment = "top-wallpapers";
 
@@ -46,6 +46,6 @@ public class SaveDirectoryResolver(IFileSystem fileSystem, IUnitOfWork unitOfWor
                 return load;
             });
 
-    private async Task<ScrapeDirectoriesEntity> LoadDirectoriesAsync()
-        => (await ScrapeConfigurationLoader.LoadAsync(unitOfWork)).ScrapeDirectories;
+    private Task<ScrapeDirectoriesEntity> LoadDirectoriesAsync()
+        => ScrapeDirectoriesLoader.LoadAsync(directoriesQuery);
 }

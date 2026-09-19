@@ -20,6 +20,9 @@ public interface IUnitOfWork
     /// <returns>The number of state entries written to the database.</returns>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Stops tracking every entity this unit of work has loaded or added, discarding any unsaved changes. Saved rows are unaffected.</summary>
+    void ClearChangeTracker();
+
     /// <summary>Runs <paramref name="work"/> in a single database transaction: everything saved during it is committed together, or rolled back if it throws.</summary>
     /// <param name="work">The work to run; it may call <see cref="SaveChangesAsync"/> more than once.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>

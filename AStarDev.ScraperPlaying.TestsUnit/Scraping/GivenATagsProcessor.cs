@@ -111,6 +111,51 @@ public sealed class GivenATagsProcessor
         result.Match(_ => (Exception?)null, ex => ex).ShouldBeSameAs(exception);
     }
 
+    [Fact]
+    public async Task when_pending_tags_are_discarded_then_a_tag_created_since_is_created_again_because_it_was_never_saved()
+    {
+        tagsQuery.FindByWallhavenIdsAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>()).Returns(ExistingTags());
+        tagRepository.Add(Arg.Any<TagEntity>()).Returns(call => (Exceptional<TagEntity>)call.Arg<TagEntity>());
+        fileTagRepository.Add(Arg.Any<FileTagEntity>()).Returns(call => (Exceptional<FileTagEntity>)call.Arg<FileTagEntity>());
+        await processor.LinkTagsAsync(FileId.Create(), [new WallpaperTag(40, "unsaved")], CancellationToken.None);
+
+        processor.DiscardPendingTags();
+        await processor.LinkTagsAsync(FileId.Create(), [new WallpaperTag(40, "unsaved")], CancellationToken.None);
+
+        tagRepository.Received(2).Add(Arg.Is<TagEntity>(tag => tag.WallhavenTagId == 40));
+    }
+
+    [Fact]
+    public async Task when_pending_tags_are_accepted_then_they_stay_cached_and_are_not_created_or_queried_again()
+    {
+        tagsQuery.FindByWallhavenIdsAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>()).Returns(ExistingTags());
+        tagRepository.Add(Arg.Any<TagEntity>()).Returns(call => (Exceptional<TagEntity>)call.Arg<TagEntity>());
+        fileTagRepository.Add(Arg.Any<FileTagEntity>()).Returns(call => (Exceptional<FileTagEntity>)call.Arg<FileTagEntity>());
+        await processor.LinkTagsAsync(FileId.Create(), [new WallpaperTag(41, "saved")], CancellationToken.None);
+        processor.AcceptPendingTags();
+        tagsQuery.ClearReceivedCalls();
+
+        await processor.LinkTagsAsync(FileId.Create(), [new WallpaperTag(41, "saved")], CancellationToken.None);
+
+        await tagsQuery.DidNotReceive().FindByWallhavenIdsAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>());
+        tagRepository.Received(1).Add(Arg.Any<TagEntity>());
+    }
+
+    [Fact]
+    public async Task when_pending_tags_are_discarded_then_tags_that_already_existed_in_the_database_stay_cached()
+    {
+        var existingTag = new TagEntity { Id = TagId.Create(), WallhavenTagId = 42, Name = "stored" };
+        tagsQuery.FindByWallhavenIdsAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>()).Returns(ExistingTags(existingTag));
+        fileTagRepository.Add(Arg.Any<FileTagEntity>()).Returns(call => (Exceptional<FileTagEntity>)call.Arg<FileTagEntity>());
+        await processor.LinkTagsAsync(FileId.Create(), [new WallpaperTag(42, "stored")], CancellationToken.None);
+        processor.DiscardPendingTags();
+        tagsQuery.ClearReceivedCalls();
+
+        await processor.LinkTagsAsync(FileId.Create(), [new WallpaperTag(42, "stored")], CancellationToken.None);
+
+        await tagsQuery.DidNotReceive().FindByWallhavenIdsAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>());
+    }
+
     private static Exceptional<IReadOnlyList<TagEntity>> ExistingTags(params TagEntity[] tags)
         => Exceptional.Success<IReadOnlyList<TagEntity>>(tags);
 }

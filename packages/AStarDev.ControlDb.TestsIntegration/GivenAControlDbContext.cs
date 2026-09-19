@@ -25,6 +25,29 @@ public sealed class GivenAControlDbContext : IDisposable
     }
 
     [Fact]
+    public async Task when_the_change_tracker_is_cleared_after_a_save_then_nothing_is_tracked_and_the_saved_rows_remain()
+    {
+        await context.Tags.AddAsync(TagEntityFactory.CreateTagEntity(wallhavenTagId: 601), TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        context.ClearChangeTracker();
+
+        context.ChangeTracker.Entries().ShouldBeEmpty();
+        (await context.Tags.CountAsync(tag => tag.WallhavenTagId == 601, TestContext.Current.CancellationToken)).ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task when_the_change_tracker_is_cleared_with_unsaved_changes_then_they_are_discarded_and_not_saved_later()
+    {
+        await context.Tags.AddAsync(TagEntityFactory.CreateTagEntity(wallhavenTagId: 602), TestContext.Current.CancellationToken);
+
+        context.ClearChangeTracker();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        (await context.Tags.CountAsync(tag => tag.WallhavenTagId == 602, TestContext.Current.CancellationToken)).ShouldBe(0);
+    }
+
+    [Fact]
     public async Task when_work_in_a_transaction_completes_then_every_save_is_committed()
     {
         var first = TagEntityFactory.CreateTagEntity(wallhavenTagId: 501);

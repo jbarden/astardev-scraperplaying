@@ -12,4 +12,10 @@ public interface ITagsProcessor
     /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation, containing an <see cref="Exceptional{T}"/> indicating success or the captured failure.</returns>
     Task<Exceptional<Unit>> LinkTagsAsync(FileId fileId, IReadOnlyList<WallpaperTag> tags, CancellationToken cancellationToken);
+
+    /// <summary>Marks the tags created since the last call as saved, so later wallpapers can reuse them without looking them up again. Call after the changes made by <see cref="LinkTagsAsync"/> were saved.</summary>
+    void AcceptPendingTags();
+
+    /// <summary>Forgets the tags created since the last accept, because the changes that would have stored them were discarded. Tags that already existed in the database stay cached.</summary>
+    void DiscardPendingTags();
 }
