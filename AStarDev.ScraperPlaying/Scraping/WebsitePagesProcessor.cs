@@ -35,7 +35,7 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, IWa
                 wallpaperCount = wallpaperIds?.Length ?? 0;
                 progress.Report($"Found {wallpaperCount} wallpaper(s) on {logLabel} page {pageNumber}.");
 
-                foreach (var wallpaperId in wallpaperIds ?? [])
+                foreach (var wallpaperId in await ExcludeAlreadyDownloadedAsync(wallpaperIds ?? [], progress, cancellationToken))
                 {
                     await IngestWallpaperAsync(wallpaperId, page, connection.BaseUrl, categoryName, categoryLabel, fileRepository, progress, cancellationToken);
                 }
@@ -60,27 +60,23 @@ public class WebsitePagesProcessor(IPlaywrightBrowserSession browserSession, IWa
         }
     }
 
-    private async Task IngestWallpaperAsync(string wallpaperId, IPage page, Uri baseUrl, Option<string> categoryName, string categoryLabel, IRepository<FileEntity, FileId> fileRepository, IProgress<string> progress, CancellationToken cancellationToken)
-        => await (await filesQuery.CheckExistsByHandleAsync(FileHandle.Create(wallpaperId), cancellationToken))
+    private async Task<string[]> ExcludeAlreadyDownloadedAsync(string[] wallpaperIds, IProgress<string> progress, CancellationToken cancellationToken)
+        => (await filesQuery.GetExistingHandlesAsync([.. wallpaperIds.Select(FileHandle.Create)], cancellationToken))
             .Match(
-                alreadyDownloaded => alreadyDownloaded
-                    ? ReportAlreadyDownloaded(wallpaperId, progress)
-                    : ScrapeDownloadAndPaceAsync(wallpaperId, page, baseUrl, categoryName, categoryLabel, fileRepository, progress, cancellationToken),
+                existing =>
+                {
+                    foreach (var wallpaperId in wallpaperIds.Where(id => existing.Contains(FileHandle.Create(id)))) progress.Report($"Wallpaper {wallpaperId} was already downloaded - skipping.");
+
+                    return wallpaperIds.Where(id => !existing.Contains(FileHandle.Create(id))).ToArray();
+                },
                 exception =>
                 {
-                    progress.Report($"Failed to check whether wallpaper {wallpaperId} was already downloaded: {exception.Message}");
+                    progress.Report($"Failed to check which wallpapers were already downloaded, skipping this page: {exception.Message}");
 
-                    return Task.CompletedTask;
+                    return [];
                 });
 
-    private static Task ReportAlreadyDownloaded(string wallpaperId, IProgress<string> progress)
-    {
-        progress.Report($"Wallpaper {wallpaperId} was already downloaded - skipping.");
-
-        return Task.CompletedTask;
-    }
-
-    private async Task ScrapeDownloadAndPaceAsync(string wallpaperId, IPage page, Uri baseUrl, Option<string> categoryName, string categoryLabel, IRepository<FileEntity, FileId> fileRepository, IProgress<string> progress, CancellationToken cancellationToken)
+    private async Task IngestWallpaperAsync(string wallpaperId, IPage page, Uri baseUrl, Option<string> categoryName, string categoryLabel, IRepository<FileEntity, FileId> fileRepository, IProgress<string> progress, CancellationToken cancellationToken)
     {
         await ScrapeAndDownloadAsync(wallpaperId, page, baseUrl, categoryName, categoryLabel, fileRepository, progress, cancellationToken);
         await Task.Delay(pacingDelay(), cancellationToken);

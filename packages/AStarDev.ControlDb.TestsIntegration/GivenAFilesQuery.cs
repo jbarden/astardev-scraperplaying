@@ -104,29 +104,38 @@ public sealed class GivenAFilesQuery : IDisposable
     }
 
     [Fact]
-    public async Task when_a_file_with_a_matching_handle_exists_then_check_exists_by_handle_returns_true()
+    public async Task when_some_handles_exist_then_only_those_are_returned()
     {
         var fileEntity = FileEntityFactory.CreateFileEntity();
         await context.Files.AddAsync(fileEntity, TestContext.Current.CancellationToken);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var query = new FilesQuery(context);
 
-        var result = await query.CheckExistsByHandleAsync(fileEntity.FileHandle, TestContext.Current.CancellationToken);
+        var result = await query.GetExistingHandlesAsync([fileEntity.FileHandle, FileHandle.Create("does-not-exist")], TestContext.Current.CancellationToken);
 
-        result.Match(exists => exists, exception => throw exception).ShouldBeTrue();
+        var existing = result.Match(handles => handles, exception => throw exception);
+        existing.Count.ShouldBe(1);
+        existing.ShouldContain(fileEntity.FileHandle);
     }
 
     [Fact]
-    public async Task when_no_file_with_a_matching_handle_exists_then_check_exists_by_handle_returns_false()
+    public async Task when_no_handles_exist_then_an_empty_set_is_returned()
     {
-        var fileEntity = FileEntityFactory.CreateFileEntity();
-        await context.Files.AddAsync(fileEntity, TestContext.Current.CancellationToken);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var query = new FilesQuery(context);
 
-        var result = await query.CheckExistsByHandleAsync(FileHandle.Create("does-not-exist"), TestContext.Current.CancellationToken);
+        var result = await query.GetExistingHandlesAsync([FileHandle.Create("does-not-exist")], TestContext.Current.CancellationToken);
 
-        result.Match(exists => exists, exception => throw exception).ShouldBeFalse();
+        result.Match(handles => handles, exception => throw exception).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task when_no_handles_are_requested_then_an_empty_set_is_returned()
+    {
+        var query = new FilesQuery(context);
+
+        var result = await query.GetExistingHandlesAsync([], TestContext.Current.CancellationToken);
+
+        result.Match(handles => handles, exception => throw exception).ShouldBeEmpty();
     }
 
     public void Dispose()
