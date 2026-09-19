@@ -9,17 +9,16 @@ namespace AStarDev.ControlDb;
 public class FilesQuery(ControlDbContext context) : IFilesQuery
 {
     /// <inheritdoc/>
-    public async Task<Exceptional<Option<FileEntity>>> TryGetByNameAsync(FileName name, CancellationToken cancellationToken = default)
-            => await context.Files
+    public Task<Exceptional<Option<FileEntity>>> TryGetByNameAsync(FileName name, CancellationToken cancellationToken = default)
+            => Try.RunAsync(async () => (Option<FileEntity>)await context.Files
                             .Include(f => f.DeletionStatus)
                             .Include(f => f.FileAccessDetail)
                             .Include(f => f.ImageDetail)
-                            .AsAsyncEnumerable()
-                            .FirstOrNoneAsync(f => f.FileName.Value.Contains(name.Value), cancellationToken);
+                            .FirstOrDefaultAsync(f => f.FileName.Value == name.Value, cancellationToken));
 
     /// <inheritdoc/>
     public async Task<Exceptional<bool>> CheckExistsByNameAsync(FileName name, CancellationToken cancellationToken = default)
-            => await context.Files.AnyAsync(f => f.FileName.Value.Contains(name.Value), cancellationToken);
+            => await context.Files.AnyAsync(f => f.FileName.Value == name.Value, cancellationToken);
 
     /// <inheritdoc/>
     public async Task<Exceptional<bool>> CheckExistsByHandleAsync(FileHandle handle, CancellationToken cancellationToken = default)
