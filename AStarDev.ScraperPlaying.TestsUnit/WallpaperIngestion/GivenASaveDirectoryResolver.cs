@@ -37,6 +37,24 @@ public sealed class GivenASaveDirectoryResolver
     }
 
     [Fact]
+    public async Task when_several_directories_are_resolved_then_the_configuration_is_loaded_only_once()
+    {
+        var loadCount = 0;
+        scrapeConfigurationRepository.TryGetFirstAsync().Returns(_ =>
+        {
+            loadCount++;
+
+            return (Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration("root-directory", "famous-directory");
+        });
+
+        await resolver.ResolveSaveDirectoryAsync(Option.None<string>(), false, CancellationToken.None);
+        await resolver.ResolveSaveDirectoryAsync(Option.Some("My Category"), true, CancellationToken.None);
+        await resolver.ResolveSaveDirectoryAsync(Option.Some("Other"), false, CancellationToken.None);
+
+        loadCount.ShouldBe(1);
+    }
+
+    [Fact]
     public async Task when_no_scrape_configuration_exists_then_it_throws()
     {
         scrapeConfigurationRepository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)Option.None<ScrapeConfigurationEntity>());
