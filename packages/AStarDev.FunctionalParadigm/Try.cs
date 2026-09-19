@@ -26,18 +26,6 @@ public static class Try
         }
     }
 
-    /// <summary>
-    ///     Runs the specified operation, throwing immediately if <paramref name="cancellationToken" /> is
-    ///     cancelled, and otherwise capturing any thrown exception (other than
-    ///     <see cref="OperationCanceledException" />) into a <see cref="Failure{T}" />.
-    /// </summary>
-    public static Exceptional<T> Run<T>(Func<T> operation, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        return Run(operation);
-    }
-
     /// <summary>Runs the specified asynchronous operation, capturing any thrown exception (other than <see cref="OperationCanceledException" />) into a <see cref="Failure{T}" />.</summary>
     public static async Task<Exceptional<T>> RunAsync<T>(Func<Task<T>> operation)
     {
