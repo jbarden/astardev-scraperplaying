@@ -35,6 +35,8 @@ public static class ApplicationServices
             .AddSingleton<OperationRunner>()
             .AddScoped<IPagesProcessor, WebsitePagesProcessor>()
             .AddScoped<IListingPageScraper, ListingPageScraper>()
+            .AddScoped<INewWallpaperFilter, NewWallpaperFilter>()
+            .AddScoped<IIngestionStore, IngestionStore>()
             .AddScoped<IWallpaperIngestor, WallpaperIngestor>()
             .AddScoped<IWallpaperDetailPageScraper, WallpaperDetailPageScraper>()
             .AddScoped<IPlaywrightBrowserSession, PlaywrightBrowserSession>()

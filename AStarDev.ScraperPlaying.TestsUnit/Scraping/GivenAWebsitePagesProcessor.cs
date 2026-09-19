@@ -46,17 +46,16 @@ public sealed class GivenAWebsitePagesProcessor
 
                 return Task.CompletedTask;
             });
-        processor = new(browserSession, listingPageScraper, filesQuery, wallpaperIngestor, unitOfWork);
+        processor = new(browserSession, listingPageScraper, new NewWallpaperFilter(filesQuery), wallpaperIngestor, new IngestionStore(unitOfWork));
     }
 
     [Fact]
-    public async Task when_a_page_has_wallpapers_then_they_are_reported_and_the_next_page_is_fetched()
+    public async Task when_a_page_has_wallpapers_then_the_next_page_is_fetched()
     {
         wallpapersByPage[1] = ["wallpaper-1", "wallpaper-2"];
 
         await Run();
 
-        progress.Messages.ShouldContain("Found 2 wallpaper(s) on wallpapers page 1.");
         requestedPages.Select(request => request.PageNumber).ShouldBe([1, 2]);
     }
 
@@ -121,6 +120,16 @@ public sealed class GivenAWebsitePagesProcessor
         await processor.FetchAndProcessPagesAsync(new SearchRequest("nature", Option.Some("Nature"), pageNumber => $"page/{pageNumber}"), Connection, progress, CancellationToken.None);
 
         await wallpaperIngestor.Received(1).IngestAsync("wallpaper-1", Arg.Is<PageIngestionContext>(context => context.CategoryLabel == "Nature" && context.CategoryName.Match(name => name == "Nature", () => false)), progress, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task when_a_page_is_scraped_then_the_processor_does_not_repeat_the_wallpaper_count_the_scraper_reports()
+    {
+        wallpapersByPage[1] = ["wallpaper-1", "wallpaper-2"];
+
+        await Run();
+
+        progress.Messages.ShouldNotContain(message => message.StartsWith("Found "));
     }
 
     [Fact]
