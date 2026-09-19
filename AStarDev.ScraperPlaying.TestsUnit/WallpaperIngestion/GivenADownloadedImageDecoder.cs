@@ -54,12 +54,30 @@ public sealed class GivenADownloadedImageDecoder
         decoded.Height.ShouldBe(expectedHeight);
     }
 
-    private static byte[] CreatePng(int width, int height)
+    [Theory]
+    [InlineData(4000, 2000, 1280, 1280, 640)]
+    [InlineData(2000, 4000, 1280, 640, 1280)]
+    [InlineData(300, 200, 1280, 300, 200)]
+    public void when_a_jpeg_is_larger_than_the_maximum_dimension_then_it_is_scaled_down_to_fit_but_never_up(int width, int height, int maxDimension, int expectedWidth, int expectedHeight)
+    {
+        fileSystem.Directory.CreateDirectory("/images");
+        fileSystem.File.WriteAllBytes("/images/wallpaper-1.jpg", CreateImage(width, height, SKEncodedImageFormat.Jpeg));
+
+        using var result = decoder.DecodeToPng("/images/wallpaper-1.jpg", maxDimension);
+
+        using var decoded = SKBitmap.Decode(result);
+        decoded.Width.ShouldBe(expectedWidth);
+        decoded.Height.ShouldBe(expectedHeight);
+    }
+
+    private static byte[] CreatePng(int width, int height) => CreateImage(width, height, SKEncodedImageFormat.Png);
+
+    private static byte[] CreateImage(int width, int height, SKEncodedImageFormat format)
     {
         using var bitmap = new SKBitmap(width, height);
         bitmap.Erase(SKColors.Red);
         using var image = SKImage.FromBitmap(bitmap);
-        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        using var data = image.Encode(format, 100);
 
         return data.ToArray();
     }
