@@ -17,6 +17,7 @@ public static class ApplicationServices
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration) =>
         services
             .AddSingleton<IApplicationDirectories, ApplicationDirectories>()
+            .AddSingleton<IRootDirectoryValidator, RootDirectoryValidator>()
             .AddSingleton<IScrapeService, ScrapeService>()
             .AddSingleton<IConfigurationFilePicker, ConfigurationFilePicker>()
             .AddSingleton<IScrapeConfigurationFileReader, ScrapeConfigurationFileReader>()
