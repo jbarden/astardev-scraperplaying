@@ -4,8 +4,8 @@ using Microsoft.Playwright;
 namespace AStarDev.ScraperPlaying.Scraping;
 
 /// <summary>
-/// Fetches wallhaven.cc search-result pages by driving a real browser via Playwright instead of
-/// calling the JSON API. Owns the paging loop: for each listing page it scrapes the wallpaper ids,
+/// Fetches wallhaven.cc search-result pages by driving a real browser via Playwright.
+/// Owns the paging loop: for each listing page it scrapes the wallpaper ids,
 /// skips those already downloaded, hands the rest to <see cref="IWallpaperIngestor"/>, and saves the page.
 /// </summary>
 /// <inheritdoc/>
