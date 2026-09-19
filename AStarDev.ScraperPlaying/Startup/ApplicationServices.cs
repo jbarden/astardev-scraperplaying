@@ -31,6 +31,8 @@ public static class ApplicationServices
             .AddSingleton<ImageDisplayCoordinator>()
             .AddSingleton<OperationCoordinator>()
             .AddScoped<IPagesProcessor, WebsitePagesProcessor>()
+            .AddScoped<IListingPageScraper, ListingPageScraper>()
+            .AddScoped<IWallpaperIngestor, WallpaperIngestor>()
             .AddScoped<IWallpaperDetailPageScraper, WallpaperDetailPageScraper>()
             .AddScoped<IPlaywrightBrowserSession, PlaywrightBrowserSession>()
             .AddScoped<IWallpaperDetailImageProcessor, WallpaperDetailImageProcessor>()
