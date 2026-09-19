@@ -29,7 +29,7 @@ public partial class App : Application, IDisposable
             }
             catch (Exception exception)
             {
-                desktop.MainWindow = UI.MainWindow.CreateStartupError(exception);
+                desktop.MainWindow = new UI.StartupErrorWindow(exception);
             }
         }
 

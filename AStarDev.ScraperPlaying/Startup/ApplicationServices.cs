@@ -42,5 +42,6 @@ public static class ApplicationServices
             .AddScoped<ITagsProcessor, TagsProcessor>()
             .AddSingleton<Func<DateTimeOffset>>(_ => () => DateTimeOffset.UtcNow)
             .AddSingleton<Func<TimeSpan>>(_ => () => TimeSpan.FromSeconds(2))
+            .AddSingleton<MainWindowViewModel>()
             .AddSingleton<MainWindow>();
 }
