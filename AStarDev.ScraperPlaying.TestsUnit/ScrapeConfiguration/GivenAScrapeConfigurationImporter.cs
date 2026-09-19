@@ -14,6 +14,7 @@ public sealed class GivenAScrapeConfigurationImporter
     {
         unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().Returns(repository);
         unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
+        unitOfWork.InTransactionAsync(Arg.Any<Func<Task>>(), Arg.Any<CancellationToken>()).Returns(call => call.Arg<Func<Task>>()());
     }
 
     [Fact]
@@ -58,6 +59,7 @@ public sealed class GivenAScrapeConfigurationImporter
         repository.Received(1).Delete(existing);
         repository.Received(1).Add(Arg.Is<ScrapeConfigurationEntity>(entity => entity.UserConfiguration.Username == "new-user"));
         await unitOfWork.Received(2).SaveChangesAsync(Arg.Any<CancellationToken>());
+        await unitOfWork.Received(1).InTransactionAsync(Arg.Any<Func<Task>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
