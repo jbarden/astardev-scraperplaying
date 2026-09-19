@@ -21,6 +21,15 @@ public class FilesQuery(ControlDbContext context) : IFilesQuery
             => await context.Files.AnyAsync(f => f.FileName.Value == name.Value, cancellationToken);
 
     /// <inheritdoc/>
-    public async Task<Exceptional<bool>> CheckExistsByHandleAsync(FileHandle handle, CancellationToken cancellationToken = default)
-            => await context.Files.AnyAsync(f => f.FileHandle == handle, cancellationToken);
+    public Task<Exceptional<IReadOnlySet<FileHandle>>> GetExistingHandlesAsync(IReadOnlyCollection<FileHandle> fileHandles, CancellationToken cancellationToken = default)
+            => Try.RunAsync(async () =>
+            {
+                var requested = fileHandles.ToList();
+                var existing = await context.Files
+                    .Where(f => requested.Contains(f.FileHandle))
+                    .Select(f => f.FileHandle)
+                    .ToListAsync(cancellationToken);
+
+                return (IReadOnlySet<FileHandle>)existing.ToHashSet();
+            });
 }

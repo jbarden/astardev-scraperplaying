@@ -41,7 +41,7 @@ public sealed class GivenAWebsitePagesProcessor
         page.Locator("figure.thumb", Arg.Any<PageLocatorOptions?>()).Returns(locator);
         locator.EvaluateAllAsync<string[]>(Arg.Any<string>(), Arg.Any<object?>())
             .Returns(_ => wallpapersByPage.GetValueOrDefault(currentPageNumber, []));
-        filesQuery.CheckExistsByHandleAsync(Arg.Any<FileHandle>(), Arg.Any<CancellationToken>()).Returns((Exceptional<bool>)false);
+        filesQuery.GetExistingHandlesAsync(Arg.Any<IReadOnlyCollection<FileHandle>>(), Arg.Any<CancellationToken>()).Returns(NoExistingHandles());
         unitOfWork.GetRepository<FileEntity, FileId>().Returns(fileRepository);
         saveDirectoryResolver.ResolveSaveDirectoryAsync(Arg.Any<Option<string>>(), Arg.Any<bool>(), Arg.Any<CancellationToken>()).Returns(callInfo => callInfo.Arg<bool>() ? "famous-directory" : "some-directory");
         detailPageScraper.ScrapeAsync(Arg.Any<string>(), page, Arg.Any<Uri>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
@@ -170,7 +170,7 @@ public sealed class GivenAWebsitePagesProcessor
     public async Task when_a_wallpaper_was_already_downloaded_then_its_detail_page_is_not_visited_and_the_rest_of_the_page_is_still_processed()
     {
         wallpapersByPage[1] = ["wallpaper-1", "wallpaper-2"];
-        filesQuery.CheckExistsByHandleAsync(FileHandle.Create("wallpaper-1"), Arg.Any<CancellationToken>()).Returns((Exceptional<bool>)true);
+        filesQuery.GetExistingHandlesAsync(Arg.Any<IReadOnlyCollection<FileHandle>>(), Arg.Any<CancellationToken>()).Returns(ExistingHandles("wallpaper-1"));
 
         await Run();
 
@@ -180,13 +180,23 @@ public sealed class GivenAWebsitePagesProcessor
     }
 
     [Fact]
+    public async Task when_a_page_has_several_wallpapers_then_their_existence_is_checked_in_a_single_query()
+    {
+        wallpapersByPage[1] = ["wallpaper-1", "wallpaper-2", "wallpaper-3"];
+
+        await Run();
+
+        await filesQuery.Received(1).GetExistingHandlesAsync(Arg.Is<IReadOnlyCollection<FileHandle>>(handles => handles.Count == 3), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task when_a_wallpaper_was_already_downloaded_then_no_pacing_delay_is_applied_for_it()
     {
         wallpapersByPage[1] = ["wallpaper-1"];
         await Run();
         var delaysWhenDownloading = pacingDelayCount;
         pacingDelayCount = 0;
-        filesQuery.CheckExistsByHandleAsync(Arg.Any<FileHandle>(), Arg.Any<CancellationToken>()).Returns((Exceptional<bool>)true);
+        filesQuery.GetExistingHandlesAsync(Arg.Any<IReadOnlyCollection<FileHandle>>(), Arg.Any<CancellationToken>()).Returns(ExistingHandles("wallpaper-1"));
 
         await Run();
 
@@ -194,14 +204,14 @@ public sealed class GivenAWebsitePagesProcessor
     }
 
     [Fact]
-    public async Task when_checking_whether_a_wallpaper_was_already_downloaded_fails_then_it_is_reported_and_the_wallpaper_is_skipped()
+    public async Task when_checking_which_wallpapers_were_already_downloaded_fails_then_it_is_reported_and_the_page_is_skipped()
     {
         wallpapersByPage[1] = ["wallpaper-1"];
-        filesQuery.CheckExistsByHandleAsync(Arg.Any<FileHandle>(), Arg.Any<CancellationToken>()).Returns((Exceptional<bool>)new InvalidOperationException("db down"));
+        filesQuery.GetExistingHandlesAsync(Arg.Any<IReadOnlyCollection<FileHandle>>(), Arg.Any<CancellationToken>()).Returns((Exceptional<IReadOnlySet<FileHandle>>)new InvalidOperationException("db down"));
 
         await Run();
 
-        progress.Messages.ShouldContain("Failed to check whether wallpaper wallpaper-1 was already downloaded: db down");
+        progress.Messages.ShouldContain("Failed to check which wallpapers were already downloaded, skipping this page: db down");
         await detailPageScraper.DidNotReceive().ScrapeAsync(Arg.Any<string>(), Arg.Any<IPage>(), Arg.Any<Uri>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
     }
 
@@ -300,6 +310,15 @@ public sealed class GivenAWebsitePagesProcessor
 
         progress.Messages.ShouldContain("Scrape cancelled - failed to save wallpapers downloaded so far this page: save failed");
     }
+
+    private static Exceptional<IReadOnlySet<FileHandle>> ExistingHandles(params string[] wallpaperIds)
+    {
+        IReadOnlySet<FileHandle> handles = wallpaperIds.Select(FileHandle.Create).ToHashSet();
+
+        return Exceptional.Success(handles);
+    }
+
+    private static Exceptional<IReadOnlySet<FileHandle>> NoExistingHandles() => ExistingHandles();
 
     private static readonly WallhavenConnection Connection = new("api-key", new Uri("https://example.test"));
 
