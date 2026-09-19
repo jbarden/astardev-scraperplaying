@@ -76,6 +76,34 @@ public sealed class GivenAFilesQuery : IDisposable
     }
 
     [Fact]
+    public async Task when_a_file_name_only_appears_inside_a_longer_stored_name_then_check_exists_returns_false()
+    {
+        var fileEntity = FileEntityFactory.CreateFileEntity();
+        fileEntity.FileName = FileName.Create($"0{fileEntity.FileName.Value}");
+        await context.Files.AddAsync(fileEntity, TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var query = new FilesQuery(context);
+
+        var result = await query.CheckExistsByNameAsync(FileName.Create(fileEntity.FileName.Value[1..]), TestContext.Current.CancellationToken);
+
+        result.Match(exists => exists, exception => throw exception).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task when_a_file_name_only_appears_inside_a_longer_stored_name_then_try_get_by_name_returns_none()
+    {
+        var fileEntity = FileEntityFactory.CreateFileEntity();
+        fileEntity.FileName = FileName.Create($"0{fileEntity.FileName.Value}");
+        await context.Files.AddAsync(fileEntity, TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var query = new FilesQuery(context);
+
+        var result = await query.TryGetByNameAsync(FileName.Create(fileEntity.FileName.Value[1..]), TestContext.Current.CancellationToken);
+
+        result.Match(option => option, exception => throw exception).Match(_ => true, () => false).ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task when_a_file_with_a_matching_handle_exists_then_check_exists_by_handle_returns_true()
     {
         var fileEntity = FileEntityFactory.CreateFileEntity();
