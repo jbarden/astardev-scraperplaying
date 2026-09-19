@@ -35,6 +35,8 @@ public static class ApplicationServices
             .AddScoped<IWallpaperIngestor, WallpaperIngestor>()
             .AddScoped<IWallpaperDetailPageScraper, WallpaperDetailPageScraper>()
             .AddScoped<IPlaywrightBrowserSession, PlaywrightBrowserSession>()
+            .AddScoped<IWallpaperImageDownloader, WallpaperImageDownloader>()
+            .AddScoped<IWallpaperFileRecorder, WallpaperFileRecorder>()
             .AddScoped<IWallpaperDetailImageProcessor, WallpaperDetailImageProcessor>()
             .AddScoped<ISaveDirectoryResolver, SaveDirectoryResolver>()
             .AddScoped<ITagsProcessor, TagsProcessor>()

@@ -39,11 +39,9 @@ public class WallpaperIngestor(IWallpaperDetailPageScraper detailPageScraper, IS
                 });
 
     private async Task DownloadAndLinkAsync(WallpaperDetail detail, string directory, PageIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
-        => await (await imageProcessor.DownloadAndRecordAsync(detail, context.Page, directory, context.CategoryLabel, context.FileRepository, progress, cancellationToken))
+        => await (await imageProcessor.DownloadAndRecordAsync(new ImageDownloadRequest(detail, context.Page, directory, context.CategoryLabel, context.FileRepository), progress, cancellationToken))
             .Match(
-                recorded => recorded.Match(
-                    file => LinkTagsAsync(file, detail, progress, cancellationToken),
-                    () => Task.CompletedTask),
+                file => LinkTagsAsync(file, detail, progress, cancellationToken),
                 exception =>
                 {
                     progress.Report($"Failed to process image for wallpaper {detail.WallpaperId}: {exception.Message}");
