@@ -119,7 +119,7 @@ public static class ExceptionalExtensions
         }
 
         /// <summary>Asynchronously pattern matches on a Task of <see cref="Exceptional{T}" /> for side effects.</summary>
-        public async Task MatchAsync(Func<T, Task> onSuccess, Func<Exception, T> onFailure)
+        public async Task MatchAsync(Func<T, Task> onSuccess, Action<Exception> onFailure)
         {
             var exceptional = await exceptionalTask.ConfigureAwait(false);
 
