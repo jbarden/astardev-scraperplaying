@@ -15,12 +15,7 @@ public sealed class GivenExceptionalTaskMatchAndToResult
 
                 return Task.CompletedTask;
             },
-            _ =>
-            {
-                failureInvoked = true;
-
-                return 0;
-            });
+            _ => failureInvoked = true);
 
         captured.ShouldBe(4);
         failureInvoked.ShouldBeFalse();
@@ -40,12 +35,7 @@ public sealed class GivenExceptionalTaskMatchAndToResult
 
                 return Task.CompletedTask;
             },
-            ex =>
-            {
-                captured = ex;
-
-                return 0;
-            });
+            ex => captured = ex);
 
         captured.ShouldBeSameAs(exception);
         successInvoked.ShouldBeFalse();
