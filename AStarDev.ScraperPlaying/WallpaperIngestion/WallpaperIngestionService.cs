@@ -2,6 +2,7 @@ using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Scraping;
+using Tag = AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse.Tag;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 using AStarDev.Utilities;
 
@@ -14,7 +15,6 @@ public class WallpaperIngestionService(IFilesQuery filesQuery, IImageProcessor i
     public async Task IngestAsync(Data wallpaper, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
     {
         var extension = wallpaper.Path.ToFileExtension();
-        var fileRequest = new WallpaperFileRequest(wallpaper, context.Directory, extension, context.CategoryLabel);
 
         await (await filesQuery.CheckExistsByNameAsync(new FileName($"{wallpaper.Id}{extension}"), cancellationToken))
         .Match(
@@ -30,6 +30,9 @@ public class WallpaperIngestionService(IFilesQuery filesQuery, IImageProcessor i
                 await Try.RunAsync(async () =>
                 {
                     progress.Report($"No existing data found for wallpaper {wallpaper.Id}.");
+                    var tags = await FetchTagsAsync(wallpaper.Id, context.Client, progress, cancellationToken);
+                    var fileRequest = new WallpaperFileRequest(wallpaper, context.Directory, WallpaperFileNamer.Create(wallpaper.Id, extension, tags), context.CategoryLabel);
+
                     await imageProcessor.DownloadImageAsync(fileRequest, progress, context.Client, cancellationToken);
                     progress.Report($"Downloaded image data for wallpaper {wallpaper.Id}");
                     await Task.Delay(pacingDelay(), cancellationToken);
@@ -37,13 +40,12 @@ public class WallpaperIngestionService(IFilesQuery filesQuery, IImageProcessor i
                     var fileEntity = (await imageProcessor.ProcessTheImageAsync(context.FileRepository, fileRequest, cancellationToken))
                         .Match(entity => entity, ex => throw ex);
 
-                    await Task.Delay(pacingDelay(), cancellationToken);
-                    await tagsProcessor.FetchAndLinkTagsAsync(wallpaper.Id, fileEntity.Id, context.Client, progress, cancellationToken)
+                    await tagsProcessor.LinkTagsAsync(fileEntity.Id, tags, cancellationToken)
                         .MatchAsync(
                             _ => Task.CompletedTask,
                             ex =>
                             {
-                                progress.Report($"Failed to fetch tags for wallpaper {wallpaper.Id}: {ex.Message}");
+                                progress.Report($"Failed to link tags for wallpaper {wallpaper.Id}: {ex.Message}");
 
                                 return Unit.Instance;
                             }
@@ -67,5 +69,20 @@ public class WallpaperIngestionService(IFilesQuery filesQuery, IImageProcessor i
                 return Task.CompletedTask;
             }
         );
+    }
+
+    private async Task<IReadOnlyList<Tag>> FetchTagsAsync(string wallpaperId, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
+    {
+        await Task.Delay(pacingDelay(), cancellationToken);
+
+        return (await tagsProcessor.FetchTagsAsync(wallpaperId, client, progress, cancellationToken))
+            .Match(
+                tags => tags,
+                ex =>
+                {
+                    progress.Report($"Failed to fetch tags for wallpaper {wallpaperId}: {ex.Message}");
+
+                    return [];
+                });
     }
 }

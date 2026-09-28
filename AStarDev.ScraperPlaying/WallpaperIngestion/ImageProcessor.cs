@@ -22,7 +22,7 @@ public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, 
         using Stream downloadStream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
         fileSystem.Directory.CreateDirectory(request.Directory);
-        var savedPath = fileSystem.Path.Combine(request.Directory, $"{request.Wallpaper.Id}{request.Extension}");
+        var savedPath = fileSystem.Path.Combine(request.Directory, request.FileName.Value);
         using (var fileStream = fileSystem.FileStream.New(savedPath, FileMode.Create, FileAccess.Write, FileShare.None))
         {
             await downloadStream.CopyToAsync(fileStream, cancellationToken);
@@ -40,7 +40,7 @@ public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, 
         var fileEntity = new FileEntity
         {
             Id = FileId.Empty,
-            FileName = new FileName($"{wallpaper.Id}{request.Extension}"),
+            FileName = request.FileName,
             DirectoryName = DirectoryName.Create(request.Directory),
             FileAccessDetail = new FileAccessDetailEntity
             {
