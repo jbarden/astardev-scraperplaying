@@ -6,7 +6,6 @@ using AStarDev.ControlDb;
 using AStarDev.ScraperPlaying.UI;
 using AStarDev.Utilities;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Playwright;
 
 namespace AStarDev.ScraperPlaying.Scraping;
 
@@ -20,7 +19,7 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
         var startTime = Stopwatch.GetTimestamp();
         try
         {
-            await using var scope = scopeFactory.CreateAsyncScope();
+            using var scope = scopeFactory.CreateScope();
             var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
             var pagesProcessor = scope.ServiceProvider.GetRequiredService<IPagesProcessor>();
 
@@ -34,10 +33,6 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
         catch (HttpRequestException e)
         {
             progress.Report($"Request error: {e.Message}");
-        }
-        catch (PlaywrightException e)
-        {
-            progress.Report($"Website scraping error: {e.Message}");
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -68,19 +63,17 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
 
     private static async Task RunSearchesAsync(IPagesProcessor pagesProcessor, ScrapeConfigurationEntity configuration, IProgress<string> progress, CancellationToken cancellationToken)
     {
-        var connection = new WallhavenConnection(configuration.UserConfiguration.ApiKey, configuration.BaseUrl, configuration.UseHeadless);
+        var connection = new WallhavenConnection(configuration.UserConfiguration.ApiKey, configuration.BaseUrl);
         var topWallpapersUrl = configuration.TopWallpapers;
         var searchCategoriesUrl = configuration.SearchStringPrefix;
-        var searchCategoriesSuffix = configuration.SearchStringSuffix;
         var searchCategories = configuration.SearchConfiguration.SearchCategories;
-
-        foreach (var category in searchCategories)
-        {
-            await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Id}", Option.Some(category.Name), page
-                => WallhavenUrlBuilder.BuildCategoryPageUrl(searchCategoriesUrl, category, searchCategoriesSuffix, page), connection, progress, cancellationToken);
-        }
 
         progress.Report("Fetching top wallpapers.");
         await pagesProcessor.FetchAndProcessPagesAsync("top wallpapers", Option.None<string>(), page => WallhavenUrlBuilder.BuildTopWallpapersPageUrl(topWallpapersUrl, page), connection, progress, cancellationToken);
+
+        foreach (var category in searchCategories.Take(3))
+        {
+            await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Id}", Option.Some(category.Name), page => WallhavenUrlBuilder.BuildCategoryPageUrl(searchCategoriesUrl, category, page), connection, progress, cancellationToken);
+        }
     }
 }
