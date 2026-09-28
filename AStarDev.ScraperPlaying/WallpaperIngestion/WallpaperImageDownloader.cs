@@ -16,7 +16,7 @@ public class WallpaperImageDownloader(IFileSystem fileSystem) : IWallpaperImageD
         {
             if (string.IsNullOrWhiteSpace(detail.ImageUrl)) throw new InvalidOperationException($"No image URL was found on the detail page for wallpaper {detail.WallpaperId}.");
 
-            var fileName = new FileName($"{detail.WallpaperId}{detail.ImageUrl.ToFileExtension()}");
+            var fileName = WallpaperFileNamer.Create(detail);
 
             progress.Report($"Downloading image for wallpaper {detail.WallpaperId} from {detail.ImageUrl}");
             var response = await page.Context.APIRequest.GetAsync(detail.ImageUrl).WaitAsync(cancellationToken);
