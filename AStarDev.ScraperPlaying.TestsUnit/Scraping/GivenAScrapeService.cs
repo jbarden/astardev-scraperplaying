@@ -2,9 +2,8 @@ using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Scraping;
-using AStarDev.ScraperPlaying.Operations;
+using AStarDev.ScraperPlaying.UI;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Playwright;
 using Testably.Abstractions.Testing;
 
@@ -15,8 +14,6 @@ public sealed class GivenAScrapeService : IDisposable
     private readonly OperationCoordinator operationCoordinator = new();
     private readonly IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> repository = Substitute.For<IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>>();
-    private readonly IScrapeDirectoriesQuery directoriesQuery = Substitute.For<IScrapeDirectoriesQuery>();
-    private readonly ISiteStatusChecker siteStatusChecker = Substitute.For<ISiteStatusChecker>();
     private readonly IPagesProcessor pagesProcessor = Substitute.For<IPagesProcessor>();
     private readonly MockFileSystem fileSystem = new();
     private readonly CapturingProgress progress = new();
@@ -25,19 +22,15 @@ public sealed class GivenAScrapeService : IDisposable
     public GivenAScrapeService()
     {
         unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().Returns(repository);
-        pagesProcessor.FetchAndProcessPagesAsync(Arg.Any<SearchRequest>(), Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
+        pagesProcessor.FetchAndProcessPagesAsync(Arg.Any<string>(), Arg.Any<Option<string>>(), Arg.Any<Func<int, string>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
-
-        siteStatusChecker.IsAvailableAsync(Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>()).Returns(true);
 
         var services = new ServiceCollection();
         services.AddSingleton(unitOfWork);
         services.AddSingleton(pagesProcessor);
-        services.AddSingleton(directoriesQuery);
-        services.AddSingleton(siteStatusChecker);
         var scopeFactory = services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
 
-        service = new(new OperationRunner(operationCoordinator, NullLogger<OperationRunner>.Instance), scopeFactory, new RootDirectoryValidator(fileSystem));
+        service = new(operationCoordinator, scopeFactory, fileSystem);
     }
 
     [Fact]
@@ -50,26 +43,12 @@ public sealed class GivenAScrapeService : IDisposable
         progress.Messages.ShouldContain("Starting scrape operation.");
         progress.Messages.ShouldContain("Fetching top wallpapers.");
         progress.Messages.ShouldContain(message => message.StartsWith("Search completed in:"));
-        await pagesProcessor.Received(1).FetchAndProcessPagesAsync(Arg.Is<SearchRequest>(request => request.LogLabel == "top wallpapers" && request.CategoryName.Equals(Option.None<string>())), new WallhavenConnection("api-key", new Uri("https://example.test")), progress, Arg.Any<CancellationToken>());
-        await pagesProcessor.Received(1).FetchAndProcessPagesAsync(Arg.Is<SearchRequest>(request => request.LogLabel == "search category cat1" && request.CategoryName.Equals(Option.Some("category one"))), new WallhavenConnection("api-key", new Uri("https://example.test")), progress, Arg.Any<CancellationToken>());
-        await pagesProcessor.Received(1).FetchAndProcessPagesAsync(Arg.Is<SearchRequest>(request => request.LogLabel == "search category cat2" && request.CategoryName.Equals(Option.Some("category two"))), new WallhavenConnection("api-key", new Uri("https://example.test")), progress, Arg.Any<CancellationToken>());
-        await pagesProcessor.Received(1).FetchAndProcessPagesAsync(Arg.Is<SearchRequest>(request => request.LogLabel == "search category cat3" && request.CategoryName.Equals(Option.Some("category three"))), new WallhavenConnection("api-key", new Uri("https://example.test")), progress, Arg.Any<CancellationToken>());
-        await pagesProcessor.Received(1).FetchAndProcessPagesAsync(Arg.Is<SearchRequest>(request => request.LogLabel == "search category cat4"), Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
-        await pagesProcessor.Received(1).FetchAndProcessPagesAsync(Arg.Is<SearchRequest>(request => request.LogLabel == "search category cat5"), Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
-        operationCoordinator.IsOperationRunning.ShouldBeFalse();
-    }
-
-    [Fact]
-    public async Task when_the_site_is_unavailable_then_no_search_runs_and_the_scrape_is_abandoned()
-    {
-        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration());
-        siteStatusChecker.IsAvailableAsync(Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>()).Returns(false);
-
-        await Run();
-
-        progress.Messages.ShouldContain("Scrape abandoned: wallhaven.cc is not available.");
-        progress.Messages.ShouldNotContain(message => message.StartsWith("Search completed"));
-        await pagesProcessor.DidNotReceive().FetchAndProcessPagesAsync(Arg.Any<SearchRequest>(), Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
+        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("top wallpapers", Option.None<string>(), Arg.Any<Func<int, string>>(), new WallhavenConnection("api-key", new Uri("https://example.test")), progress, Arg.Any<CancellationToken>());
+        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category cat1", Option.Some("category one"), Arg.Any<Func<int, string>>(), new WallhavenConnection("api-key", new Uri("https://example.test")), progress, Arg.Any<CancellationToken>());
+        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category cat2", Option.Some("category two"), Arg.Any<Func<int, string>>(), new WallhavenConnection("api-key", new Uri("https://example.test")), progress, Arg.Any<CancellationToken>());
+        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category cat3", Option.Some("category three"), Arg.Any<Func<int, string>>(), new WallhavenConnection("api-key", new Uri("https://example.test")), progress, Arg.Any<CancellationToken>());
+        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category cat4", Arg.Any<Option<string>>(), Arg.Any<Func<int, string>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
+        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category cat5", Arg.Any<Option<string>>(), Arg.Any<Func<int, string>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
         operationCoordinator.IsOperationRunning.ShouldBeFalse();
     }
 
@@ -102,7 +81,7 @@ public sealed class GivenAScrapeService : IDisposable
     public async Task when_fetching_pages_raises_a_request_error_then_it_is_reported_not_thrown()
     {
         repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration());
-        pagesProcessor.FetchAndProcessPagesAsync(Arg.Any<SearchRequest>(), Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
+        pagesProcessor.FetchAndProcessPagesAsync(Arg.Any<string>(), Arg.Any<Option<string>>(), Arg.Any<Func<int, string>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
             .Returns(_ => throw new HttpRequestException("boom"));
 
         await Run();
@@ -115,7 +94,7 @@ public sealed class GivenAScrapeService : IDisposable
     public async Task when_fetching_pages_raises_a_playwright_error_then_it_is_reported_not_thrown()
     {
         repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration());
-        pagesProcessor.FetchAndProcessPagesAsync(Arg.Any<SearchRequest>(), Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
+        pagesProcessor.FetchAndProcessPagesAsync(Arg.Any<string>(), Arg.Any<Option<string>>(), Arg.Any<Func<int, string>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
             .Returns(_ => throw new PlaywrightException("boom"));
 
         await Run();
@@ -128,7 +107,7 @@ public sealed class GivenAScrapeService : IDisposable
     public async Task when_the_operation_is_cancelled_while_fetching_pages_then_cancellation_is_reported_not_thrown()
     {
         repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration());
-        pagesProcessor.FetchAndProcessPagesAsync(Arg.Any<SearchRequest>(), Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
+        pagesProcessor.FetchAndProcessPagesAsync(Arg.Any<string>(), Arg.Any<Option<string>>(), Arg.Any<Func<int, string>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
             .Returns(_ =>
             {
                 operationCoordinator.Cancel();
@@ -150,38 +129,34 @@ public sealed class GivenAScrapeService : IDisposable
         await Run();
 
         progress.Messages.ShouldBeEmpty();
-        await pagesProcessor.DidNotReceive().FetchAndProcessPagesAsync(Arg.Any<SearchRequest>(), Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
+        await pagesProcessor.DidNotReceive().FetchAndProcessPagesAsync(Arg.Any<string>(), Arg.Any<Option<string>>(), Arg.Any<Func<int, string>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
         operationCoordinator.IsOperationRunning.ShouldBeTrue();
     }
 
     [Fact]
-    public async Task when_both_root_directories_exist_on_disk_then_validation_finds_no_problems()
+    public async Task when_the_root_directory_exists_on_disk_then_root_directory_exists_async_returns_true()
     {
         fileSystem.Directory.CreateDirectory("/scrapes/root");
-        fileSystem.Directory.CreateDirectory("famous");
-        directoriesQuery.GetAsync(Arg.Any<CancellationToken>()).Returns(StoredDirectories("/scrapes/root"));
+        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration(rootDirectory: "/scrapes/root"));
 
-        var problems = await service.ValidateRootDirectoriesAsync();
+        var exists = await service.RootDirectoryExistsAsync();
 
-        problems.ShouldBeEmpty();
+        exists.ShouldBeTrue();
     }
 
     [Fact]
-    public async Task when_a_root_directory_does_not_exist_on_disk_then_validation_reports_it()
+    public async Task when_the_root_directory_does_not_exist_on_disk_then_root_directory_exists_async_returns_false()
     {
-        directoriesQuery.GetAsync(Arg.Any<CancellationToken>()).Returns(StoredDirectories("/scrapes/missing"));
+        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration(rootDirectory: "/scrapes/missing"));
 
-        var problems = await service.ValidateRootDirectoriesAsync();
+        var exists = await service.RootDirectoryExistsAsync();
 
-        problems.ShouldContain("Root directory could not be found.");
+        exists.ShouldBeFalse();
     }
 
     public void Dispose() => operationCoordinator.Dispose();
 
     private Task Run() => service.RunScraperAsync(progress);
-
-    private static Exceptional<Option<ScrapeDirectoriesEntity>> StoredDirectories(string rootDirectory)
-        => (Option<ScrapeDirectoriesEntity>)new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.CreateVersion7()), new ScrapeConfigurationId(Guid.CreateVersion7()), rootDirectory, "famous", "sub");
 
     private static ScrapeConfigurationEntity CreateConfiguration(int categoryCount = 1, string rootDirectory = "/scrapes/root")
     {

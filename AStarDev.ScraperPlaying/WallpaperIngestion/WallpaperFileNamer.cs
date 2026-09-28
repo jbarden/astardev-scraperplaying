@@ -1,6 +1,5 @@
 using AStarDev.ControlDb.FileDetail;
-using AStarDev.ScraperPlaying.Scraping;
-using AStarDev.Utilities;
+using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse;
 
 namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 
@@ -9,24 +8,30 @@ public static class WallpaperFileNamer
 {
     private const int maxPrefixLength = 100;
     private const string invalidFileNameCharacters = "\\/:*?\"<>|";
+    private static readonly string[] personCategories = ["Celebrities", "Models", "Pornstars", "Other Figures", "Photographers"];
 
-    /// <summary>Generates the file name for a wallpaper. Wallpapers with person-name tags (see <see cref="FamousTags.IsPersonName"/>) are prefixed with those names, joined by underscores; all others use just the wallpaper id.</summary>
-    /// <param name="detail">The wallpaper scraped from its detail page.</param>
-    /// <returns>The file name, including the extension taken from the image URL.</returns>
-    public static FileName Create(WallpaperDetail detail)
+    /// <summary>Generates the file name for a wallpaper. Wallpapers with person-name tags (a tag in a person category whose name starts with an upper-case letter, which rules out descriptive tags such as "finger pointing") are prefixed with those names, joined by underscores; all others use just the wallpaper id.</summary>
+    /// <param name="wallpaperId">Wallhaven's id for the wallpaper.</param>
+    /// <param name="extension">The file extension, including the leading '.'.</param>
+    /// <param name="tags">The wallpaper's tags.</param>
+    /// <returns>The file name.</returns>
+    public static FileName Create(string wallpaperId, string extension, IReadOnlyList<Tag> tags)
     {
-        var prefix = CreatePrefix(detail.Tags);
-        var baseName = prefix.Length == 0 ? detail.WallpaperId : $"{prefix}_{detail.WallpaperId}";
+        var prefix = CreatePrefix(tags);
+        var baseName = prefix.Length == 0 ? wallpaperId : $"{prefix}_{wallpaperId}";
 
-        return new FileName($"{baseName}{detail.ImageUrl.ToFileExtension()}");
+        return new FileName($"{baseName}{extension}");
     }
 
-    private static string CreatePrefix(IReadOnlyList<WallpaperTag> tags)
+    private static string CreatePrefix(IReadOnlyList<Tag> tags)
     {
-        var joined = string.Join('_', tags.Where(FamousTags.IsPersonName).Select(tag => Sanitise(tag.Name)).Where(name => name.Length > 0));
+        var joined = string.Join('_', tags.Where(IsPersonName).Select(tag => Sanitise(tag.Name)).Where(name => name.Length > 0));
 
         return joined.Length > maxPrefixLength ? joined[..maxPrefixLength] : joined;
     }
+
+    private static bool IsPersonName(Tag tag)
+        => tag.Name.Length > 0 && char.IsUpper(tag.Name[0]) && personCategories.Contains(tag.Category, StringComparer.OrdinalIgnoreCase);
 
     private static string Sanitise(string tagName)
         => new([.. tagName.Trim().Replace(' ', '_').Where(character => !invalidFileNameCharacters.Contains(character) && !char.IsControl(character))]);

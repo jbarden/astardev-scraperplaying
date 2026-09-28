@@ -22,11 +22,10 @@ public static class DataServices
         string dbPath = databasePath ?? BuildDbPath();
 
         _ = services.AddScoped<IScrapeConfigurationImporter, ScrapeConfigurationImporter>()
-            .AddSingleton<IQuery<ScrapeConfigurationEntity>, ScrapeConfigurationQuery>()
-            .AddSingleton<IQuery<FileEntity>, FileQuery>()
+            .AddScoped<IQuery<ScrapeConfigurationEntity>, ScrapeConfigurationQuery>()
+            .AddScoped<IQuery<FileEntity>, FileQuery>()
             .AddScoped<IUnitOfWork, ControlDbContext>()
             .AddScoped<IFilesQuery, FilesQuery>()
-            .AddScoped<IScrapeDirectoriesQuery, ScrapeDirectoriesQuery>()
             .AddScoped<ITagsQuery, TagsQuery>()
             .AddScoped<IFileTagRepository, FileTagRepository>()
             .AddDbContextFactory<ControlDbContext>((serviceProvider, options) => options.UseSqlite($"Data Source={dbPath}"))

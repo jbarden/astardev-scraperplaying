@@ -29,7 +29,7 @@ public partial class App : Application, IDisposable
             }
             catch (Exception exception)
             {
-                desktop.MainWindow = new UI.StartupErrorWindow(exception);
+                desktop.MainWindow = UI.MainWindow.CreateStartupError(exception);
             }
         }
 
@@ -46,7 +46,7 @@ public partial class App : Application, IDisposable
             .AddInfrastructureServices()
             .AddApplicationServices(configuration)
             .AddLogging()
-            .BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
+            .BuildServiceProvider();
 
         var applicationDirectories = serviceProvider.GetRequiredService<IApplicationDirectories>();
         applicationDirectories.CreateIfRequired();

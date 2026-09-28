@@ -17,10 +17,4 @@ public interface IFilesQuery
     /// <param name="cancellationToken">A cancellation token for the asynchronous operation.</param>
     /// <returns>An exceptional result containing a boolean indicating whether the file exists.</returns>
     Task<Exceptional<bool>> CheckExistsByNameAsync(FileName name, CancellationToken cancellationToken = default);
-
-    /// <summary>Finds which of the specified handles already belong to a file in the database, in a single query.</summary>
-    /// <param name="fileHandles">The handles to look for.</param>
-    /// <param name="cancellationToken">A cancellation token for the asynchronous operation.</param>
-    /// <returns>An exceptional result containing the subset of <paramref name="fileHandles"/> that exist.</returns>
-    Task<Exceptional<IReadOnlySet<FileHandle>>> GetExistingHandlesAsync(IReadOnlyCollection<FileHandle> fileHandles, CancellationToken cancellationToken = default);
 }

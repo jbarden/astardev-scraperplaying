@@ -9,27 +9,15 @@ namespace AStarDev.ControlDb;
 public class FilesQuery(ControlDbContext context) : IFilesQuery
 {
     /// <inheritdoc/>
-    public Task<Exceptional<Option<FileEntity>>> TryGetByNameAsync(FileName name, CancellationToken cancellationToken = default)
-            => Try.RunAsync(async () => (Option<FileEntity>)await context.Files
+    public async Task<Exceptional<Option<FileEntity>>> TryGetByNameAsync(FileName name, CancellationToken cancellationToken = default)
+            => await context.Files
                             .Include(f => f.DeletionStatus)
                             .Include(f => f.FileAccessDetail)
                             .Include(f => f.ImageDetail)
-                            .FirstOrDefaultAsync(f => f.FileName.Value == name.Value, cancellationToken));
+                            .AsAsyncEnumerable()
+                            .FirstOrNoneAsync(f => f.FileName.Value.Contains(name.Value), cancellationToken);
 
     /// <inheritdoc/>
     public async Task<Exceptional<bool>> CheckExistsByNameAsync(FileName name, CancellationToken cancellationToken = default)
-            => await context.Files.AnyAsync(f => f.FileName.Value == name.Value, cancellationToken);
-
-    /// <inheritdoc/>
-    public Task<Exceptional<IReadOnlySet<FileHandle>>> GetExistingHandlesAsync(IReadOnlyCollection<FileHandle> fileHandles, CancellationToken cancellationToken = default)
-            => Try.RunAsync(async () =>
-            {
-                var requested = fileHandles.ToList();
-                var existing = await context.Files
-                    .Where(f => requested.Contains(f.FileHandle))
-                    .Select(f => f.FileHandle)
-                    .ToListAsync(cancellationToken);
-
-                return (IReadOnlySet<FileHandle>)existing.ToHashSet();
-            });
+            => await context.Files.AnyAsync(f => f.FileName.Value.Contains(name.Value), cancellationToken);
 }

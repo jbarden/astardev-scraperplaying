@@ -1,4 +1,3 @@
-using Testably.Abstractions.Testing;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using System.Text.Json;
 
@@ -6,8 +5,6 @@ namespace AStarDev.ScraperPlaying.TestsUnit.ScrapeConfiguration;
 
 public sealed class GivenAScrapeConfigurationImport
 {
-    private readonly MockFileSystem fileSystem = new();
-
     [Fact]
     public async Task when_a_file_is_imported_then_the_repository_receives_the_complete_document()
     {
@@ -64,10 +61,10 @@ public sealed class GivenAScrapeConfigurationImport
     [Fact]
     public async Task when_json_is_read_then_all_nested_configuration_values_are_preserved()
     {
-        var path = "/scrape-configuration.json";
+        var path = Path.GetTempFileName();
         try
         {
-            await fileSystem.File.WriteAllTextAsync(path, """
+            await File.WriteAllTextAsync(path, """
                 {
                   "id": "11111111-1111-1111-1111-111111111111",
                   "userConfiguration": { "username": "user", "password": "secret" },
@@ -79,7 +76,7 @@ public sealed class GivenAScrapeConfigurationImport
                 }
                 """, TestContext.Current.CancellationToken);
 
-            var document = await new ScrapeConfigurationFileReader(fileSystem).ReadAsync(path, TestContext.Current.CancellationToken);
+            var document = await new ScrapeConfigurationFileReader().ReadAsync(path, TestContext.Current.CancellationToken);
 
             document.UserConfiguration.Username.ShouldBe("user");
             document.ApiKey.ShouldBe("key");
@@ -88,17 +85,17 @@ public sealed class GivenAScrapeConfigurationImport
         }
         finally
         {
-            fileSystem.File.Delete(path);
+            File.Delete(path);
         }
     }
 
     [Fact]
     public async Task when_application_settings_are_read_then_scrape_configuration_is_converted()
     {
-        var path = "/scrape-configuration.json";
+        var path = Path.GetTempFileName();
         try
         {
-            await fileSystem.File.WriteAllTextAsync(path, """
+            await File.WriteAllTextAsync(path, """
                                 {
                                     "logging": { "logLevel": { "default": "Warning" } },
                                     "scrapeConfiguration": {
@@ -116,7 +113,7 @@ public sealed class GivenAScrapeConfigurationImport
                                 }
                                 """, TestContext.Current.CancellationToken);
 
-            var document = await new ScrapeConfigurationFileReader(fileSystem).ReadAsync(path, TestContext.Current.CancellationToken);
+            var document = await new ScrapeConfigurationFileReader().ReadAsync(path, TestContext.Current.CancellationToken);
 
             document.UserConfiguration.EmailAddress.ShouldBe("user@example.test");
             document.SearchConfiguration.SearchCategories.Single().LastPageVisited.ShouldBe(4);
@@ -129,23 +126,23 @@ public sealed class GivenAScrapeConfigurationImport
         }
         finally
         {
-            fileSystem.File.Delete(path);
+            File.Delete(path);
         }
     }
 
     [Fact]
     public async Task when_json_is_malformed_then_reading_fails_with_a_json_exception()
     {
-        var path = "/scrape-configuration.json";
+        var path = Path.GetTempFileName();
         try
         {
-            await fileSystem.File.WriteAllTextAsync(path, "not json", TestContext.Current.CancellationToken);
+            await File.WriteAllTextAsync(path, "not json", TestContext.Current.CancellationToken);
 
-            await Should.ThrowAsync<JsonException>(() => new ScrapeConfigurationFileReader(fileSystem).ReadAsync(path, TestContext.Current.CancellationToken));
+            await Should.ThrowAsync<JsonException>(() => new ScrapeConfigurationFileReader().ReadAsync(path, TestContext.Current.CancellationToken));
         }
         finally
         {
-            fileSystem.File.Delete(path);
+            File.Delete(path);
         }
     }
 

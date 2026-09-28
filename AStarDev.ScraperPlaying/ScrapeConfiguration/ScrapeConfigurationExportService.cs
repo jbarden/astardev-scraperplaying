@@ -1,11 +1,17 @@
+using System.Text.Json;
 using AStarDev.FunctionalParadigm;
 
 namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 
-/// <inheritdoc/>
-public sealed class ScrapeConfigurationExportService(IScrapeConfigurationExporter repository, IScrapeConfigurationFileWriter fileWriter) : IScrapeConfigurationExportService
+public interface IScrapeConfigurationExportService
 {
-    /// <inheritdoc/>
+    Task<bool> ExportAsync(string filePath, CancellationToken cancellationToken = default);
+}
+
+public sealed class ScrapeConfigurationExportService(
+    IScrapeConfigurationExporter repository,
+    IScrapeConfigurationFileWriter fileWriter) : IScrapeConfigurationExportService
+{
     public async Task<bool> ExportAsync(string filePath, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -20,5 +26,21 @@ public sealed class ScrapeConfigurationExportService(IScrapeConfigurationExporte
                 return true;
             },
             () => false);
+    }
+}
+
+public interface IScrapeConfigurationFileWriter
+{
+    Task WriteAsync(ScrapeConfigurationImportDocument document, string filePath, CancellationToken cancellationToken = default);
+}
+
+public sealed class ScrapeConfigurationFileWriter : IScrapeConfigurationFileWriter
+{
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+
+    public async Task WriteAsync(ScrapeConfigurationImportDocument document, string filePath, CancellationToken cancellationToken = default)
+    {
+        await using var stream = File.Create(filePath);
+        await JsonSerializer.SerializeAsync(stream, document, JsonOptions, cancellationToken);
     }
 }

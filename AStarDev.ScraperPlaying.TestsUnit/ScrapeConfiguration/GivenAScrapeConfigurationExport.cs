@@ -1,4 +1,3 @@
-using Testably.Abstractions.Testing;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
@@ -8,8 +7,6 @@ namespace AStarDev.ScraperPlaying.TestsUnit.ScrapeConfiguration;
 
 public sealed class GivenAScrapeConfigurationExport
 {
-    private readonly MockFileSystem fileSystem = new();
-
     [Fact]
     public async Task when_a_configuration_exists_then_it_is_written_to_the_destination_file()
     {
@@ -76,7 +73,7 @@ public sealed class GivenAScrapeConfigurationExport
     [Fact]
     public async Task when_a_document_is_written_then_the_json_file_contains_the_full_configuration()
     {
-        var path = "/scrape-configuration.json";
+        var path = Path.GetTempFileName();
         try
         {
             var document = new ScrapeConfigurationImportDocument
@@ -86,8 +83,8 @@ public sealed class GivenAScrapeConfigurationExport
                 ScrapeDirectories = new() { RootDirectory = "/tmp/scrapes" }
             };
 
-            await new ScrapeConfigurationFileWriter(fileSystem).WriteAsync(document, path, TestContext.Current.CancellationToken);
-            using var json = JsonDocument.Parse(await fileSystem.File.ReadAllTextAsync(path, TestContext.Current.CancellationToken));
+            await new ScrapeConfigurationFileWriter().WriteAsync(document, path, TestContext.Current.CancellationToken);
+            using var json = JsonDocument.Parse(await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken));
 
             json.RootElement.GetProperty("userConfiguration").GetProperty("username").GetString().ShouldBe("user");
             json.RootElement.GetProperty("searchConfiguration").GetProperty("searchTerm").GetString().ShouldBe("cats");
@@ -96,7 +93,7 @@ public sealed class GivenAScrapeConfigurationExport
         }
         finally
         {
-            fileSystem.File.Delete(path);
+            File.Delete(path);
         }
     }
 

@@ -75,69 +75,6 @@ public sealed class GivenAFilesQuery : IDisposable
         result.Match(exists => exists, exception => throw exception).ShouldBeFalse();
     }
 
-    [Fact]
-    public async Task when_a_file_name_only_appears_inside_a_longer_stored_name_then_check_exists_returns_false()
-    {
-        var fileEntity = FileEntityFactory.CreateFileEntity();
-        fileEntity.FileName = FileName.Create($"0{fileEntity.FileName.Value}");
-        await context.Files.AddAsync(fileEntity, TestContext.Current.CancellationToken);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var query = new FilesQuery(context);
-
-        var result = await query.CheckExistsByNameAsync(FileName.Create(fileEntity.FileName.Value[1..]), TestContext.Current.CancellationToken);
-
-        result.Match(exists => exists, exception => throw exception).ShouldBeFalse();
-    }
-
-    [Fact]
-    public async Task when_a_file_name_only_appears_inside_a_longer_stored_name_then_try_get_by_name_returns_none()
-    {
-        var fileEntity = FileEntityFactory.CreateFileEntity();
-        fileEntity.FileName = FileName.Create($"0{fileEntity.FileName.Value}");
-        await context.Files.AddAsync(fileEntity, TestContext.Current.CancellationToken);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var query = new FilesQuery(context);
-
-        var result = await query.TryGetByNameAsync(FileName.Create(fileEntity.FileName.Value[1..]), TestContext.Current.CancellationToken);
-
-        result.Match(option => option, exception => throw exception).Match(_ => true, () => false).ShouldBeFalse();
-    }
-
-    [Fact]
-    public async Task when_some_handles_exist_then_only_those_are_returned()
-    {
-        var fileEntity = FileEntityFactory.CreateFileEntity();
-        await context.Files.AddAsync(fileEntity, TestContext.Current.CancellationToken);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var query = new FilesQuery(context);
-
-        var result = await query.GetExistingHandlesAsync([fileEntity.FileHandle, FileHandle.Create("does-not-exist")], TestContext.Current.CancellationToken);
-
-        var existing = result.Match(handles => handles, exception => throw exception);
-        existing.Count.ShouldBe(1);
-        existing.ShouldContain(fileEntity.FileHandle);
-    }
-
-    [Fact]
-    public async Task when_no_handles_exist_then_an_empty_set_is_returned()
-    {
-        var query = new FilesQuery(context);
-
-        var result = await query.GetExistingHandlesAsync([FileHandle.Create("does-not-exist")], TestContext.Current.CancellationToken);
-
-        result.Match(handles => handles, exception => throw exception).ShouldBeEmpty();
-    }
-
-    [Fact]
-    public async Task when_no_handles_are_requested_then_an_empty_set_is_returned()
-    {
-        var query = new FilesQuery(context);
-
-        var result = await query.GetExistingHandlesAsync([], TestContext.Current.CancellationToken);
-
-        result.Match(handles => handles, exception => throw exception).ShouldBeEmpty();
-    }
-
     public void Dispose()
     {
         Dispose(true);

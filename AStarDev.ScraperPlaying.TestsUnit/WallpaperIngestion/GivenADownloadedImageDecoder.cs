@@ -1,5 +1,4 @@
 using AStarDev.ScraperPlaying.WallpaperIngestion;
-using SkiaSharp;
 using Testably.Abstractions.Testing;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.WallpaperIngestion;
@@ -21,7 +20,7 @@ public sealed class GivenADownloadedImageDecoder
         fileSystem.Directory.CreateDirectory("/images");
         fileSystem.File.WriteAllBytes("/images/wallpaper-1.png", OnePixelPng);
 
-        using var result = decoder.DecodeToPng("/images/wallpaper-1.png", 1280);
+        using var result = decoder.DecodeToPng("/images/wallpaper-1.png");
 
         var signature = new byte[8];
         result.ReadExactly(signature);
@@ -34,51 +33,6 @@ public sealed class GivenADownloadedImageDecoder
         fileSystem.Directory.CreateDirectory("/images");
         fileSystem.File.WriteAllBytes("/images/not-an-image.txt", "this is not an image"u8.ToArray());
 
-        Should.Throw<InvalidOperationException>(() => decoder.DecodeToPng("/images/not-an-image.txt", 1280));
-    }
-
-    [Theory]
-    [InlineData(400, 200, 100, 100, 50)]
-    [InlineData(200, 400, 100, 50, 100)]
-    [InlineData(400, 200, 400, 400, 200)]
-    [InlineData(400, 200, 1280, 400, 200)]
-    public void when_the_image_is_larger_than_the_maximum_dimension_then_it_is_scaled_down_but_never_up(int width, int height, int maxDimension, int expectedWidth, int expectedHeight)
-    {
-        fileSystem.Directory.CreateDirectory("/images");
-        fileSystem.File.WriteAllBytes("/images/wallpaper-1.png", CreatePng(width, height));
-
-        using var result = decoder.DecodeToPng("/images/wallpaper-1.png", maxDimension);
-
-        using var decoded = SKBitmap.Decode(result);
-        decoded.Width.ShouldBe(expectedWidth);
-        decoded.Height.ShouldBe(expectedHeight);
-    }
-
-    [Theory]
-    [InlineData(4000, 2000, 1280, 1280, 640)]
-    [InlineData(2000, 4000, 1280, 640, 1280)]
-    [InlineData(300, 200, 1280, 300, 200)]
-    public void when_a_jpeg_is_larger_than_the_maximum_dimension_then_it_is_scaled_down_to_fit_but_never_up(int width, int height, int maxDimension, int expectedWidth, int expectedHeight)
-    {
-        fileSystem.Directory.CreateDirectory("/images");
-        fileSystem.File.WriteAllBytes("/images/wallpaper-1.jpg", CreateImage(width, height, SKEncodedImageFormat.Jpeg));
-
-        using var result = decoder.DecodeToPng("/images/wallpaper-1.jpg", maxDimension);
-
-        using var decoded = SKBitmap.Decode(result);
-        decoded.Width.ShouldBe(expectedWidth);
-        decoded.Height.ShouldBe(expectedHeight);
-    }
-
-    private static byte[] CreatePng(int width, int height) => CreateImage(width, height, SKEncodedImageFormat.Png);
-
-    private static byte[] CreateImage(int width, int height, SKEncodedImageFormat format)
-    {
-        using var bitmap = new SKBitmap(width, height);
-        bitmap.Erase(SKColors.Red);
-        using var image = SKImage.FromBitmap(bitmap);
-        using var data = image.Encode(format, 100);
-
-        return data.ToArray();
+        Should.Throw<InvalidOperationException>(() => decoder.DecodeToPng("/images/not-an-image.txt"));
     }
 }

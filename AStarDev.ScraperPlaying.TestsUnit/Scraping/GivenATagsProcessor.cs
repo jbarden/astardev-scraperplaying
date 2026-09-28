@@ -3,159 +3,157 @@ using AStarDev.ControlDb.FileDetail;
 using AStarDev.ControlDb.TagDetail;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Scraping;
+using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.Scraping;
 
 public sealed class GivenATagsProcessor
 {
+    private readonly IJsonResponseProcessor jsonResponseProcessor = Substitute.For<IJsonResponseProcessor>();
     private readonly ITagsQuery tagsQuery = Substitute.For<ITagsQuery>();
     private readonly IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly IRepository<TagEntity, TagId> tagRepository = Substitute.For<IRepository<TagEntity, TagId>>();
     private readonly IFileTagRepository fileTagRepository = Substitute.For<IFileTagRepository>();
+    private readonly CapturingProgress progress = new();
     private readonly TagsProcessor processor;
 
     public GivenATagsProcessor()
     {
         unitOfWork.GetRepository<TagEntity, TagId>().Returns(tagRepository);
-        processor = new(tagsQuery, unitOfWork, fileTagRepository);
+        processor = new(jsonResponseProcessor, tagsQuery, unitOfWork, fileTagRepository);
     }
 
     [Fact]
-    public async Task when_linking_tags_with_only_an_id_and_name_then_a_tag_is_created_with_default_metadata_and_linked()
+    public async Task when_a_wallpaper_has_a_new_tag_then_it_is_created_and_linked()
     {
-        tagsQuery.FindByWallhavenIdsAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>()).Returns(ExistingTags());
-        var createdTag = new TagEntity { Id = TagId.Create(), WallhavenTagId = 5, Name = "mountains" };
+        SetUpDetailResponse(CreateTag(wallhavenTagId: 1, name: "landscape"));
+        tagsQuery.TryFindByWallhavenIdAsync(1, Arg.Any<CancellationToken>()).Returns((Exceptional<Option<TagEntity>>)Option<TagEntity>.None.Instance);
+        var createdTag = new TagEntity { Id = TagId.Create(), WallhavenTagId = 1, Name = "landscape" };
         tagRepository.Add(Arg.Any<TagEntity>()).Returns((Exceptional<TagEntity>)createdTag);
         fileTagRepository.Add(Arg.Any<FileTagEntity>()).Returns(call => (Exceptional<FileTagEntity>)call.Arg<FileTagEntity>());
-        var fileId = FileId.Create();
 
-        var result = await processor.LinkTagsAsync(fileId, [new WallpaperTag(5, "mountains")], CancellationToken.None);
+        var result = await Run();
 
         result.Match(_ => true, ex => throw ex).ShouldBeTrue();
-        tagRepository.Received(1).Add(Arg.Is<TagEntity>(tag =>
-            tag.WallhavenTagId == 5 && tag.Name == "mountains" && tag.Alias == string.Empty && tag.CategoryId == 0 && tag.Category == string.Empty && tag.Purity == string.Empty));
-        fileTagRepository.Received(1).Add(Arg.Is<FileTagEntity>(fileTag => fileTag.FileId == fileId && fileTag.TagId == createdTag.Id));
+        tagRepository.Received(1).Add(Arg.Is<TagEntity>(tag => tag.WallhavenTagId == 1 && tag.Name == "landscape"));
+        fileTagRepository.Received(1).Add(Arg.Is<FileTagEntity>(fileTag => fileTag.TagId == createdTag.Id));
+        progress.Messages.ShouldContain("Fetching tags for wallpaper wallpaper-1.");
     }
 
     [Fact]
-    public async Task when_the_same_new_tag_is_introduced_by_two_calls_then_it_is_created_once_and_cached_across_calls()
+    public async Task when_a_wallpaper_has_a_tag_that_already_exists_then_it_is_reused_and_linked()
     {
-        tagsQuery.FindByWallhavenIdsAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>()).Returns(ExistingTags());
-        var createdTag = new TagEntity { Id = TagId.Create(), WallhavenTagId = 6, Name = "shared" };
-        tagRepository.Add(Arg.Any<TagEntity>()).Returns((Exceptional<TagEntity>)createdTag);
+        SetUpDetailResponse(CreateTag(wallhavenTagId: 2, name: "space"));
+        var existingTag = new TagEntity { Id = TagId.Create(), WallhavenTagId = 2, Name = "space" };
+        tagsQuery.TryFindByWallhavenIdAsync(2, Arg.Any<CancellationToken>()).Returns((Exceptional<Option<TagEntity>>)(Option<TagEntity>)existingTag);
         fileTagRepository.Add(Arg.Any<FileTagEntity>()).Returns(call => (Exceptional<FileTagEntity>)call.Arg<FileTagEntity>());
-        var firstFileId = FileId.Create();
-        var secondFileId = FileId.Create();
 
-        var firstResult = await processor.LinkTagsAsync(firstFileId, [new WallpaperTag(6, "shared")], CancellationToken.None);
-        var secondResult = await processor.LinkTagsAsync(secondFileId, [new WallpaperTag(6, "shared")], CancellationToken.None);
+        var result = await Run();
 
-        firstResult.Match(_ => true, ex => throw ex).ShouldBeTrue();
-        secondResult.Match(_ => true, ex => throw ex).ShouldBeTrue();
-        tagRepository.Received(1).Add(Arg.Is<TagEntity>(tag => tag.WallhavenTagId == 6));
-        fileTagRepository.Received(1).Add(Arg.Is<FileTagEntity>(fileTag => fileTag.FileId == firstFileId && fileTag.TagId == createdTag.Id));
-        fileTagRepository.Received(1).Add(Arg.Is<FileTagEntity>(fileTag => fileTag.FileId == secondFileId && fileTag.TagId == createdTag.Id));
+        result.Match(_ => true, ex => throw ex).ShouldBeTrue();
+        tagRepository.DidNotReceive().Add(Arg.Any<TagEntity>());
+        fileTagRepository.Received(1).Add(Arg.Is<FileTagEntity>(fileTag => fileTag.TagId == existingTag.Id));
     }
 
     [Fact]
-    public async Task when_the_same_tag_appears_twice_in_one_call_then_it_is_linked_only_once()
+    public async Task when_the_same_tag_appears_twice_in_one_detail_response_then_it_is_linked_only_once()
     {
-        var existingTag = new TagEntity { Id = TagId.Create(), WallhavenTagId = 7, Name = "duplicate" };
-        tagsQuery.FindByWallhavenIdsAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>()).Returns(ExistingTags(existingTag));
+        SetUpDetailResponse(CreateTag(wallhavenTagId: 3, name: "duplicate"), CreateTag(wallhavenTagId: 3, name: "duplicate"));
+        var existingTag = new TagEntity { Id = TagId.Create(), WallhavenTagId = 3, Name = "duplicate" };
+        tagsQuery.TryFindByWallhavenIdAsync(3, Arg.Any<CancellationToken>()).Returns((Exceptional<Option<TagEntity>>)(Option<TagEntity>)existingTag);
         fileTagRepository.Add(Arg.Any<FileTagEntity>()).Returns(call => (Exceptional<FileTagEntity>)call.Arg<FileTagEntity>());
 
-        var result = await processor.LinkTagsAsync(FileId.Create(), [new WallpaperTag(7, "duplicate"), new WallpaperTag(7, "duplicate")], CancellationToken.None);
+        var result = await Run();
 
         result.Match(_ => true, ex => throw ex).ShouldBeTrue();
         fileTagRepository.Received(1).Add(Arg.Any<FileTagEntity>());
     }
 
     [Fact]
-    public async Task when_a_wallpaper_has_several_uncached_tags_then_they_are_looked_up_in_a_single_query_and_only_missing_ones_created()
+    public async Task when_two_different_wallpapers_introduce_the_same_new_tag_then_it_is_created_once_and_cached_across_calls()
     {
-        var existingTag = new TagEntity { Id = TagId.Create(), WallhavenTagId = 11, Name = "existing" };
-        tagsQuery.FindByWallhavenIdsAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>()).Returns(ExistingTags(existingTag));
-        tagRepository.Add(Arg.Any<TagEntity>()).Returns(call => (Exceptional<TagEntity>)call.Arg<TagEntity>());
+        var tag = CreateTag(wallhavenTagId: 4, name: "shared");
+        jsonResponseProcessor.GetFromJsonAsync<DetailResponse>($"{ApplicationConstants.WallhavenDetailPathTemplate}wallpaper-a", Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
+            .Returns((Exceptional<Option<DetailResponse>>)(Option<DetailResponse>)CreateDetailResponse(tag));
+        jsonResponseProcessor.GetFromJsonAsync<DetailResponse>($"{ApplicationConstants.WallhavenDetailPathTemplate}wallpaper-b", Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
+            .Returns((Exceptional<Option<DetailResponse>>)(Option<DetailResponse>)CreateDetailResponse(tag));
+        // Simulates the production race: neither call's DB lookup sees the other's not-yet-saved insert, so both return "not found".
+        tagsQuery.TryFindByWallhavenIdAsync(4, Arg.Any<CancellationToken>()).Returns((Exceptional<Option<TagEntity>>)Option<TagEntity>.None.Instance);
+        var createdTag = new TagEntity { Id = TagId.Create(), WallhavenTagId = 4, Name = "shared" };
+        tagRepository.Add(Arg.Any<TagEntity>()).Returns((Exceptional<TagEntity>)createdTag);
         fileTagRepository.Add(Arg.Any<FileTagEntity>()).Returns(call => (Exceptional<FileTagEntity>)call.Arg<FileTagEntity>());
+        var firstFileId = FileId.Create();
+        var secondFileId = FileId.Create();
 
-        var result = await processor.LinkTagsAsync(FileId.Create(), [new WallpaperTag(10, "new-a"), new WallpaperTag(11, "existing"), new WallpaperTag(12, "new-b")], CancellationToken.None);
+        var firstResult = await FetchAndLink("wallpaper-a", firstFileId);
+        var secondResult = await FetchAndLink("wallpaper-b", secondFileId);
+
+        firstResult.Match(_ => true, ex => throw ex).ShouldBeTrue();
+        secondResult.Match(_ => true, ex => throw ex).ShouldBeTrue();
+        tagRepository.Received(1).Add(Arg.Is<TagEntity>(t => t.WallhavenTagId == 4));
+        fileTagRepository.Received(1).Add(Arg.Is<FileTagEntity>(fileTag => fileTag.FileId == firstFileId && fileTag.TagId == createdTag.Id));
+        fileTagRepository.Received(1).Add(Arg.Is<FileTagEntity>(fileTag => fileTag.FileId == secondFileId && fileTag.TagId == createdTag.Id));
+    }
+
+    [Fact]
+    public async Task when_tags_are_fetched_then_they_are_returned_with_their_categories()
+    {
+        SetUpDetailResponse(new Tag(9, "Max Verstappen", "max-verstappen", 51, "Other Figures", "sfw"));
+
+        var result = await processor.FetchTagsAsync("wallpaper-1", new HttpClient(), progress, CancellationToken.None);
+
+        result.Match(tags => tags, ex => throw ex).ShouldBe([new Tag(9, "Max Verstappen", "max-verstappen", 51, "Other Figures", "sfw")]);
+        tagRepository.DidNotReceive().Add(Arg.Any<TagEntity>());
+    }
+
+    [Fact]
+    public async Task when_the_detail_fetch_fails_then_the_failure_is_returned_not_thrown()
+    {
+        var exception = new HttpRequestException("boom");
+        jsonResponseProcessor.GetFromJsonAsync<DetailResponse>(Arg.Any<string>(), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
+            .Returns((Exceptional<Option<DetailResponse>>)exception);
+
+        var result = await Run();
+
+        var capturedException = result.Match(_ => (Exception?)null, ex => ex);
+        capturedException.ShouldBeSameAs(exception);
+        tagRepository.DidNotReceive().Add(Arg.Any<TagEntity>());
+        fileTagRepository.DidNotReceive().Add(Arg.Any<FileTagEntity>());
+    }
+
+    [Fact]
+    public async Task when_a_wallpaper_has_no_tags_then_it_is_a_no_op_success()
+    {
+        SetUpDetailResponse();
+
+        var result = await Run();
 
         result.Match(_ => true, ex => throw ex).ShouldBeTrue();
-        await tagsQuery.Received(1).FindByWallhavenIdsAsync(Arg.Is<IReadOnlyCollection<int>>(ids => ids.Count == 3), Arg.Any<CancellationToken>());
-        tagRepository.Received(2).Add(Arg.Any<TagEntity>());
-        fileTagRepository.Received(3).Add(Arg.Any<FileTagEntity>());
+        tagRepository.DidNotReceive().Add(Arg.Any<TagEntity>());
+        fileTagRepository.DidNotReceive().Add(Arg.Any<FileTagEntity>());
     }
 
-    [Fact]
-    public async Task when_every_tag_is_already_cached_then_no_query_is_made()
+    private Task<Exceptional<Unit>> Run()
+        => FetchAndLink("wallpaper-1", FileId.Create());
+
+    private async Task<Exceptional<Unit>> FetchAndLink(string wallpaperId, FileId fileId)
+        => await (await processor.FetchTagsAsync(wallpaperId, new HttpClient(), progress, CancellationToken.None))
+            .Match(tags => processor.LinkTagsAsync(fileId, tags, CancellationToken.None), exception => Task.FromResult((Exceptional<Unit>)exception));
+
+    private void SetUpDetailResponse(params Tag[] tags)
+        => jsonResponseProcessor.GetFromJsonAsync<DetailResponse>(Arg.Any<string>(), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
+            .Returns((Exceptional<Option<DetailResponse>>)(Option<DetailResponse>)CreateDetailResponse(tags));
+
+    private static DetailResponse CreateDetailResponse(params Tag[] tags)
+        => new(new Data(tags));
+
+    private static Tag CreateTag(int wallhavenTagId, string name)
+        => new(wallhavenTagId, name, name, 1, "Nature", "sfw");
+
+    private sealed class CapturingProgress : IProgress<string>
     {
-        tagsQuery.FindByWallhavenIdsAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>()).Returns(ExistingTags());
-        tagRepository.Add(Arg.Any<TagEntity>()).Returns(call => (Exceptional<TagEntity>)call.Arg<TagEntity>());
-        fileTagRepository.Add(Arg.Any<FileTagEntity>()).Returns(call => (Exceptional<FileTagEntity>)call.Arg<FileTagEntity>());
-        await processor.LinkTagsAsync(FileId.Create(), [new WallpaperTag(20, "cached")], CancellationToken.None);
-        tagsQuery.ClearReceivedCalls();
+        public List<string> Messages { get; } = [];
 
-        await processor.LinkTagsAsync(FileId.Create(), [new WallpaperTag(20, "cached")], CancellationToken.None);
-
-        await tagsQuery.DidNotReceive().FindByWallhavenIdsAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>());
+        public void Report(string value) => Messages.Add(value);
     }
-
-    [Fact]
-    public async Task when_the_tag_lookup_fails_then_the_failure_is_returned()
-    {
-        var exception = new InvalidOperationException("db down");
-        tagsQuery.FindByWallhavenIdsAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>()).Returns((Exceptional<IReadOnlyList<TagEntity>>)exception);
-
-        var result = await processor.LinkTagsAsync(FileId.Create(), [new WallpaperTag(30, "tag")], CancellationToken.None);
-
-        result.Match(_ => (Exception?)null, ex => ex).ShouldBeSameAs(exception);
-    }
-
-    [Fact]
-    public async Task when_pending_tags_are_discarded_then_a_tag_created_since_is_created_again_because_it_was_never_saved()
-    {
-        tagsQuery.FindByWallhavenIdsAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>()).Returns(ExistingTags());
-        tagRepository.Add(Arg.Any<TagEntity>()).Returns(call => (Exceptional<TagEntity>)call.Arg<TagEntity>());
-        fileTagRepository.Add(Arg.Any<FileTagEntity>()).Returns(call => (Exceptional<FileTagEntity>)call.Arg<FileTagEntity>());
-        await processor.LinkTagsAsync(FileId.Create(), [new WallpaperTag(40, "unsaved")], CancellationToken.None);
-
-        processor.DiscardPendingTags();
-        await processor.LinkTagsAsync(FileId.Create(), [new WallpaperTag(40, "unsaved")], CancellationToken.None);
-
-        tagRepository.Received(2).Add(Arg.Is<TagEntity>(tag => tag.WallhavenTagId == 40));
-    }
-
-    [Fact]
-    public async Task when_pending_tags_are_accepted_then_they_stay_cached_and_are_not_created_or_queried_again()
-    {
-        tagsQuery.FindByWallhavenIdsAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>()).Returns(ExistingTags());
-        tagRepository.Add(Arg.Any<TagEntity>()).Returns(call => (Exceptional<TagEntity>)call.Arg<TagEntity>());
-        fileTagRepository.Add(Arg.Any<FileTagEntity>()).Returns(call => (Exceptional<FileTagEntity>)call.Arg<FileTagEntity>());
-        await processor.LinkTagsAsync(FileId.Create(), [new WallpaperTag(41, "saved")], CancellationToken.None);
-        processor.AcceptPendingTags();
-        tagsQuery.ClearReceivedCalls();
-
-        await processor.LinkTagsAsync(FileId.Create(), [new WallpaperTag(41, "saved")], CancellationToken.None);
-
-        await tagsQuery.DidNotReceive().FindByWallhavenIdsAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>());
-        tagRepository.Received(1).Add(Arg.Any<TagEntity>());
-    }
-
-    [Fact]
-    public async Task when_pending_tags_are_discarded_then_tags_that_already_existed_in_the_database_stay_cached()
-    {
-        var existingTag = new TagEntity { Id = TagId.Create(), WallhavenTagId = 42, Name = "stored" };
-        tagsQuery.FindByWallhavenIdsAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>()).Returns(ExistingTags(existingTag));
-        fileTagRepository.Add(Arg.Any<FileTagEntity>()).Returns(call => (Exceptional<FileTagEntity>)call.Arg<FileTagEntity>());
-        await processor.LinkTagsAsync(FileId.Create(), [new WallpaperTag(42, "stored")], CancellationToken.None);
-        processor.DiscardPendingTags();
-        tagsQuery.ClearReceivedCalls();
-
-        await processor.LinkTagsAsync(FileId.Create(), [new WallpaperTag(42, "stored")], CancellationToken.None);
-
-        await tagsQuery.DidNotReceive().FindByWallhavenIdsAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>());
-    }
-
-    private static Exceptional<IReadOnlyList<TagEntity>> ExistingTags(params TagEntity[] tags)
-        => Exceptional.Success<IReadOnlyList<TagEntity>>(tags);
 }

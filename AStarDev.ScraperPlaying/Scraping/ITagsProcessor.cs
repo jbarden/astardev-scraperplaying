@@ -1,21 +1,24 @@
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
+using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse;
 
 namespace AStarDev.ScraperPlaying.Scraping;
 
-/// <summary>Interface for linking a wallpaper's tags to its file, storing each distinct tag only once.</summary>
+/// <summary>Interface for fetching a wallpaper's tags and linking them to its file, storing each distinct tag only once.</summary>
 public interface ITagsProcessor
 {
-    /// <summary>Links each of the given tags to <paramref name="fileId"/>, creating any tag not already stored and reusing any that is - regardless of where the tags were fetched or scraped from.</summary>
+    /// <summary>Fetches the Wallhaven detail response for the given wallpaper and returns its tags.</summary>
+    /// <param name="wallpaperId">The Wallhaven wallpaper id to fetch tag detail for.</param>
+    /// <param name="client">The HTTP client used to make the request.</param>
+    /// <param name="progress">The progress reporter to report fetching progress.</param>
+    /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous operation, containing an <see cref="Exceptional{T}"/> wrapping the wallpaper's tags, or the captured failure.</returns>
+    Task<Exceptional<IReadOnlyList<Tag>>> FetchTagsAsync(string wallpaperId, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken);
+
+    /// <summary>Links each of the tags to <paramref name="fileId"/>, creating any tag not already stored.</summary>
     /// <param name="fileId">The id of the already-persisted <see cref="FileEntity"/> to link the tags to.</param>
-    /// <param name="tags">The tags to link. Duplicates by <see cref="WallpaperTag.WallhavenTagId"/> are linked only once.</param>
+    /// <param name="tags">The tags to link, as returned by <see cref="FetchTagsAsync"/>.</param>
     /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation, containing an <see cref="Exceptional{T}"/> indicating success or the captured failure.</returns>
-    Task<Exceptional<Unit>> LinkTagsAsync(FileId fileId, IReadOnlyList<WallpaperTag> tags, CancellationToken cancellationToken);
-
-    /// <summary>Marks the tags created since the last call as saved, so later wallpapers can reuse them without looking them up again. Call after the changes made by <see cref="LinkTagsAsync"/> were saved.</summary>
-    void AcceptPendingTags();
-
-    /// <summary>Forgets the tags created since the last accept, because the changes that would have stored them were discarded. Tags that already existed in the database stay cached.</summary>
-    void DiscardPendingTags();
+    Task<Exceptional<Unit>> LinkTagsAsync(FileId fileId, IReadOnlyList<Tag> tags, CancellationToken cancellationToken);
 }

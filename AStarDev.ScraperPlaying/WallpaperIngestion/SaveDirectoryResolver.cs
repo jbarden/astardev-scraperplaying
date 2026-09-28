@@ -2,50 +2,34 @@ using System.IO.Abstractions;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
-using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using AStarDev.Utilities;
 
 namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 
 /// <inheritdoc/>
-/// <remarks>Scoped: the configured root directories are loaded once and reused for every wallpaper resolved during the scope (one scrape run).</remarks>
-public class SaveDirectoryResolver(IFileSystem fileSystem, IScrapeDirectoriesQuery directoriesQuery) : ISaveDirectoryResolver
+public class SaveDirectoryResolver(IFileSystem fileSystem, IUnitOfWork unitOfWork) : ISaveDirectoryResolver
 {
     private const string TopWallpapersDirectorySegment = "top-wallpapers";
 
-    private Option<Task<ScrapeDirectoriesEntity>> directoriesLoad = Option.None<Task<ScrapeDirectoriesEntity>>();
-
     /// <inheritdoc/>
-    public async Task<string> ResolveSaveDirectoryAsync(Option<string> categoryName, bool isFamous, CancellationToken cancellationToken)
+    public async Task<string> ResolveSaveDirectoryAsync(Option<string> categoryName, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         var directorySegment = categoryName.Match(name => name.ToDirectorySlug(), () => TopWallpapersDirectorySegment);
-        var rootDirectory = SelectRootDirectory(await GetDirectoriesAsync(), isFamous);
+        var rootDirectory = await LoadRootDirectoryAsync();
 
         return fileSystem.Path.Combine(rootDirectory, directorySegment);
     }
 
-    private static string SelectRootDirectory(ScrapeDirectoriesEntity directories, bool isFamous)
+    private async Task<string> LoadRootDirectoryAsync()
     {
-        if (!isFamous) return directories.RootDirectory;
+        var configuration = (await unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().TryGetFirstAsync())
+            .Match(
+                option => option.Match(scrapeConfig => scrapeConfig, () => throw new InvalidOperationException("Scrape configuration not found")),
+                exception => throw exception
+            );
 
-        return string.IsNullOrWhiteSpace(directories.RootDirectoryFamous)
-            ? throw new InvalidOperationException("The famous root directory is not configured.")
-            : directories.RootDirectoryFamous;
+        return configuration.ScrapeDirectories.RootDirectory;
     }
-
-    private Task<ScrapeDirectoriesEntity> GetDirectoriesAsync()
-        => directoriesLoad.Match(
-            load => load,
-            () =>
-            {
-                var load = LoadDirectoriesAsync();
-                directoriesLoad = Option.Some(load);
-
-                return load;
-            });
-
-    private Task<ScrapeDirectoriesEntity> LoadDirectoriesAsync()
-        => ScrapeDirectoriesLoader.LoadAsync(directoriesQuery);
 }

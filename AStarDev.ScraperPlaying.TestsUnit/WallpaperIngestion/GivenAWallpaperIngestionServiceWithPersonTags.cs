@@ -1,0 +1,112 @@
+using System.Net;
+using AStarDev.ControlDb;
+using AStarDev.ControlDb.FileDetail;
+using AStarDev.FunctionalParadigm;
+using AStarDev.ScraperPlaying.Scraping;
+using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
+using AStarDev.ScraperPlaying.WallpaperIngestion;
+using Testably.Abstractions.Testing;
+using Tag = AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse.Tag;
+
+namespace AStarDev.ScraperPlaying.TestsUnit.WallpaperIngestion;
+
+public sealed class GivenAWallpaperIngestionServiceWithPersonTags
+{
+    private readonly MockFileSystem fileSystem = new();
+    private readonly List<FileEntity> addedFiles = [];
+    private readonly IRepository<FileEntity, FileId> fileRepository = Substitute.For<IRepository<FileEntity, FileId>>();
+    private readonly IFilesQuery filesQuery = Substitute.For<IFilesQuery>();
+    private readonly StubTagsProcessor tagsProcessor = new();
+    private readonly WallpaperIngestionService service;
+
+    public GivenAWallpaperIngestionServiceWithPersonTags()
+    {
+        filesQuery.CheckExistsByNameAsync(Arg.Any<FileName>(), Arg.Any<CancellationToken>()).Returns((Exceptional<bool>)false);
+        fileRepository.Add(Arg.Any<FileEntity>()).Returns(call =>
+        {
+            addedFiles.Add(call.Arg<FileEntity>());
+
+            return (Exceptional<FileEntity>)call.Arg<FileEntity>();
+        });
+        var imageProcessor = new ImageProcessor(() => DateTimeOffset.UnixEpoch, fileSystem, () => TimeSpan.Zero, Substitute.For<IImageDownloadNotifier>());
+        service = new(filesQuery, imageProcessor, tagsProcessor, () => TimeSpan.Zero);
+    }
+
+    [Fact]
+    public async Task when_a_wallpaper_has_a_person_name_tag_then_the_saved_file_and_the_file_entity_are_prefixed_with_the_name()
+    {
+        tagsProcessor.Tags = [new Tag(1, "finger pointing", "finger-pointing", 51, "Other Figures", "sfw"), new Tag(2, "Max Verstappen", "max-verstappen", 51, "Other Figures", "sfw")];
+
+        await Ingest("abc123");
+
+        fileSystem.File.Exists(fileSystem.Path.Combine("some-directory", "Max_Verstappen_abc123.jpg")).ShouldBeTrue();
+        fileSystem.File.Exists(fileSystem.Path.Combine("some-directory", "abc123.jpg")).ShouldBeFalse();
+        addedFiles.Select(file => file.FileName.Value).ShouldBe(["Max_Verstappen_abc123.jpg"]);
+        addedFiles.Select(file => file.FileHandle.Value).ShouldBe(["abc123"]);
+    }
+
+    [Fact]
+    public async Task when_a_wallpaper_has_no_person_name_tag_then_the_wallpaper_id_is_the_file_name()
+    {
+        tagsProcessor.Tags = [new Tag(1, "landscape", "landscape", 5, "Nature", "sfw")];
+
+        await Ingest("abc123");
+
+        fileSystem.File.Exists(fileSystem.Path.Combine("some-directory", "abc123.jpg")).ShouldBeTrue();
+        addedFiles.Select(file => file.FileName.Value).ShouldBe(["abc123.jpg"]);
+    }
+
+    [Fact]
+    public async Task when_fetching_the_tags_fails_then_the_image_is_still_saved_under_the_wallpaper_id()
+    {
+        tagsProcessor.FetchFailure = new HttpRequestException("tag fetch failed");
+
+        await Ingest("abc123");
+
+        fileSystem.File.Exists(fileSystem.Path.Combine("some-directory", "abc123.jpg")).ShouldBeTrue();
+        addedFiles.Select(file => file.FileName.Value).ShouldBe(["abc123.jpg"]);
+        tagsProcessor.LinkedTags.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task when_a_wallpaper_is_saved_then_the_fetched_tags_are_linked()
+    {
+        tagsProcessor.Tags = [new Tag(2, "Max Verstappen", "max-verstappen", 51, "Other Figures", "sfw")];
+
+        await Ingest("abc123");
+
+        tagsProcessor.LinkedTags.ShouldBe(tagsProcessor.Tags);
+    }
+
+    private Task Ingest(string id)
+    {
+        using var client = new HttpClient(new StubHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1, 2, 3]) }));
+
+        return service.IngestAsync(new Data(id, 1920, 1080, 3, "image/jpeg", $"https://example.test/full/{id}.jpg"), new WallpaperIngestionContext("some-directory", client, fileRepository, "Top Wallpapers"), new Progress<string>(), CancellationToken.None);
+    }
+
+    private sealed class StubTagsProcessor : ITagsProcessor
+    {
+        public IReadOnlyList<Tag> Tags { get; set; } = [];
+
+        public Exception? FetchFailure { get; set; }
+
+        public IReadOnlyList<Tag> LinkedTags { get; private set; } = [];
+
+        public Task<Exceptional<IReadOnlyList<Tag>>> FetchTagsAsync(string wallpaperId, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
+            => Task.FromResult(FetchFailure is null ? Exceptional.Success(Tags) : Exceptional.Failure<IReadOnlyList<Tag>>(FetchFailure));
+
+        public Task<Exceptional<Unit>> LinkTagsAsync(FileId fileId, IReadOnlyList<Tag> tags, CancellationToken cancellationToken)
+        {
+            LinkedTags = tags;
+
+            return Task.FromResult((Exceptional<Unit>)Unit.Instance);
+        }
+    }
+
+    private sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => Task.FromResult(responder(request));
+    }
+}
