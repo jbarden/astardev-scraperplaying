@@ -30,7 +30,7 @@ public sealed class GivenAWallpaperDetailPageScraper
                 "https://w.wallhaven.cc/full/ab/wallhaven-abc123.jpg",
                 1920,
                 1080,
-                [new WallpaperTag(1, "anime"), new WallpaperTag(2, "landscape")])));
+                [new WallpaperTag(1, "anime", Category: "Anime & Manga"), new WallpaperTag(2, "Max Verstappen", Category: "Other Figures")])));
 
         var result = await scraper.ScrapeAsync("abc123", page, new Uri("https://example.test"), progress, CancellationToken.None);
 
@@ -38,7 +38,7 @@ public sealed class GivenAWallpaperDetailPageScraper
         result.ImageUrl.ShouldBe("https://w.wallhaven.cc/full/ab/wallhaven-abc123.jpg");
         result.DimensionX.ShouldBe(1920);
         result.DimensionY.ShouldBe(1080);
-        result.Tags.ShouldBe([new WallpaperTag(1, "anime"), new WallpaperTag(2, "landscape")]);
+        result.Tags.ShouldBe([new WallpaperTag(1, "anime", Category: "Anime & Manga"), new WallpaperTag(2, "Max Verstappen", Category: "Other Figures")]);
     }
 
     [Fact]

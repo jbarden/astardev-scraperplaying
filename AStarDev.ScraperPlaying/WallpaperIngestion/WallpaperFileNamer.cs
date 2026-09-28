@@ -10,7 +10,7 @@ public static class WallpaperFileNamer
     private const int maxPrefixLength = 100;
     private const string invalidFileNameCharacters = "\\/:*?\"<>|";
 
-    /// <summary>Generates the file name for a wallpaper. Wallpapers tagged as a famous person (see <see cref="FamousTags"/>) are prefixed with their other tag names, joined by underscores; all others use just the wallpaper id.</summary>
+    /// <summary>Generates the file name for a wallpaper. Wallpapers with person-name tags (see <see cref="FamousTags.IsPersonName"/>) are prefixed with those names, joined by underscores; all others use just the wallpaper id.</summary>
     /// <param name="detail">The wallpaper scraped from its detail page.</param>
     /// <returns>The file name, including the extension taken from the image URL.</returns>
     public static FileName Create(WallpaperDetail detail)
@@ -23,9 +23,7 @@ public static class WallpaperFileNamer
 
     private static string CreatePrefix(IReadOnlyList<WallpaperTag> tags)
     {
-        if (!FamousTags.AreFamous(tags)) return string.Empty;
-
-        var joined = string.Join('_', tags.Where(tag => !FamousTags.IsFamous(tag)).Select(tag => Sanitise(tag.Name)).Where(name => name.Length > 0));
+        var joined = string.Join('_', tags.Where(FamousTags.IsPersonName).Select(tag => Sanitise(tag.Name)).Where(name => name.Length > 0));
 
         return joined.Length > maxPrefixLength ? joined[..maxPrefixLength] : joined;
     }

@@ -13,7 +13,8 @@ public class WallpaperDetailPageScraper : IWallpaperDetailPageScraper
             const tags = Array.from(document.querySelectorAll('#tags li.tag'))
                 .map(item => ({
                     wallhavenTagId: parseInt(item.dataset.tagId ?? '', 10),
-                    name: (item.querySelector('a.tagname')?.textContent ?? '').trim()
+                    name: (item.querySelector('a.tagname')?.textContent ?? '').trim(),
+                    category: (item.querySelector('a.tagname')?.title ?? '').split('>').pop().trim()
                 }))
                 .filter(tag => tag.wallhavenTagId && tag.name);
 
