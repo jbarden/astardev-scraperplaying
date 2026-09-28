@@ -20,8 +20,8 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
     private readonly Dictionary<int, TagEntity> resolvedTags = [];
 
     /// <inheritdoc/>
-    public Task<Exceptional<Unit>> FetchAndLinkTagsAsync(string wallpaperId, FileId fileId, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
-        => Try.RunAsync(async () =>
+    public Task<Exceptional<IReadOnlyList<Tag>>> FetchTagsAsync(string wallpaperId, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
+        => Try.RunAsync<IReadOnlyList<Tag>>(async () =>
         {
             progress.Report($"Fetching tags for wallpaper {wallpaperId}.");
 
@@ -30,10 +30,17 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
                     option => option.Match(value => value, () => throw new InvalidOperationException($"No response body received for wallpaper {wallpaperId} detail.")),
                     exception => throw exception);
 
+            return detailResponse.Data.Tags;
+        });
+
+    /// <inheritdoc/>
+    public Task<Exceptional<Unit>> LinkTagsAsync(FileId fileId, IReadOnlyList<Tag> tags, CancellationToken cancellationToken)
+        => Try.RunAsync(async () =>
+        {
             var tagRepository = unitOfWork.GetRepository<TagEntity, TagId>();
             var linkedTagIds = new HashSet<int>();
 
-            foreach (var tag in detailResponse.Data.Tags)
+            foreach (var tag in tags)
             {
                 if (!linkedTagIds.Add(tag.Id)) continue;
 

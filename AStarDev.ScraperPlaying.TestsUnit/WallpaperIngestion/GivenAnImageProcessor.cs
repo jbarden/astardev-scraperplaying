@@ -27,7 +27,7 @@ public sealed class GivenAnImageProcessor
         fileRepository.Add(Arg.Any<FileEntity>()).Returns(call => (Exceptional<FileEntity>)call.Arg<FileEntity>());
         var wallpaper = CreateWallpaper(id: "wallpaper-1", fileSize: 1234, fileType: "image/jpeg", dimensionX: 1920, dimensionY: 1080, path: "https://example.test/full/wallpaper-1.jpg");
 
-        var result = await processor.ProcessTheImageAsync(fileRepository, new WallpaperFileRequest(wallpaper, "some-directory", ".jpg", "Top Wallpapers"), CancellationToken.None);
+        var result = await processor.ProcessTheImageAsync(fileRepository, new WallpaperFileRequest(wallpaper, "some-directory", NameFor(wallpaper, ".jpg"), "Top Wallpapers"), CancellationToken.None);
 
         var addedEntity = result.Match(entity => entity, _ => (FileEntity?)null);
         addedEntity.ShouldNotBeNull();
@@ -47,11 +47,26 @@ public sealed class GivenAnImageProcessor
         fileRepository.Add(Arg.Any<FileEntity>()).Returns(call => (Exceptional<FileEntity>)call.Arg<FileEntity>());
         var wallpaper = CreateWallpaper(id: "wallpaper-7", path: "https://example.test/full/wallpaper-7.png");
 
-        var result = await processor.ProcessTheImageAsync(fileRepository, new WallpaperFileRequest(wallpaper, "some-directory", ".png", "Top Wallpapers"), CancellationToken.None);
+        var result = await processor.ProcessTheImageAsync(fileRepository, new WallpaperFileRequest(wallpaper, "some-directory", NameFor(wallpaper, ".png"), "Top Wallpapers"), CancellationToken.None);
 
         var addedEntity = result.Match(entity => entity, _ => (FileEntity?)null);
         addedEntity.ShouldNotBeNull();
         addedEntity.FileName.Value.ShouldBe("wallpaper-7.png");
+    }
+
+    [Fact]
+    public async Task when_the_request_has_a_prefixed_file_name_then_it_is_used_for_the_file_entity_and_the_saved_file()
+    {
+        fileRepository.Add(Arg.Any<FileEntity>()).Returns(call => (Exceptional<FileEntity>)call.Arg<FileEntity>());
+        using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1, 2, 3]) });
+        var wallpaper = CreateWallpaper(id: "abc123", path: "https://example.test/full/abc123.jpg");
+        var request = new WallpaperFileRequest(wallpaper, "some-directory", new FileName("Max_Verstappen_abc123.jpg"), "Top Wallpapers");
+
+        await processor.DownloadImageAsync(request, new CapturingProgress(), client, CancellationToken.None);
+        var result = await processor.ProcessTheImageAsync(fileRepository, request, CancellationToken.None);
+
+        fileSystem.File.Exists(fileSystem.Path.Combine("some-directory", "Max_Verstappen_abc123.jpg")).ShouldBeTrue();
+        result.Match(entity => entity, ex => throw ex).FileName.Value.ShouldBe("Max_Verstappen_abc123.jpg");
     }
 
     [Fact]
@@ -60,7 +75,7 @@ public sealed class GivenAnImageProcessor
         fileRepository.Add(Arg.Any<FileEntity>()).Returns(call => (Exceptional<FileEntity>)call.Arg<FileEntity>());
         var wallpaper = CreateWallpaper(id: "wallpaper-top");
 
-        var result = await processor.ProcessTheImageAsync(fileRepository, new WallpaperFileRequest(wallpaper, "root-directory/top-wallpapers", ".jpg", "Top Wallpapers"), CancellationToken.None);
+        var result = await processor.ProcessTheImageAsync(fileRepository, new WallpaperFileRequest(wallpaper, "root-directory/top-wallpapers", NameFor(wallpaper, ".jpg"), "Top Wallpapers"), CancellationToken.None);
 
         var addedEntity = result.Match(entity => entity, _ => (FileEntity?)null);
         addedEntity.ShouldNotBeNull();
@@ -73,7 +88,7 @@ public sealed class GivenAnImageProcessor
         fileRepository.Add(Arg.Any<FileEntity>()).Returns(call => (Exceptional<FileEntity>)call.Arg<FileEntity>());
         var wallpaper = CreateWallpaper(id: "wallpaper-5", path: "https://example.test/full/wallpaper-5.txt");
 
-        var result = await processor.ProcessTheImageAsync(fileRepository, new WallpaperFileRequest(wallpaper, "some-directory", ".txt", "Top Wallpapers"), CancellationToken.None);
+        var result = await processor.ProcessTheImageAsync(fileRepository, new WallpaperFileRequest(wallpaper, "some-directory", NameFor(wallpaper, ".txt"), "Top Wallpapers"), CancellationToken.None);
 
         var addedEntity = result.Match(entity => entity, _ => (FileEntity?)null);
         addedEntity.ShouldNotBeNull();
@@ -87,7 +102,7 @@ public sealed class GivenAnImageProcessor
         fileRepository.Add(Arg.Any<FileEntity>()).Returns((Exceptional<FileEntity>)exception);
         var wallpaper = CreateWallpaper(id: "wallpaper-2");
 
-        var result = await processor.ProcessTheImageAsync(fileRepository, new WallpaperFileRequest(wallpaper, "some-directory", ".jpg", "Top Wallpapers"), CancellationToken.None);
+        var result = await processor.ProcessTheImageAsync(fileRepository, new WallpaperFileRequest(wallpaper, "some-directory", NameFor(wallpaper, ".jpg"), "Top Wallpapers"), CancellationToken.None);
 
         var capturedException = result.Match(_ => (Exception?)null, ex => ex);
         capturedException.ShouldBeSameAs(exception);
@@ -103,7 +118,7 @@ public sealed class GivenAnImageProcessor
         var expectedPath = fileSystem.Path.Combine(directory, "wallpaper-3.jpg");
         var wallpaper = CreateWallpaper(id: "wallpaper-3", fileSize: 5, dimensionX: 1920, dimensionY: 1080, path: "https://example.test/image.jpg");
 
-        await processor.DownloadImageAsync(new WallpaperFileRequest(wallpaper, directory, ".jpg", "Cars"), progress, client, CancellationToken.None);
+        await processor.DownloadImageAsync(new WallpaperFileRequest(wallpaper, directory, NameFor(wallpaper, ".jpg"), "Cars"), progress, client, CancellationToken.None);
 
         fileSystem.File.Exists(expectedPath).ShouldBeTrue();
         fileSystem.File.ReadAllBytes(expectedPath).ShouldBe(imageBytes);
@@ -121,7 +136,7 @@ public sealed class GivenAnImageProcessor
         var expectedPath = fileSystem.Path.Combine(directory, "wallpaper-8.png");
         var wallpaper = CreateWallpaper(id: "wallpaper-8", path: "https://example.test/image.png");
 
-        await processor.DownloadImageAsync(new WallpaperFileRequest(wallpaper, directory, ".png", "Top Wallpapers"), progress, client, CancellationToken.None);
+        await processor.DownloadImageAsync(new WallpaperFileRequest(wallpaper, directory, NameFor(wallpaper, ".png"), "Top Wallpapers"), progress, client, CancellationToken.None);
 
         fileSystem.File.Exists(expectedPath).ShouldBeTrue();
         fileSystem.File.Exists(fileSystem.Path.Combine(directory, "wallpaper-8.jpg")).ShouldBeFalse();
@@ -139,7 +154,7 @@ public sealed class GivenAnImageProcessor
         fileSystem.Directory.Exists(directory).ShouldBeFalse();
         var wallpaper = CreateWallpaper(id: "wallpaper-6", path: "https://example.test/image.jpg");
 
-        await processor.DownloadImageAsync(new WallpaperFileRequest(wallpaper, directory, ".jpg", "Top Wallpapers"), progress, client, CancellationToken.None);
+        await processor.DownloadImageAsync(new WallpaperFileRequest(wallpaper, directory, NameFor(wallpaper, ".jpg"), "Top Wallpapers"), progress, client, CancellationToken.None);
 
         fileSystem.Directory.Exists(directory).ShouldBeTrue();
         fileSystem.File.Exists(fileSystem.Path.Combine(directory, "wallpaper-6.jpg")).ShouldBeTrue();
@@ -155,11 +170,13 @@ public sealed class GivenAnImageProcessor
         var wallpaper = CreateWallpaper(id: "wallpaper-4", path: "https://example.test/image.jpg");
 
         await Should.ThrowAsync<HttpRequestException>(
-            () => processor.DownloadImageAsync(new WallpaperFileRequest(wallpaper, directory, ".jpg", "Top Wallpapers"), progress, client, CancellationToken.None));
+            () => processor.DownloadImageAsync(new WallpaperFileRequest(wallpaper, directory, NameFor(wallpaper, ".jpg"), "Top Wallpapers"), progress, client, CancellationToken.None));
 
         fileSystem.File.Exists(fileSystem.Path.Combine(directory, "wallpaper-4.jpg")).ShouldBeFalse();
         imageDownloadNotifier.DidNotReceive().NotifyImageDownloaded(Arg.Any<WallpaperDownloadDetails>());
     }
+
+    private static FileName NameFor(Data wallpaper, string extension) => new($"{wallpaper.Id}{extension}");
 
     private static Data CreateWallpaper(string id, int fileSize = 0, string fileType = "", int dimensionX = 0, int dimensionY = 0, string path = "")
         => new(id, dimensionX, dimensionY, fileSize, fileType, path);

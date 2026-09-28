@@ -85,14 +85,25 @@ public sealed class GivenATagsProcessor
         var firstFileId = FileId.Create();
         var secondFileId = FileId.Create();
 
-        var firstResult = await processor.FetchAndLinkTagsAsync("wallpaper-a", firstFileId, new HttpClient(), progress, CancellationToken.None);
-        var secondResult = await processor.FetchAndLinkTagsAsync("wallpaper-b", secondFileId, new HttpClient(), progress, CancellationToken.None);
+        var firstResult = await FetchAndLink("wallpaper-a", firstFileId);
+        var secondResult = await FetchAndLink("wallpaper-b", secondFileId);
 
         firstResult.Match(_ => true, ex => throw ex).ShouldBeTrue();
         secondResult.Match(_ => true, ex => throw ex).ShouldBeTrue();
         tagRepository.Received(1).Add(Arg.Is<TagEntity>(t => t.WallhavenTagId == 4));
         fileTagRepository.Received(1).Add(Arg.Is<FileTagEntity>(fileTag => fileTag.FileId == firstFileId && fileTag.TagId == createdTag.Id));
         fileTagRepository.Received(1).Add(Arg.Is<FileTagEntity>(fileTag => fileTag.FileId == secondFileId && fileTag.TagId == createdTag.Id));
+    }
+
+    [Fact]
+    public async Task when_tags_are_fetched_then_they_are_returned_with_their_categories()
+    {
+        SetUpDetailResponse(new Tag(9, "Max Verstappen", "max-verstappen", 51, "Other Figures", "sfw"));
+
+        var result = await processor.FetchTagsAsync("wallpaper-1", new HttpClient(), progress, CancellationToken.None);
+
+        result.Match(tags => tags, ex => throw ex).ShouldBe([new Tag(9, "Max Verstappen", "max-verstappen", 51, "Other Figures", "sfw")]);
+        tagRepository.DidNotReceive().Add(Arg.Any<TagEntity>());
     }
 
     [Fact]
@@ -123,7 +134,11 @@ public sealed class GivenATagsProcessor
     }
 
     private Task<Exceptional<Unit>> Run()
-        => processor.FetchAndLinkTagsAsync("wallpaper-1", FileId.Create(), new HttpClient(), progress, CancellationToken.None);
+        => FetchAndLink("wallpaper-1", FileId.Create());
+
+    private async Task<Exceptional<Unit>> FetchAndLink(string wallpaperId, FileId fileId)
+        => await (await processor.FetchTagsAsync(wallpaperId, new HttpClient(), progress, CancellationToken.None))
+            .Match(tags => processor.LinkTagsAsync(fileId, tags, CancellationToken.None), exception => Task.FromResult((Exceptional<Unit>)exception));
 
     private void SetUpDetailResponse(params Tag[] tags)
         => jsonResponseProcessor.GetFromJsonAsync<DetailResponse>(Arg.Any<string>(), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
