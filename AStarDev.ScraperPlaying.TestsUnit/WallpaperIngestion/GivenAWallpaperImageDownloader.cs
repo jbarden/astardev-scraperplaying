@@ -70,9 +70,9 @@ public sealed class GivenAWallpaperImageDownloader
     }
 
     [Fact]
-    public async Task when_the_wallpaper_has_a_famous_tag_then_the_file_is_saved_and_returned_with_the_other_tag_names_as_prefix()
+    public async Task when_the_wallpaper_has_a_person_name_tag_then_the_file_is_saved_and_returned_with_the_name_as_prefix()
     {
-        var detail = CreateDetail() with { Tags = [new WallpaperTag(1, "actress"), new WallpaperTag(2, "Emma Watson")] };
+        var detail = CreateDetail() with { Tags = [new WallpaperTag(1, "actress"), new WallpaperTag(2, "Emma Watson", Category: "Celebrities")] };
 
         var result = await Run(detail);
 
