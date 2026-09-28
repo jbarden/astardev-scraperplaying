@@ -9,5 +9,11 @@ public static class FamousTags
     /// <param name="tags">The tags of the wallpaper.</param>
     /// <returns><see langword="true"/> when the wallpaper is tagged as a famous person.</returns>
     public static bool AreFamous(IReadOnlyList<WallpaperTag> tags)
-        => tags.Any(tag => famousTagFragments.Any(fragment => tag.Name.Contains(fragment, StringComparison.OrdinalIgnoreCase)));
+        => tags.Any(IsFamous);
+
+    /// <summary>Determines whether the tag's name contains "actress", "model" or "singer" (case-insensitive).</summary>
+    /// <param name="tag">The tag to check.</param>
+    /// <returns><see langword="true"/> when the tag marks a famous person.</returns>
+    public static bool IsFamous(WallpaperTag tag)
+        => famousTagFragments.Any(fragment => tag.Name.Contains(fragment, StringComparison.OrdinalIgnoreCase));
 }

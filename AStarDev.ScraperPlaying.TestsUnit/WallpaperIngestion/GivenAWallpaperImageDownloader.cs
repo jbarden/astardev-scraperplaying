@@ -70,6 +70,19 @@ public sealed class GivenAWallpaperImageDownloader
     }
 
     [Fact]
+    public async Task when_the_wallpaper_has_a_famous_tag_then_the_file_is_saved_and_returned_with_the_other_tag_names_as_prefix()
+    {
+        var detail = CreateDetail() with { Tags = [new WallpaperTag(1, "actress"), new WallpaperTag(2, "Emma Watson")] };
+
+        var result = await Run(detail);
+
+        var image = result.Match(downloaded => downloaded, ex => throw ex);
+        image.FileName.Value.ShouldBe("Emma_Watson_wallpaper-1.png");
+        image.SavedPath.ShouldBe(fileSystem.Path.Combine("some-directory", "Emma_Watson_wallpaper-1.png"));
+        fileSystem.File.ReadAllBytes(image.SavedPath).ShouldBe(imageBytes);
+    }
+
+    [Fact]
     public async Task when_the_image_url_is_empty_then_a_failure_is_returned_and_nothing_is_downloaded()
     {
         var result = await Run(CreateDetail(imageUrl: string.Empty));
