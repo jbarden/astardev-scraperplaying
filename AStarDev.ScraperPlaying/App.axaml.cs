@@ -18,6 +18,7 @@ public partial class App : Application, IDisposable
 
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Last-resort startup handler: any failure while building services must show the startup-error window instead of crashing.")]
     public override void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
