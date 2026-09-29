@@ -42,8 +42,8 @@ public sealed class SearchConfigurationImportDocument
     public Guid Id { get; init; }
     public string SearchTerm { get; init; } = string.Empty;
     public int? MaxResults { get; init; }
-    public List<SearchCategoryImportDocument> SearchCategories { get; init; } = [];
-    public List<string> PersonCategories { get; init; } = [.. PersonCategoryEntity.DefaultNames];
+    public IReadOnlyList<SearchCategoryImportDocument> SearchCategories { get; init; } = [];
+    public IReadOnlyList<string> PersonCategories { get; init; } = [.. PersonCategoryEntity.DefaultNames];
 }
 
 public sealed class SearchCategoryImportDocument

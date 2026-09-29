@@ -25,5 +25,5 @@ public sealed class TagEntity : IAggregateRoot
     public string Purity { get; set; } = string.Empty;
 
     /// <summary>Navigation property to the files this tag is linked to.</summary>
-    public ICollection<FileTagEntity> FileTags { get; set; } = [];
+    public ICollection<FileTagEntity> FileTags { get; } = [];
 }
