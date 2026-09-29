@@ -34,5 +34,17 @@
     <Project Path="packages/utilities/AStarDev.VelopackPublishingAvalonia.TestsUnit/AStarDev.VelopackPublishingAvalonia.TestsUnit.csproj" />
     <Project Path="packages/utilities/AStarDev.VelopackPublishingAvalonia/AStarDev.VelopackPublishingAvalonia.csproj" />
   </Folder>
+  <Folder Name="/packages/logging/">
+    <Project Path="packages/logging/AStarDev.LoggingExtensions.TestsUnit/AStarDev.LoggingExtensions.TestsUnit.csproj" />
+    <Project Path="packages/logging/AStarDev.LoggingExtensions/AStarDev.LoggingExtensions.csproj" />
+    <Project Path="packages/logging/AStarDev.LoggingOTel.TestsUnit/AStarDev.LoggingOTel.TestsUnit.csproj" />
+    <Project Path="packages/logging/AStarDev.LoggingOTel/AStarDev.LoggingOTel.csproj" />
+  </Folder>
+  <Folder Name="/packages/source-generators/">
+    <Project Path="packages/source-generators/AStarDev.SourceGenerators.Sample/AStarDev.SourceGenerators.Sample.csproj" />
+  </Folder>
+  <Folder Name="/packages/utilities/">
+    <Project Path="packages/utilities/DemoClassLibrary/DemoClassLibrary.csproj" />
+  </Folder>
   <Project Path="AStarDev.ScraperPlaying.TestsIntegration/AStarDev.ScraperPlaying.TestsIntegration.csproj" />
 </Solution>

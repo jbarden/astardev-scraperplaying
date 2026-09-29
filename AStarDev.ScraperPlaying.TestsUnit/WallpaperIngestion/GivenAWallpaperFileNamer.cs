@@ -18,7 +18,7 @@ public sealed class GivenAWallpaperFileNamer
     [InlineData("Models")]
     [InlineData("Pornstars")]
     [InlineData("Other Figures")]
-    [InlineData("Photographers")]
+    [InlineData("Actress")]
     [InlineData("other figures")]
     public void when_the_wallpaper_has_a_person_name_tag_then_its_name_prefixes_the_file_name(string category)
         => WallpaperFileNamer.Create("abc123", ".jpg", [Tag("Max Verstappen", category), Tag("men", "People")]).Value.ShouldBe("Max_Verstappen_abc123.jpg");
