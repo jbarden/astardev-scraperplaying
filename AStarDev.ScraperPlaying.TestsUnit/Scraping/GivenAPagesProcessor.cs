@@ -52,7 +52,7 @@ public sealed class GivenAPagesProcessor
         await processor.FetchAndProcessPagesAsync(
             "search category Cars",
             Option.Some("Cars"),
-            page => $"https://example.test/page/{page}",
+            page => new Uri($"https://example.test/page/{page}"),
             new WallhavenConnection("api-key", new Uri("https://example.test")),
             personCategories,
             progress,
@@ -117,7 +117,7 @@ public sealed class GivenAPagesProcessor
             () => processor.FetchAndProcessPagesAsync(
                 "wallpapers",
                 Option.None<string>(),
-                page => $"https://example.test/page/{page}",
+                page => new Uri($"https://example.test/page/{page}"),
                 new WallhavenConnection("api-key", new Uri("https://example.test")),
             personCategories,
                 progress,
@@ -147,7 +147,7 @@ public sealed class GivenAPagesProcessor
             () => processor.FetchAndProcessPagesAsync(
                 "wallpapers",
                 Option.None<string>(),
-                page => $"https://example.test/page/{page}",
+                page => new Uri($"https://example.test/page/{page}"),
                 new WallhavenConnection("api-key", new Uri("https://example.test")),
             personCategories,
                 progress,
@@ -160,7 +160,7 @@ public sealed class GivenAPagesProcessor
     public async Task when_fetching_a_page_fails_then_the_failure_is_reported_and_rethrown()
     {
         var exception = new InvalidOperationException("page fetch failed");
-        jsonResponseProcessor.GetFromJsonAsync<SearchResponse>(Arg.Any<string>(), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
+        jsonResponseProcessor.GetFromJsonAsync<SearchResponse>(Arg.Any<Uri>(), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
             .Returns((Exceptional<Option<SearchResponse>>)exception);
 
         var thrown = await Should.ThrowAsync<InvalidOperationException>(Run);
@@ -173,7 +173,7 @@ public sealed class GivenAPagesProcessor
         => processor.FetchAndProcessPagesAsync(
             "wallpapers",
             Option.None<string>(),
-            page => $"https://example.test/page/{page}",
+            page => new Uri($"https://example.test/page/{page}"),
             new WallhavenConnection("api-key", new Uri("https://example.test")),
             personCategories,
             progress,
@@ -183,13 +183,13 @@ public sealed class GivenAPagesProcessor
     {
         if (page is { } specificPage)
         {
-            jsonResponseProcessor.GetFromJsonAsync<SearchResponse>($"https://example.test/page/{specificPage}", Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
+            jsonResponseProcessor.GetFromJsonAsync<SearchResponse>(new Uri($"https://example.test/page/{specificPage}"), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
                 .Returns((Exceptional<Option<SearchResponse>>)(Option<SearchResponse>)response);
 
             return;
         }
 
-        jsonResponseProcessor.GetFromJsonAsync<SearchResponse>(Arg.Any<string>(), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
+        jsonResponseProcessor.GetFromJsonAsync<SearchResponse>(Arg.Any<Uri>(), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
             .Returns((Exceptional<Option<SearchResponse>>)(Option<SearchResponse>)response);
     }
 

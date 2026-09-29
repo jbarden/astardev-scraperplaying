@@ -25,7 +25,7 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
         {
             progress.Report($"Fetching tags for wallpaper {wallpaperId}.");
 
-            var detailResponse = (await jsonResponseProcessor.GetFromJsonAsync<DetailResponse>($"{ApplicationConstants.WallhavenDetailPathTemplate}{wallpaperId}", client, cancellationToken))
+            var detailResponse = (await jsonResponseProcessor.GetFromJsonAsync<DetailResponse>(new Uri($"{ApplicationConstants.WallhavenDetailPathTemplate}{wallpaperId}", UriKind.Relative), client, cancellationToken))
                 .Match(
                     option => option.Match(value => value, () => throw new InvalidOperationException($"No response body received for wallpaper {wallpaperId} detail.")),
                     exception => throw exception);

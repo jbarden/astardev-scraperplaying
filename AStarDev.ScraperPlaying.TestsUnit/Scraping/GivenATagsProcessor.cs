@@ -73,9 +73,9 @@ public sealed class GivenATagsProcessor
     public async Task when_two_different_wallpapers_introduce_the_same_new_tag_then_it_is_created_once_and_cached_across_calls()
     {
         var tag = CreateTag(wallhavenTagId: 4, name: "shared");
-        jsonResponseProcessor.GetFromJsonAsync<DetailResponse>($"{ApplicationConstants.WallhavenDetailPathTemplate}wallpaper-a", Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
+        jsonResponseProcessor.GetFromJsonAsync<DetailResponse>(new Uri($"{ApplicationConstants.WallhavenDetailPathTemplate}wallpaper-a", UriKind.Relative), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
             .Returns((Exceptional<Option<DetailResponse>>)(Option<DetailResponse>)CreateDetailResponse(tag));
-        jsonResponseProcessor.GetFromJsonAsync<DetailResponse>($"{ApplicationConstants.WallhavenDetailPathTemplate}wallpaper-b", Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
+        jsonResponseProcessor.GetFromJsonAsync<DetailResponse>(new Uri($"{ApplicationConstants.WallhavenDetailPathTemplate}wallpaper-b", UriKind.Relative), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
             .Returns((Exceptional<Option<DetailResponse>>)(Option<DetailResponse>)CreateDetailResponse(tag));
         // Simulates the production race: neither call's DB lookup sees the other's not-yet-saved insert, so both return "not found".
         tagsQuery.TryFindByWallhavenIdAsync(4, Arg.Any<CancellationToken>()).Returns((Exceptional<Option<TagEntity>>)Option<TagEntity>.None.Instance);
@@ -112,7 +112,7 @@ public sealed class GivenATagsProcessor
     public async Task when_the_detail_fetch_fails_then_the_failure_is_returned_not_thrown()
     {
         var exception = new HttpRequestException("boom");
-        jsonResponseProcessor.GetFromJsonAsync<DetailResponse>(Arg.Any<string>(), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
+        jsonResponseProcessor.GetFromJsonAsync<DetailResponse>(Arg.Any<Uri>(), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
             .Returns((Exceptional<Option<DetailResponse>>)exception);
 
         var result = await Run();
@@ -147,7 +147,7 @@ public sealed class GivenATagsProcessor
     }
 
     private void SetUpDetailResponse(params Tag[] tags)
-        => jsonResponseProcessor.GetFromJsonAsync<DetailResponse>(Arg.Any<string>(), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
+        => jsonResponseProcessor.GetFromJsonAsync<DetailResponse>(Arg.Any<Uri>(), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
             .Returns((Exceptional<Option<DetailResponse>>)(Option<DetailResponse>)CreateDetailResponse(tags));
 
     private static DetailResponse CreateDetailResponse(params Tag[] tags)

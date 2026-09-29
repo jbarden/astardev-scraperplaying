@@ -11,7 +11,7 @@ namespace AStarDev.ScraperPlaying.Scraping;
 public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork unitOfWork, IJsonResponseProcessor jsonResponseProcessor, ISaveDirectoryResolver saveDirectoryResolver, IWallpaperIngestionService wallpaperIngestionService, Func<TimeSpan> pacingDelay) : IPagesProcessor
 {
     /// <inheritdoc/>
-    public async Task FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Func<int, string> pageUrlFactory, WallhavenConnection connection, IReadOnlyList<string> personCategories, IProgress<string> progress, CancellationToken cancellationToken)
+    public async Task FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Func<int, Uri> pageUrlFactory, WallhavenConnection connection, IReadOnlyList<string> personCategories, IProgress<string> progress, CancellationToken cancellationToken)
     {
         var client = CreateHttpClient(connection);
         try
@@ -64,7 +64,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
         }
     }
 
-    private async Task<SearchResponse> FetchPageAsync(string logLabel, Func<int, string> pageUrlFactory, int page, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
+    private async Task<SearchResponse> FetchPageAsync(string logLabel, Func<int, Uri> pageUrlFactory, int page, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
     {
         progress.Report($"Fetching {logLabel} page {page}.");
 

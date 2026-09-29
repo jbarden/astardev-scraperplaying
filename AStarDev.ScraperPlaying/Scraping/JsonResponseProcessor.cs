@@ -8,7 +8,7 @@ namespace AStarDev.ScraperPlaying.Scraping;
 public class JsonResponseProcessor : IJsonResponseProcessor
 {
     /// <inheritdoc/>
-    public Task<Exceptional<Option<T>>> GetFromJsonAsync<T>(string url, HttpClient client, CancellationToken cancellationToken)
+    public Task<Exceptional<Option<T>>> GetFromJsonAsync<T>(Uri url, HttpClient client, CancellationToken cancellationToken)
         => Try.RunAsync<Option<T>>(async () =>
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
