@@ -9,12 +9,6 @@
     <Project Path="packages/AStarDev.EFCoreSqlite/AStarDev.EFCoreSqlite.csproj" />
     <Project Path="packages/AStarDev.FunctionalParadigm.TestsUnit/AStarDev.FunctionalParadigm.TestsUnit.csproj" />
     <Project Path="packages/AStarDev.FunctionalParadigm/AStarDev.FunctionalParadigm.csproj" />
-    <Folder Name="/packages/logging/">
-      <Project Path="packages/logging/AStarDev.LoggingExtensions/AStarDev.LoggingExtensions.csproj" />
-      <Project Path="packages/logging/AStarDev.LoggingExtensions.TestsUnit/AStarDev.LoggingExtensions.TestsUnit.csproj" />
-      <Project Path="packages/logging/AStarDev.LoggingOTel/AStarDev.LoggingOTel.csproj" />
-      <Project Path="packages/logging/AStarDev.LoggingOTel.TestsUnit/AStarDev.LoggingOTel.TestsUnit.csproj" />
-    </Folder>
     <Project Path="packages/source-generators/AStarDev.SourceAnalyzers.TestsUnit/AStarDev.SourceAnalyzers.TestsUnit.csproj" />
     <Project Path="packages/source-generators/AStarDev.SourceAnalyzers/AStarDev.SourceAnalyzers.csproj" />
     <Project Path="packages/source-generators/AStarDev.SourceGeneratorAttributes.TestsUnit/AStarDev.SourceGeneratorAttributes.TestsUnit.csproj" />
