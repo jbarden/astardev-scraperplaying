@@ -402,6 +402,77 @@ public sealed class GivenAStrongTypeGenerator
     }
 
     [Fact]
+    public void when_the_record_struct_is_nested_in_another_type_then_a_diagnostic_is_emitted_and_nothing_is_generated()
+    {
+        const string input = """
+                             using AStarDev.SourceGeneratorAttributes;
+                             namespace TestNamespace
+                             {
+                                 public partial class Outer
+                                 {
+                                     [StrongType(typeof(int))]
+                                     public partial record struct InnerId { }
+                                 }
+                             }
+                             """;
+
+        var result = RunGenerator(input);
+
+        result.Diagnostics.ShouldContain(diagnostic => diagnostic.Id == "ASTARST001" && diagnostic.Severity == DiagnosticSeverity.Error);
+        GeneratorRunHelpers.GeneratedSources(result).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void when_the_record_struct_is_nested_more_than_one_level_deep_then_a_diagnostic_is_emitted()
+    {
+        const string input = """
+                             using AStarDev.SourceGeneratorAttributes;
+                             namespace TestNamespace
+                             {
+                                 public partial class Outer
+                                 {
+                                     public partial struct Middle
+                                     {
+                                         [StrongType(typeof(int))]
+                                         public partial record struct InnerId { }
+                                     }
+                                 }
+                             }
+                             """;
+
+        var result = RunGenerator(input);
+
+        result.Diagnostics.ShouldContain(diagnostic => diagnostic.Id == "ASTARST001");
+        GeneratorRunHelpers.GeneratedSources(result).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void when_a_nested_record_struct_is_next_to_a_top_level_one_then_only_the_top_level_one_is_generated()
+    {
+        const string input = """
+                             using AStarDev.SourceGeneratorAttributes;
+                             namespace TestNamespace
+                             {
+                                 [StrongType(typeof(int))]
+                                 public partial record struct TopLevelId { }
+
+                                 public partial class Outer
+                                 {
+                                     [StrongType(typeof(int))]
+                                     public partial record struct InnerId { }
+                                 }
+                             }
+                             """;
+
+        var result = RunGenerator(input);
+
+        result.Diagnostics.ShouldContain(diagnostic => diagnostic.Id == "ASTARST001");
+        var generated = GeneratorRunHelpers.GeneratedSources(result).ShouldHaveSingleItem().SourceText.ToString();
+        generated.ShouldContain("TopLevelId");
+        generated.ShouldNotContain("InnerId");
+    }
+
+    [Fact]
     public void when_the_type_is_a_partial_record_class_then_no_code_is_generated()
     {
         const string input = """

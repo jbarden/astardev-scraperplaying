@@ -45,6 +45,20 @@ public class StrongTypeGenerator : IIncrementalGenerator
                 if (attr.ConstructorArguments.Length > 1)
                     continue;
 
+                if (symbol.ContainingType is not null)
+                {
+                    spc.ReportDiagnostic(Diagnostic.Create(
+                        new DiagnosticDescriptor(
+                            id: "ASTARST001",
+                            title: "Nested Strong Type",
+                            messageFormat: $"Strong type '{symbol.Name}' is nested in '{symbol.ContainingType.Name}'; nested strong types are not supported. Declare it at namespace level.",
+                            category: "AStarDev.SourceGenerators",
+                            DiagnosticSeverity.Error,
+                            isEnabledByDefault: true),
+                        recordStruct.GetLocation()));
+                    continue;
+                }
+
                 string underlyingType = StrongTypeModelExtensions.CreateUnderlyingTypeFromAttribute(attr);
                 string? ns = symbol.ContainingNamespace.IsGlobalNamespace ? null : symbol.ContainingNamespace.ToDisplayString();
                 var modelObj = new StrongTypeModel(ns, symbol.Name, symbol.DeclaredAccessibility, underlyingType);
