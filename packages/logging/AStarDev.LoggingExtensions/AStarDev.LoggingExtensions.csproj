@@ -1,10 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
-    </PropertyGroup>
-
-    <PropertyGroup>
         <Description>This package contains extension methods designed to add OpenTelemetry logging, tracing, and metrics, exported to Azure Monitor (Application Insights), to the project. The logging is opinionated but the configuration can be overridden.</Description>
         <DocumentationFile>$(AssemblyName).xml</DocumentationFile>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
