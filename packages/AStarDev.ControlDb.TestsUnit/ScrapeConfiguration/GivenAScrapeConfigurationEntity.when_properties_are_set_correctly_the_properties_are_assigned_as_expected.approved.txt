@@ -24,6 +24,7 @@
     "searchTerm": "search-config",
     "maxResults": 10,
     "searchCategories": [],
+    "personCategories": [],
     "createdAt": "<date>",
     "updatedAt": "<date>"
   },
