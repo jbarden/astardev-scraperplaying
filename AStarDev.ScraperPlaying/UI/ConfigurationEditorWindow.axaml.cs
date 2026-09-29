@@ -30,6 +30,7 @@ public partial class ConfigurationEditorWindow : Window
         UserTabContent.Load(UserSettingsInput.From(configuration));
         SearchTabContent.Load(SearchSettingsInput.From(configuration));
         SearchCategoriesTabContent.Load(SearchCategoriesInput.From(configuration));
+        PersonCategoriesTabContent.Load(PersonCategoriesInput.From(configuration));
         DirectoriesTabContent.Load(DirectorySettingsInput.From(configuration), fileSystem);
     }
 
@@ -40,7 +41,8 @@ public partial class ConfigurationEditorWindow : Window
         var directorySettings = DirectoriesTabContent.ReadInput().Validate();
         var searchSettings = SearchTabContent.ReadInput().Validate();
         var searchCategories = SearchCategoriesTabContent.ReadInput().Validate();
-        var errors = CollectErrors(rootSettings).Concat(CollectErrors(userSettings)).Concat(CollectErrors(directorySettings)).Concat(CollectErrors(searchSettings)).Concat(CollectErrors(searchCategories)).ToList();
+        var personCategories = PersonCategoriesTabContent.ReadInput().Validate();
+        var errors = CollectErrors(rootSettings).Concat(CollectErrors(userSettings)).Concat(CollectErrors(directorySettings)).Concat(CollectErrors(searchSettings)).Concat(CollectErrors(searchCategories)).Concat(CollectErrors(personCategories)).ToList();
         if (errors.Count > 0)
         {
             ShowError(string.Join(Environment.NewLine, errors.Select(error => $"{error.Property}: {error.Message}")));
@@ -50,7 +52,7 @@ public partial class ConfigurationEditorWindow : Window
 
         ShowError(string.Empty);
         SetSaving(true);
-        var result = await updater.SaveAsync(configurationId, [((Valid<RootSettings>)rootSettings).Value, ((Valid<UserSettings>)userSettings).Value, ((Valid<DirectorySettings>)directorySettings).Value, ((Valid<SearchSettings>)searchSettings).Value, ((Valid<SearchCategoriesSettings>)searchCategories).Value], CancellationToken.None);
+        var result = await updater.SaveAsync(configurationId, [((Valid<RootSettings>)rootSettings).Value, ((Valid<UserSettings>)userSettings).Value, ((Valid<DirectorySettings>)directorySettings).Value, ((Valid<SearchSettings>)searchSettings).Value, ((Valid<SearchCategoriesSettings>)searchCategories).Value, ((Valid<PersonCategoriesSettings>)personCategories).Value], CancellationToken.None);
         var failure = result.Match(
             saved => saved.Match(_ => Option.None<string>(), () => Option.Some("The scrape configuration no longer exists.")),
             exception => Option.Some($"Unable to save the scrape configuration. {exception.Message}"));

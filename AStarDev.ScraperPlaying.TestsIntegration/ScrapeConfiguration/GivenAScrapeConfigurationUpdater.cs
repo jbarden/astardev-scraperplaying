@@ -167,6 +167,40 @@ public sealed class GivenAScrapeConfigurationUpdater : IDisposable
     }
 
     [Fact]
+    public async Task when_person_categories_are_saved_then_renames_additions_and_removals_persist()
+    {
+        var id = await SeedWithPersonCategoriesAsync(["Celebrities", "Models", "Actress"]);
+        var existing = (await ReadAsync(id)).SearchConfiguration.PersonCategories.ToDictionary(category => category.Name, category => category.Id);
+
+        var result = await updater.SaveAsync(
+            id,
+            [new PersonCategoriesSettings([
+                new PersonCategorySettings(Option.Some(existing["Celebrities"]), "Famous People"),
+                new PersonCategorySettings(Option.Some(existing["Models"]), "Models"),
+                new PersonCategorySettings(Option.None<Guid>(), "Athletes")
+            ])],
+            TestContext.Current.CancellationToken);
+
+        result.Match(option => option, exception => throw exception).Match(_ => true, () => false).ShouldBeTrue();
+        var categories = (await ReadAsync(id)).SearchConfiguration.PersonCategories.ToList();
+        categories.Select(category => category.Name).Order().ShouldBe(["Athletes", "Famous People", "Models"]);
+        categories.Single(category => category.Name == "Famous People").Id.ShouldBe(existing["Celebrities"]);
+        categories.Single(category => category.Name == "Models").Id.ShouldBe(existing["Models"]);
+    }
+
+    [Fact]
+    public async Task when_every_person_category_is_removed_then_none_remain_and_the_search_categories_are_unchanged()
+    {
+        var id = await SeedWithPersonCategoriesAsync(["Celebrities"], new SearchCategoryEntity { Id = "cat-only", Name = "Only" });
+
+        await updater.SaveAsync(id, [new PersonCategoriesSettings([])], TestContext.Current.CancellationToken);
+
+        var reloaded = await ReadAsync(id);
+        reloaded.SearchConfiguration.PersonCategories.ShouldBeEmpty();
+        reloaded.SearchConfiguration.SearchCategories.Single().Name.ShouldBe("Only");
+    }
+
+    [Fact]
     public async Task when_the_slow_motion_delay_is_cleared_then_it_is_stored_as_null()
     {
         var id = await SeedAsync();
@@ -198,7 +232,9 @@ public sealed class GivenAScrapeConfigurationUpdater : IDisposable
         if (File.Exists(databasePath)) File.Delete(databasePath);
     }
 
-    private async Task<ScrapeConfigurationId> SeedAsync(params SearchCategoryEntity[] categories)
+    private Task<ScrapeConfigurationId> SeedAsync(params SearchCategoryEntity[] categories) => SeedWithPersonCategoriesAsync([], categories);
+
+    private async Task<ScrapeConfigurationId> SeedWithPersonCategoriesAsync(string[] personCategoryNames, params SearchCategoryEntity[] categories)
     {
         using var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ControlDbContext>();
@@ -213,6 +249,7 @@ public sealed class GivenAScrapeConfigurationUpdater : IDisposable
             LoginUrl = new Uri("https://example.com/scrape/login"),
             SlowMotionDelay = 250f
         };
+        foreach (var name in personCategoryNames) entity.SearchConfiguration.PersonCategories.Add(new PersonCategoryEntity { Name = name });
         var added = context.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().Add(entity).Match(value => value, exception => throw exception);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
