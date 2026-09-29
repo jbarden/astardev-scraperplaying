@@ -36,5 +36,5 @@ public sealed class FileEntity : IAggregateRoot
     public string FileType { get; set; } = string.Empty;
 
     /// <summary>Navigation property to the tags linked to this file.</summary>
-    public ICollection<FileTagEntity> FileTags { get; set; } = [];
+    public ICollection<FileTagEntity> FileTags { get; } = [];
 }

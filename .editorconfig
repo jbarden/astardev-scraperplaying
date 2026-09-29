@@ -81,11 +81,14 @@ dotnet_naming_style.camel_case_style.capitalization = camel_case
 # Build only enforces IDE1006 when its severity is also set explicitly
 dotnet_diagnostic.IDE1006.severity = warning
 
-# ── Code-analysis rules cleaned up in #270-#272: keep them fixed ──────────────────
+# ── Code-analysis rules cleaned up in #270-#273: keep them fixed ──────────────────
 dotnet_diagnostic.CA1031.severity = warning
 dotnet_diagnostic.CA1063.severity = warning
+dotnet_diagnostic.CA1002.severity = warning
 dotnet_diagnostic.CA1307.severity = warning
 dotnet_diagnostic.CA1508.severity = warning
+dotnet_diagnostic.CA1819.severity = warning
+dotnet_diagnostic.CA2227.severity = warning
 dotnet_diagnostic.CA1849.severity = warning
 dotnet_diagnostic.CA2000.severity = warning
 
