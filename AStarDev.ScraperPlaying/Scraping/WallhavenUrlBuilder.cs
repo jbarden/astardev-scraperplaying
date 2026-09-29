@@ -19,9 +19,9 @@ public static class WallhavenUrlBuilder
     /// <param name="searchCategoriesUrl">The configured search URL template, containing a "%7Bid%7D" placeholder.</param>
     /// <param name="category">The search category whose id is substituted into the template.</param>
     /// <param name="page">The page number to append, omitted for page 1.</param>
-    public static string BuildCategoryPageUrl(string searchCategoriesUrl, SearchCategoryEntity category, int page)
+    public static string BuildCategoryPageUrl(string searchCategoriesUrl, string searchCategoriesSuffix, SearchCategoryEntity category, int page)
     {
-        var url = searchCategoriesUrl.Replace("%7Bid%7D", category.Id);
+        var url = searchCategoriesUrl.Replace("%7Bid%7D", category.Id) + searchCategoriesSuffix;
 
         return page == 1 ? url : url + page;
     }

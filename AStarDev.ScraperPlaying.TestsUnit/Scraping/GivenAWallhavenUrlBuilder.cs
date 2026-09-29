@@ -14,7 +14,7 @@ public sealed class GivenAWallhavenUrlBuilder
     {
         var category = new SearchCategoryEntity { SearchConfigurationId = new SearchConfigurationId(Guid.CreateVersion7()), Id = "cat1", Name = "category one" };
 
-        WallhavenUrlBuilder.BuildCategoryPageUrl("https://example.test/search/%7Bid%7D/", category, 1)
+        WallhavenUrlBuilder.BuildCategoryPageUrl("https://example.test/search/%7Bid%7D/", string.Empty, category, 1)
             .ShouldBe("https://example.test/search/cat1/");
     }
 
@@ -23,7 +23,25 @@ public sealed class GivenAWallhavenUrlBuilder
     {
         var category = new SearchCategoryEntity { SearchConfigurationId = new SearchConfigurationId(Guid.CreateVersion7()), Id = "cat1", Name = "category one" };
 
-        WallhavenUrlBuilder.BuildCategoryPageUrl("https://example.test/search/%7Bid%7D/", category, 2)
+        WallhavenUrlBuilder.BuildCategoryPageUrl("https://example.test/search/%7Bid%7D/", string.Empty, category, 2)
             .ShouldBe("https://example.test/search/cat1/2");
+    }
+
+    [Fact]
+    public void when_building_a_category_page_url_with_a_suffix_then_the_suffix_follows_the_id_and_precedes_the_page_number()
+    {
+        var category = new SearchCategoryEntity { SearchConfigurationId = new SearchConfigurationId(Guid.CreateVersion7()), Id = "cat1", Name = "category one" };
+
+        WallhavenUrlBuilder.BuildCategoryPageUrl("https://example.test/search/%7Bid%7D", "&categories=001&page=", category, 3)
+            .ShouldBe("https://example.test/search/cat1&categories=001&page=3");
+    }
+
+    [Fact]
+    public void when_building_a_category_page_url_with_a_suffix_for_page_one_then_the_suffix_is_kept_and_no_page_number_is_appended()
+    {
+        var category = new SearchCategoryEntity { SearchConfigurationId = new SearchConfigurationId(Guid.CreateVersion7()), Id = "cat1", Name = "category one" };
+
+        WallhavenUrlBuilder.BuildCategoryPageUrl("https://example.test/search/%7Bid%7D", "&categories=001&page=", category, 1)
+            .ShouldBe("https://example.test/search/cat1&categories=001&page=");
     }
 }
