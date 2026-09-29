@@ -75,6 +75,32 @@ public sealed class GivenAFilesQuery : IDisposable
         result.Match(exists => exists, exception => throw exception).ShouldBeFalse();
     }
 
+    [Fact]
+    public async Task when_the_name_differs_only_by_case_then_try_get_by_name_returns_none()
+    {
+        var fileEntity = FileEntityFactory.CreateFileEntity();
+        await context.Files.AddAsync(fileEntity, TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var query = new FilesQuery(context);
+
+        var result = await query.TryGetByNameAsync(FileName.Create(fileEntity.FileName.Value.ToUpperInvariant()), TestContext.Current.CancellationToken);
+
+        result.Match(option => option, exception => throw exception).Match(_ => true, () => false).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task when_the_name_differs_only_by_case_then_check_exists_returns_false()
+    {
+        var fileEntity = FileEntityFactory.CreateFileEntity();
+        await context.Files.AddAsync(fileEntity, TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var query = new FilesQuery(context);
+
+        var result = await query.CheckExistsByNameAsync(FileName.Create(fileEntity.FileName.Value.ToUpperInvariant()), TestContext.Current.CancellationToken);
+
+        result.Match(exists => exists, exception => throw exception).ShouldBeFalse();
+    }
+
     public void Dispose()
     {
         Dispose(true);

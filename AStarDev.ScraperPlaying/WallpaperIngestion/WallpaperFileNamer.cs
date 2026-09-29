@@ -34,5 +34,5 @@ public static class WallpaperFileNamer
         => tag.Name.Length > 0 && char.IsUpper(tag.Name[0]) && personCategories.Contains(tag.Category, StringComparer.OrdinalIgnoreCase);
 
     private static string Sanitise(string tagName)
-        => new([.. tagName.Trim().Replace(' ', '_').Where(character => !InvalidFileNameCharacters.Contains(character) && !char.IsControl(character))]);
+        => new([.. tagName.Trim().Replace(' ', '_').Where(character => !InvalidFileNameCharacters.Contains(character, StringComparison.Ordinal) && !char.IsControl(character))]);
 }

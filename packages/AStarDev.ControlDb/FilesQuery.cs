@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
 using Microsoft.EntityFrameworkCore;
@@ -15,9 +16,10 @@ public class FilesQuery(ControlDbContext context) : IFilesQuery
                             .Include(f => f.FileAccessDetail)
                             .Include(f => f.ImageDetail)
                             .AsAsyncEnumerable()
-                            .FirstOrNoneAsync(f => f.FileName.Value.Contains(name.Value), cancellationToken);
+                            .FirstOrNoneAsync(f => f.FileName.Value.Contains(name.Value, StringComparison.Ordinal), cancellationToken);
 
     /// <inheritdoc/>
+    [SuppressMessage("Globalization", "CA1307:Specify StringComparison for clarity", Justification = "Runs in the database: EF Core cannot translate the StringComparison overload, and its Contains translation is ordinal (covered by GivenAFilesQuery).")]
     public async Task<Exceptional<bool>> CheckExistsByNameAsync(FileName name, CancellationToken cancellationToken = default)
             => await context.Files.AnyAsync(f => f.FileName.Value.Contains(name.Value), cancellationToken);
 }
