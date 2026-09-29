@@ -5,7 +5,7 @@ namespace AStarDev.FunctionalParadigm;
 /// <summary>Functional helpers and utilities for working with <see cref="Option{T}" />.</summary>
 public static class OptionExtensions
 {
-    private static readonly string UnreachableMessage = "It should not be possible to reach this point.";
+    private static readonly string unreachableMessage = "It should not be possible to reach this point.";
 
     extension<T>(T value)
     {
@@ -66,7 +66,7 @@ public static class OptionExtensions
             {
                 Option<T>.Some some => new Option<TResult>.Some(await mapAsync(some.Value)),
                 Option<T>.None => Option.None<TResult>(),
-                _ => throw new InvalidOperationException(UnreachableMessage)
+                _ => throw new InvalidOperationException(unreachableMessage)
             };
 
         /// <summary>Asynchronously chains another <see cref="Option{T}" />-producing function.</summary>
@@ -75,7 +75,7 @@ public static class OptionExtensions
             {
                 Option<T>.Some some => await bindAsync(some.Value),
                 Option<T>.None => Option.None<TResult>(),
-                _ => throw new InvalidOperationException(UnreachableMessage)
+                _ => throw new InvalidOperationException(unreachableMessage)
             };
 
         /// <summary>Asynchronously converts an <see cref="Option{T}" /> to a <see cref="Result{T, TError}" />.</summary>
@@ -106,7 +106,7 @@ public static class OptionExtensions
             {
                 Option<T>.Some some => await onSomeAsync(some.Value),
                 Option<T>.None => onNone(),
-                _ => throw new InvalidOperationException(UnreachableMessage)
+                _ => throw new InvalidOperationException(unreachableMessage)
             };
 
         /// <summary>Pattern matches on the option with an asynchronous function for None.</summary>
@@ -115,7 +115,7 @@ public static class OptionExtensions
             {
                 Option<T>.Some some => onSome(some.Value),
                 Option<T>.None => await onNoneAsync(),
-                _ => throw new InvalidOperationException(UnreachableMessage)
+                _ => throw new InvalidOperationException(unreachableMessage)
             };
 
         /// <summary>Pattern matches on the option with asynchronous functions for both Some and None.</summary>
@@ -124,7 +124,7 @@ public static class OptionExtensions
             {
                 Option<T>.Some some => await onSomeAsync(some.Value),
                 Option<T>.None => await onNoneAsync(),
-                _ => throw new InvalidOperationException(UnreachableMessage)
+                _ => throw new InvalidOperationException(unreachableMessage)
             };
 
         /// <summary>Pattern matches on the option for side effects, awaiting the matched branch.</summary>
@@ -141,7 +141,7 @@ public static class OptionExtensions
                     break;
 
                 default:
-                    throw new InvalidOperationException(UnreachableMessage);
+                    throw new InvalidOperationException(unreachableMessage);
             }
         }
 

@@ -36,11 +36,11 @@ public interface IScrapeConfigurationFileWriter
 
 public sealed class ScrapeConfigurationFileWriter : IScrapeConfigurationFileWriter
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+    private static readonly JsonSerializerOptions jsonOptions = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
     public async Task WriteAsync(ScrapeConfigurationImportDocument document, string filePath, CancellationToken cancellationToken = default)
     {
         await using var stream = File.Create(filePath);
-        await JsonSerializer.SerializeAsync(stream, document, JsonOptions, cancellationToken);
+        await JsonSerializer.SerializeAsync(stream, document, jsonOptions, cancellationToken);
     }
 }

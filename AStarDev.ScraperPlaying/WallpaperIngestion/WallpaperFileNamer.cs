@@ -6,8 +6,8 @@ namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 /// <summary>Generates the file name a wallpaper is saved and recorded under.</summary>
 public static class WallpaperFileNamer
 {
-    private const int maxPrefixLength = 100;
-    private const string invalidFileNameCharacters = "\\/:*?\"<>|";
+    private const int MaxPrefixLength = 100;
+    private const string InvalidFileNameCharacters = "\\/:*?\"<>|";
 
     /// <summary>Generates the file name for a wallpaper. Wallpapers with person-name tags (a tag in a person category whose name starts with an upper-case letter, which rules out descriptive tags such as "finger pointing") are prefixed with those names, joined by underscores; all others use just the wallpaper id.</summary>
     /// <param name="wallpaperId">Wallhaven's id for the wallpaper.</param>
@@ -27,12 +27,12 @@ public static class WallpaperFileNamer
     {
         var joined = string.Join('_', tags.Where(tag => IsPersonName(tag, personCategories)).Select(tag => Sanitise(tag.Name)).Where(name => name.Length > 0));
 
-        return joined.Length > maxPrefixLength ? joined[..maxPrefixLength] : joined;
+        return joined.Length > MaxPrefixLength ? joined[..MaxPrefixLength] : joined;
     }
 
     private static bool IsPersonName(Tag tag, IReadOnlyList<string> personCategories)
         => tag.Name.Length > 0 && char.IsUpper(tag.Name[0]) && personCategories.Contains(tag.Category, StringComparer.OrdinalIgnoreCase);
 
     private static string Sanitise(string tagName)
-        => new([.. tagName.Trim().Replace(' ', '_').Where(character => !invalidFileNameCharacters.Contains(character) && !char.IsControl(character))]);
+        => new([.. tagName.Trim().Replace(' ', '_').Where(character => !InvalidFileNameCharacters.Contains(character) && !char.IsControl(character))]);
 }

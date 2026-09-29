@@ -27,15 +27,15 @@ public interface IScrapeConfigurationFileReader
 
 public sealed class ScrapeConfigurationFileReader : IScrapeConfigurationFileReader
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions jsonOptions = new(JsonSerializerDefaults.Web);
 
     public async Task<ScrapeConfigurationImportDocument> ReadAsync(string filePath, CancellationToken cancellationToken = default)
     {
         await using var stream = File.OpenRead(filePath);
         using var json = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
         var document = json.RootElement.TryGetProperty("scrapeConfiguration", out _)
-            ? JsonSerializer.Deserialize<ScrapeSettingsImportDocument>(json.RootElement.GetRawText(), JsonOptions)?.ToImportDocument()
-            : JsonSerializer.Deserialize<ScrapeConfigurationImportDocument>(json.RootElement.GetRawText(), JsonOptions);
+            ? JsonSerializer.Deserialize<ScrapeSettingsImportDocument>(json.RootElement.GetRawText(), jsonOptions)?.ToImportDocument()
+            : JsonSerializer.Deserialize<ScrapeConfigurationImportDocument>(json.RootElement.GetRawText(), jsonOptions);
         if (document is null)
         {
             throw new JsonException("The configuration file is empty.");
