@@ -100,7 +100,9 @@ public sealed class GivenATagsProcessor
     {
         SetUpDetailResponse(new Tag(9, "Max Verstappen", "max-verstappen", 51, "Other Figures", "sfw"));
 
-        var result = await processor.FetchTagsAsync("wallpaper-1", new HttpClient(), progress, CancellationToken.None);
+        using var client = new HttpClient();
+
+        var result = await processor.FetchTagsAsync("wallpaper-1", client, progress, CancellationToken.None);
 
         result.Match(tags => tags, ex => throw ex).ShouldBe([new Tag(9, "Max Verstappen", "max-verstappen", 51, "Other Figures", "sfw")]);
         tagRepository.DidNotReceive().Add(Arg.Any<TagEntity>());
@@ -137,8 +139,12 @@ public sealed class GivenATagsProcessor
         => FetchAndLink("wallpaper-1", FileId.Create());
 
     private async Task<Exceptional<Unit>> FetchAndLink(string wallpaperId, FileId fileId)
-        => await (await processor.FetchTagsAsync(wallpaperId, new HttpClient(), progress, CancellationToken.None))
+    {
+        using var client = new HttpClient();
+
+        return await (await processor.FetchTagsAsync(wallpaperId, client, progress, CancellationToken.None))
             .Match(tags => processor.LinkTagsAsync(fileId, tags, CancellationToken.None), exception => Task.FromResult((Exceptional<Unit>)exception));
+    }
 
     private void SetUpDetailResponse(params Tag[] tags)
         => jsonResponseProcessor.GetFromJsonAsync<DetailResponse>(Arg.Any<string>(), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())

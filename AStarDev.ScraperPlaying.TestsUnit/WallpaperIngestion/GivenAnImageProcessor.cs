@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
@@ -124,7 +125,7 @@ public sealed class GivenAnImageProcessor
         await processor.DownloadImageAsync(new WallpaperFileRequest(wallpaper, directory, NameFor(wallpaper, ".jpg"), "Cars"), progress, client, CancellationToken.None);
 
         fileSystem.File.Exists(expectedPath).ShouldBeTrue();
-        fileSystem.File.ReadAllBytes(expectedPath).ShouldBe(imageBytes);
+        (await fileSystem.File.ReadAllBytesAsync(expectedPath, TestContext.Current.CancellationToken)).ShouldBe(imageBytes);
         progress.Messages.ShouldContain("Downloading image for wallpaper wallpaper-3 from https://example.test/image.jpg");
         notifications.ShouldBe([new WallpaperDownloadDetails(expectedPath, "wallpaper-3.jpg", "Cars", 5, 1920, 1080)]);
     }
@@ -184,6 +185,7 @@ public sealed class GivenAnImageProcessor
     private static Data CreateWallpaper(string id, int fileSize = 0, string fileType = "", int dimensionX = 0, int dimensionY = 0, string path = "")
         => new(id, dimensionX, dimensionY, fileSize, fileType, path);
 
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient owns and disposes the handler.")]
     private static HttpClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> responder)
         => new(new StubHttpMessageHandler(responder));
 

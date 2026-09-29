@@ -151,8 +151,12 @@ public sealed class GivenAWallpaperIngestionService
         progress.Messages.ShouldContain("Downloaded image data for wallpaper failing-tags");
     }
 
-    private Task Ingest(Data wallpaper, string directory = "some-directory")
-        => service.IngestAsync(wallpaper, new WallpaperIngestionContext(directory, new HttpClient(), fileRepository, "resolved-category", []), progress, CancellationToken.None);
+    private async Task Ingest(Data wallpaper, string directory = "some-directory")
+    {
+        using var client = new HttpClient();
+
+        await service.IngestAsync(wallpaper, new WallpaperIngestionContext(directory, client, fileRepository, "resolved-category", []), progress, CancellationToken.None);
+    }
 
     private static FileName NameFor(Data wallpaper, string extension) => new($"{wallpaper.Id}{extension}");
 

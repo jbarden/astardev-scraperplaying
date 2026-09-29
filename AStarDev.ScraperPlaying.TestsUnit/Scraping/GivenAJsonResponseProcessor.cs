@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text;
 using AStarDev.FunctionalParadigm;
@@ -77,6 +78,7 @@ public sealed class GivenAJsonResponseProcessor
             () => processor.GetFromJsonAsync<TestPayload>("https://example.test/search", client, cancellationTokenSource.Token));
     }
 
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient owns and disposes the handler.")]
     private static HttpClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> responder)
         => new(new StubHttpMessageHandler(responder));
 

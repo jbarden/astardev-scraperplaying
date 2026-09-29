@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
@@ -78,11 +79,12 @@ public sealed class GivenAWallpaperIngestionServiceWithPersonTags
         tagsProcessor.LinkedTags.ShouldBe(tagsProcessor.Tags);
     }
 
-    private Task Ingest(string id)
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient owns and disposes the handler.")]
+    private async Task Ingest(string id)
     {
         using var client = new HttpClient(new StubHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1, 2, 3]) }));
 
-        return service.IngestAsync(new Data(id, 1920, 1080, 3, "image/jpeg", $"https://example.test/full/{id}.jpg"), new WallpaperIngestionContext("some-directory", client, fileRepository, "Top Wallpapers", ["Celebrities", "Models", "Pornstars", "Other Figures", "Actress"]), new Progress<string>(), CancellationToken.None);
+        await service.IngestAsync(new Data(id, 1920, 1080, 3, "image/jpeg", $"https://example.test/full/{id}.jpg"), new WallpaperIngestionContext("some-directory", client, fileRepository, "Top Wallpapers", ["Celebrities", "Models", "Pornstars", "Other Figures", "Actress"]), new Progress<string>(), CancellationToken.None);
     }
 
     private sealed class StubTagsProcessor : ITagsProcessor
