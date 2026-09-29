@@ -8,7 +8,7 @@ public static class WallpaperFileNamer
 {
     private const int maxPrefixLength = 100;
     private const string invalidFileNameCharacters = "\\/:*?\"<>|";
-    private static readonly string[] personCategories = ["Celebrities", "Models", "Pornstars", "Other Figures"];
+    private static readonly string[] personCategories = ["Celebrities", "Models", "Pornstars", "Other Figures", "Actress"];
 
     /// <summary>Generates the file name for a wallpaper. Wallpapers with person-name tags (a tag in a person category whose name starts with an upper-case letter, which rules out descriptive tags such as "finger pointing") are prefixed with those names, joined by underscores; all others use just the wallpaper id.</summary>
     /// <param name="wallpaperId">Wallhaven's id for the wallpaper.</param>
