@@ -68,14 +68,16 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
         var searchCategoriesUrl = configuration.SearchStringPrefix;
         var searchCategoriesSuffix = configuration.SearchStringSuffix;
         var searchCategories = configuration.SearchConfiguration.SearchCategories;
+        var subscriptionsUrl = configuration.Subscriptions;
         IReadOnlyList<string> personCategories = [.. configuration.SearchConfiguration.PersonCategories.Select(category => category.Name)];
 
-        progress.Report("Fetching top wallpapers.");
-        await pagesProcessor.FetchAndProcessPagesAsync("top wallpapers", Option.None<string>(), page => WallhavenUrlBuilder.BuildTopWallpapersPageUrl(topWallpapersUrl, page), connection, personCategories, progress, cancellationToken);
-
+        progress.Report("Fetching categories.");
         foreach (var category in searchCategories.Take(3))
         {
             await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Id}", Option.Some(category.Name), page => WallhavenUrlBuilder.BuildCategoryPageUrl(searchCategoriesUrl, searchCategoriesSuffix, category, page), connection, personCategories, progress, cancellationToken);
         }
+
+        progress.Report("Fetching top wallpapers.");
+        await pagesProcessor.FetchAndProcessPagesAsync("top wallpapers", Option.None<string>(), page => WallhavenUrlBuilder.BuildTopWallpapersPageUrl(topWallpapersUrl, page), connection, personCategories, progress, cancellationToken);
     }
 }
