@@ -1,7 +1,6 @@
 using AStarDev.VelopackPublishing;
 using AStarDev.VelopackPublishingAvalonia.Updates;
-using Microsoft.Extensions.Logging;
-using NSubstitute.ExceptionExtensions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Velopack;
 
 namespace AStarDev.VelopackPublishingAvalonia.TestsUnit.Updates;
@@ -15,12 +14,11 @@ public sealed class GivenAnUpdateAvailableViewModel
         return new UpdateInfo(asset, false, null, []);
     }
 
-    private static (UpdateAvailableViewModel ViewModel, IVelopackUpdateService UpdateCheckService) CreateSut(UpdateInfo? updateInfo = null)
+    private static (UpdateAvailableViewModel ViewModel, FakeVelopackUpdateService UpdateCheckService) CreateSut(UpdateInfo? updateInfo = null)
     {
-        var updateCheckService = Substitute.For<IVelopackUpdateService>();
+        var updateCheckService = new FakeVelopackUpdateService();
         var textProvider = new FakeUpdateDialogTextProvider();
-        var logger = Substitute.For<ILogger<UpdateAvailableViewModel>>();
-        var viewModel = new UpdateAvailableViewModel(updateInfo ?? CreateUpdateInfo(), updateCheckService, textProvider, logger);
+        var viewModel = new UpdateAvailableViewModel(updateInfo ?? CreateUpdateInfo(), updateCheckService, textProvider, NullLogger<UpdateAvailableViewModel>.Instance);
 
         return (viewModel, updateCheckService);
     }
@@ -93,11 +91,7 @@ public sealed class GivenAnUpdateAvailableViewModel
 
         await viewModel.RestartNowCommand.ExecuteAsync(null);
 
-        Received.InOrder(() =>
-        {
-            updateCheckService.DownloadUpdatesAsync(updateInfo, cancellationToken: Arg.Any<CancellationToken>());
-            updateCheckService.ApplyUpdatesAndRestart(updateInfo);
-        });
+        updateCheckService.Operations.ShouldBe(["download:1.2.3", "apply:1.2.3"]);
     }
 
     [Fact]
@@ -114,7 +108,7 @@ public sealed class GivenAnUpdateAvailableViewModel
     public async Task when_download_fails_then_error_message_is_populated_and_exception_does_not_propagate()
     {
         var (viewModel, updateCheckService) = CreateSut();
-        updateCheckService.DownloadUpdatesAsync(Arg.Any<UpdateInfo>(), cancellationToken: Arg.Any<CancellationToken>()).ThrowsAsync(new InvalidOperationException("offline"));
+        updateCheckService.DownloadFailure = new InvalidOperationException("offline");
 
         await viewModel.RestartNowCommand.ExecuteAsync(null);
 
@@ -125,10 +119,10 @@ public sealed class GivenAnUpdateAvailableViewModel
     public async Task when_download_fails_then_apply_updates_and_restart_is_never_called()
     {
         var (viewModel, updateCheckService) = CreateSut();
-        updateCheckService.DownloadUpdatesAsync(Arg.Any<UpdateInfo>(), cancellationToken: Arg.Any<CancellationToken>()).ThrowsAsync(new InvalidOperationException("offline"));
+        updateCheckService.DownloadFailure = new InvalidOperationException("offline");
 
         await viewModel.RestartNowCommand.ExecuteAsync(null);
 
-        updateCheckService.DidNotReceive().ApplyUpdatesAndRestart(Arg.Any<UpdateInfo>());
+        updateCheckService.Operations.ShouldBeEmpty();
     }
 }
