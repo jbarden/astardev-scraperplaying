@@ -59,6 +59,10 @@
          pedantry on new projects. -->
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
+
+    <!-- Run IDE0xxx code-style rules from .editorconfig during build, not only in the IDE.
+         Severities live in .editorconfig; promote a rule to 'warning' there to fail the build. -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
   <!-- ── NuGet package metadata (applies to all published packages) ──────── -->
