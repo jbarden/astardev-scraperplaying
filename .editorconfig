@@ -97,6 +97,7 @@ dotnet_diagnostic.CA2000.severity = warning
 # ── Code-analysis rules we opt out of (AnalysisLevel=latest-all, #286) ─────────────
 # Every other CA rule is on. Each opt-out below is deliberate.
 # CA2007: the app is an Avalonia UI app and must resume on the UI thread; ConfigureAwait(false) would break that
+# (re-enabled for the library packages below, and xunit discourages it in tests)
 dotnet_diagnostic.CA2007.severity = none
 # CA1515: the app assembly's types are public so tests, Avalonia bindings and DI can reach them
 dotnet_diagnostic.CA1515.severity = none
@@ -113,9 +114,15 @@ dotnet_diagnostic.CA1003.severity = none
 # CA1040: IAggregateRoot is a marker interface
 dotnet_diagnostic.CA1040.severity = none
 
+# ── Library packages must not capture the caller's synchronization context (#288) ──
+[packages/**.cs]
+dotnet_diagnostic.CA2007.severity = warning
+
 # ── Tests use when_..._then_... snake_case names ─────────────────────────────
 [{**.TestsUnit/**.cs,**.TestsIntegration/**.cs}]
 dotnet_diagnostic.IDE1006.severity = none
+# xunit analyzer xUnit1030 says not to use ConfigureAwait(false) in tests
+dotnet_diagnostic.CA2007.severity = none
 # Shouldly assertions return their subject; discarding every one adds only noise
 dotnet_diagnostic.IDE0058.severity = none
 # Parameterised tests pass null on purpose; nullable annotations cover the rest
