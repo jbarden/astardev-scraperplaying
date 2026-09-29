@@ -5,7 +5,7 @@
         <OutputType>Exe</OutputType>
         <RootNamespace>AStarDev.LoggingExtensions.TestsUnit</RootNamespace>
         <!-- Tests exercise the ILogger pipeline directly to verify log capture; CA1848 (LoggerMessage delegates) doesn't apply to test code. -->
-        <NoWarn>$(NoWarn);CA1848</NoWarn>
+        <NoWarn>$(NoWarn);CA1848;IDE1006;</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
