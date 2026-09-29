@@ -69,6 +69,22 @@ public sealed class GivenAScrapeConfigurationUpdater : IDisposable
     }
 
     [Fact]
+    public async Task when_directory_settings_are_saved_then_a_fresh_read_returns_them_and_the_other_sections_are_unchanged()
+    {
+        var id = await SeedAsync();
+
+        var result = await updater.SaveAsync(id, [new DirectorySettings("/new/root", "/new/famous", "new-sub")], TestContext.Current.CancellationToken);
+
+        result.Match(option => option, exception => throw exception).Match(_ => true, () => false).ShouldBeTrue();
+        var reloaded = await ReadAsync(id);
+        reloaded.ScrapeDirectories.RootDirectory.ShouldBe("/new/root");
+        reloaded.ScrapeDirectories.RootDirectoryFamous.ShouldBe("/new/famous");
+        reloaded.ScrapeDirectories.SubDirectoryName.ShouldBe("new-sub");
+        reloaded.UserConfiguration.Username.ShouldBe("username");
+        reloaded.BaseUrl.ShouldBe(new Uri("https://example.com/scrape"));
+    }
+
+    [Fact]
     public async Task when_the_slow_motion_delay_is_cleared_then_it_is_stored_as_null()
     {
         var id = await SeedAsync();

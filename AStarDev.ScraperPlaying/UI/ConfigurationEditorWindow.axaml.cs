@@ -1,3 +1,4 @@
+using System.IO.Abstractions;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
@@ -18,7 +19,8 @@ public partial class ConfigurationEditorWindow : Window
     /// <summary>Initializes a new instance of the <see cref="ConfigurationEditorWindow"/> class for the specified configuration.</summary>
     /// <param name="configuration">The scrape configuration to edit.</param>
     /// <param name="updater">The service used to save the edits.</param>
-    public ConfigurationEditorWindow(ScrapeConfigurationEntity configuration, IScrapeConfigurationUpdater updater)
+    /// <param name="fileSystem">The file system used to check that the scrape directories exist.</param>
+    public ConfigurationEditorWindow(ScrapeConfigurationEntity configuration, IScrapeConfigurationUpdater updater, IFileSystem fileSystem)
     {
         InitializeComponent();
         configurationId = configuration.Id;
@@ -26,13 +28,15 @@ public partial class ConfigurationEditorWindow : Window
         ConfigurationLabelText.Text = ScrapeConfigurationSummary.From(configuration).Label;
         RootSettingsTabContent.Load(RootSettingsInput.From(configuration));
         UserTabContent.Load(UserSettingsInput.From(configuration));
+        DirectoriesTabContent.Load(DirectorySettingsInput.From(configuration), fileSystem);
     }
 
     public async void Save(object? sender, RoutedEventArgs eventArgs)
     {
         var rootSettings = RootSettingsTabContent.ReadInput().Validate();
         var userSettings = UserTabContent.ReadInput().Validate();
-        var errors = CollectErrors(rootSettings).Concat(CollectErrors(userSettings)).ToList();
+        var directorySettings = DirectoriesTabContent.ReadInput().Validate();
+        var errors = CollectErrors(rootSettings).Concat(CollectErrors(userSettings)).Concat(CollectErrors(directorySettings)).ToList();
         if (errors.Count > 0)
         {
             ShowError(string.Join(Environment.NewLine, errors.Select(error => $"{error.Property}: {error.Message}")));
@@ -42,7 +46,7 @@ public partial class ConfigurationEditorWindow : Window
 
         ShowError(string.Empty);
         SetSaving(true);
-        var result = await updater.SaveAsync(configurationId, [((Valid<RootSettings>)rootSettings).Value, ((Valid<UserSettings>)userSettings).Value], CancellationToken.None);
+        var result = await updater.SaveAsync(configurationId, [((Valid<RootSettings>)rootSettings).Value, ((Valid<UserSettings>)userSettings).Value, ((Valid<DirectorySettings>)directorySettings).Value], CancellationToken.None);
         var failure = result.Match(
             saved => saved.Match(_ => Option.None<string>(), () => Option.Some("The scrape configuration no longer exists.")),
             exception => Option.Some($"Unable to save the scrape configuration. {exception.Message}"));
