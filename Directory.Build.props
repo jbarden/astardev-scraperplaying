@@ -55,8 +55,9 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 
     <!-- Enable .NET 10 analysis rules at the recommended level.
-         'Default' is a good balance; switch to 'All' if you want maximum
-         pedantry on new projects. -->
+         The '-recommended' suffix also sets AnalysisMode, so a per-project
+         <AnalysisMode> is ignored. To go stricter use 'latest-all' (~290 extra
+         warnings on the repo at the time of writing; see #251). -->
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
 
