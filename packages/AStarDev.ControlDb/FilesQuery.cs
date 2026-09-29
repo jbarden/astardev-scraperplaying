@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
 using Microsoft.EntityFrameworkCore;
@@ -12,14 +12,17 @@ public class FilesQuery(ControlDbContext context) : IFilesQuery
     /// <inheritdoc/>
     public async Task<Exceptional<Option<FileEntity>>> TryGetByNameAsync(FileName name, CancellationToken cancellationToken = default)
             => await context.Files
-                            .Include(f => f.DeletionStatus)
-                            .Include(f => f.FileAccessDetail)
-                            .Include(f => f.ImageDetail)
+                            .Include(file => file.DeletionStatus)
+                            .Include(file => file.FileAccessDetail)
+                            .Include(file => file.ImageDetail)
+                            .Where(HasName(name))
+                            .Take(1)
                             .AsAsyncEnumerable()
-                            .FirstOrNoneAsync(f => f.FileName.Value.Contains(name.Value, StringComparison.Ordinal), cancellationToken);
+                            .FirstOrNoneAsync(cancellationToken);
 
     /// <inheritdoc/>
-    [SuppressMessage("Globalization", "CA1307:Specify StringComparison for clarity", Justification = "Runs in the database: EF Core cannot translate the StringComparison overload, and its Contains translation is ordinal (covered by GivenAFilesQuery).")]
     public async Task<Exceptional<bool>> CheckExistsByNameAsync(FileName name, CancellationToken cancellationToken = default)
-            => await context.Files.AnyAsync(f => f.FileName.Value.Contains(name.Value), cancellationToken);
+            => await context.Files.AnyAsync(HasName(name), cancellationToken);
+
+    private static Expression<Func<FileEntity, bool>> HasName(FileName name) => file => file.FileName.Value == name.Value;
 }
