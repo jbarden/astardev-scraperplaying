@@ -32,7 +32,7 @@ public interface IRepository<TAggregate, TKey> where TAggregate : IAggregateRoot
     /// <param name="key">The key of the aggregate to delete.</param>
     /// <returns>An exceptional result indicating the success or failure of the operation.</returns>
     public async Task<Exceptional<Unit>> DeleteAsync(TKey key)
-        => (await TryFindAsync(key)).Match(
+        => (await TryFindAsync(key).ConfigureAwait(false)).Match(
             findById => findById.Match(
                 aggregate => Delete(aggregate),
                 () => Unit.Instance

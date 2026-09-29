@@ -18,11 +18,12 @@ public class FilesQuery(ControlDbContext context) : IFilesQuery
                             .Where(HasName(name))
                             .Take(1)
                             .AsAsyncEnumerable()
-                            .FirstOrNoneAsync(cancellationToken);
+                            .FirstOrNoneAsync(cancellationToken)
+                            .ConfigureAwait(false);
 
     /// <inheritdoc/>
     public async Task<Exceptional<bool>> CheckExistsByNameAsync(FileName name, CancellationToken cancellationToken = default)
-            => await context.Files.AnyAsync(HasName(name), cancellationToken);
+            => await context.Files.AnyAsync(HasName(name), cancellationToken).ConfigureAwait(false);
 
     private static Expression<Func<FileEntity, bool>> HasName(FileName name) => file => file.FileName.Value == name.Value;
 }

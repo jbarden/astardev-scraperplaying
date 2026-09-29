@@ -13,5 +13,6 @@ public class TagsQuery(ControlDbContext context) : ITagsQuery
     public async Task<Exceptional<Option<TagEntity>>> TryFindByWallhavenIdAsync(int wallhavenTagId, CancellationToken cancellationToken = default)
             => await context.Tags
                             .AsAsyncEnumerable()
-                            .FirstOrNoneAsync(tag => tag.WallhavenTagId == wallhavenTagId, cancellationToken);
+                            .FirstOrNoneAsync(tag => tag.WallhavenTagId == wallhavenTagId, cancellationToken)
+                            .ConfigureAwait(false);
 }
