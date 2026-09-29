@@ -39,7 +39,7 @@ public sealed class OptionsTypeInfo : IEquatable<OptionsTypeInfo>
     }
 
     /// <inheritdoc />
-    public override bool Equals(object obj) => Equals((OptionsTypeInfo)obj);
+    public override bool Equals(object obj) => obj is OptionsTypeInfo other && Equals(other);
 
     /// <inheritdoc />
     public bool Equals(OptionsTypeInfo other) => ReferenceEquals(this, other) || (other is not null && string.Equals(TypeName, other.TypeName, StringComparison.Ordinal)

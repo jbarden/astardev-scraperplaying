@@ -5,9 +5,9 @@ namespace AStarDev.SourceAnalyzers.TestsUnit.Utilities;
 
 internal static class CompilationHelpers
 {
-    private const string StrongIdAttributeSource = @"using System;
+    private const string StrongTypeAttributeSource = @"using System;
 namespace AStarDev.SourceGeneratorAttributes {
-    public sealed class StrongIdAttribute(Type? idType = null) : Attribute
+    public sealed class StrongTypeAttribute(Type? idType = null) : Attribute
     {
         public Type IdType { get; } = idType ?? typeof(Guid);
     }
@@ -61,7 +61,7 @@ public class AutoRegisterOptionsAttribute : Attribute
     public static CSharpCompilation CreateCompilation(string input)
         => CSharpCompilation.Create("TestAssembly",
             [
-                CSharpSyntaxTree.ParseText(StrongIdAttributeSource),
+                CSharpSyntaxTree.ParseText(StrongTypeAttributeSource),
                 CSharpSyntaxTree.ParseText(AutoRegisterOptionsAttributeSource),
                 CSharpSyntaxTree.ParseText(AutoRegisterServiceAttributeSource),
                 CSharpSyntaxTree.ParseText(input)

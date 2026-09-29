@@ -1,18 +1,18 @@
 using System.Text;
+using AStarDev.SourceGenerators.StrongTypeCodeGeneration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
-namespace AStarDev.SourceGenerators.StrongIdCodeGeneration;
+namespace AStarDev.SourceGenerators.StrongTypeCodeGeneration;
 
-/// <summary>The <see cref="StrongIdGenerator" /> class is a source</summary>
+/// <summary>The <see cref="StrongTypeGenerator" /> class is a source</summary>
 [Generator]
-[System.Diagnostics.CodeAnalysis.SuppressMessage("MicrosoftCodeAnalysisCorrectness", "RS1038:Compiler extensions should be implemented in assemblies with compiler-provided references", Justification = "<Pending>")]
-public class StrongIdGenerator : IIncrementalGenerator
+public class StrongTypeGenerator : IIncrementalGenerator
 {
     /// <summary>
-    /// The <see cref="Initialize" /> method is called by the compiler to register the source generation steps. It sets up a syntax provider to find all partial record structs with attributes and generates source code for those annotated with the <see cref="SourceGeneratorAttributes.StrongIdAttribute" />.
+    /// The <see cref="Initialize" /> method is called by the compiler to register the source generation steps. It sets up a syntax provider to find all partial record structs with attributes and generates source code for those annotated with the <see cref="SourceGeneratorAttributes.StrongTypeAttribute" />.
     /// </summary>
     /// <param name="context"></param>
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -28,8 +28,8 @@ public class StrongIdGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(context.CompilationProvider.Combine(recordStructs), static (spc, source) =>
         {
             (var compilation, var structs) = source;
-            var strongIdAttrSymbol = compilation.GetTypeByMetadataName("AStarDev.SourceGeneratorAttributes.StrongIdAttribute");
-            if (strongIdAttrSymbol == null)
+            var strongTypeAttrSymbol = compilation.GetTypeByMetadataName("AStarDev.SourceGeneratorAttributes.StrongTypeAttribute");
+            if (strongTypeAttrSymbol == null)
                 return;
 
             foreach (var recordStruct in structs)
@@ -38,18 +38,18 @@ public class StrongIdGenerator : IIncrementalGenerator
                 if (model.GetDeclaredSymbol(recordStruct) is not { } symbol)
                     continue;
 
-                var attr = symbol.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, strongIdAttrSymbol));
+                var attr = symbol.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, strongTypeAttrSymbol));
                 if (attr == null)
                     continue;
 
                 if (attr.ConstructorArguments.Length > 1)
                     continue;
 
-                string underlyingType = StrongIdModelExtensions.CreateUnderlyingTypeFromAttribute(attr);
+                string underlyingType = StrongTypeModelExtensions.CreateUnderlyingTypeFromAttribute(attr);
                 string? ns = symbol.ContainingNamespace.IsGlobalNamespace ? null : symbol.ContainingNamespace.ToDisplayString();
-                var modelObj = new StrongIdModel(ns, symbol.Name, symbol.DeclaredAccessibility, underlyingType);
-                string code = StrongIdCodeGenerator.Generate(modelObj);
-                spc.AddSource($"{modelObj.ModelName}_StrongId.generated.cs", SourceText.From(code, Encoding.UTF8));
+                var modelObj = new StrongTypeModel(ns, symbol.Name, symbol.DeclaredAccessibility, underlyingType);
+                string code = StrongTypeCodeGenerator.Generate(modelObj);
+                spc.AddSource($"{symbol.ToDisplayString()}_StrongType.generated.cs", SourceText.From(code, Encoding.UTF8));
             }
         });
     }
