@@ -48,7 +48,9 @@ public sealed class StrongTypePartialAnalyzer : DiagnosticAnalyzer
         if (!Enumerable.Any(symbol.GetAttributes(),
                 attr => attr.AttributeClass?.ToDisplayString() ==
                         "AStarDev.SourceGeneratorAttributes.StrongTypeAttribute"))
+        {
             return;
+        }
 
         bool isPartial = recordDecl.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword));
         if (isPartial) return;

@@ -92,7 +92,9 @@ public sealed partial class OptionsBindingGenerator : IIncrementalGenerator
         {
             if (member is not IFieldSymbol { IsStatic: true, IsConst: true, Name: "SectionName" } field || field.Type.SpecialType != SpecialType.System_String ||
                field.ConstantValue is not string val || string.IsNullOrWhiteSpace(val))
+            {
                 continue;
+            }
 
             sectionName = val;
             break;
