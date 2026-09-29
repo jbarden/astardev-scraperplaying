@@ -36,7 +36,7 @@ csharp_style_expression_bodied_local_functions = when_on_single_line:warning
 csharp_prefer_braces = when_multiline:warning
 
 # ── Modern C# (IDE0161, IDE0290, IDE0300-series, IDE0058) ────────────────────
-csharp_style_namespace_declarations = file_scoped:suggestion
+csharp_style_namespace_declarations = file_scoped:warning
 csharp_style_prefer_primary_constructors = true:suggestion
 dotnet_style_prefer_collection_expression = true:suggestion
 csharp_style_unused_value_expression_statement_preference = discard_variable:suggestion
