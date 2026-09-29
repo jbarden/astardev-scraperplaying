@@ -25,21 +25,24 @@ public partial class ConfigurationEditorWindow : Window
         this.updater = updater;
         ConfigurationLabelText.Text = ScrapeConfigurationSummary.From(configuration).Label;
         RootSettingsTabContent.Load(RootSettingsInput.From(configuration));
+        UserTabContent.Load(UserSettingsInput.From(configuration));
     }
 
     public async void Save(object? sender, RoutedEventArgs eventArgs)
     {
-        var validation = RootSettingsTabContent.ReadInput().Validate();
-        if (validation is Invalid<RootSettings> invalid)
+        var rootSettings = RootSettingsTabContent.ReadInput().Validate();
+        var userSettings = UserTabContent.ReadInput().Validate();
+        var errors = CollectErrors(rootSettings).Concat(CollectErrors(userSettings)).ToList();
+        if (errors.Count > 0)
         {
-            ShowError(string.Join(Environment.NewLine, invalid.Errors.Select(error => $"{error.Property}: {error.Message}")));
+            ShowError(string.Join(Environment.NewLine, errors.Select(error => $"{error.Property}: {error.Message}")));
 
             return;
         }
 
         ShowError(string.Empty);
         SetSaving(true);
-        var result = await updater.SaveAsync(configurationId, [((Valid<RootSettings>)validation).Value], CancellationToken.None);
+        var result = await updater.SaveAsync(configurationId, [((Valid<RootSettings>)rootSettings).Value, ((Valid<UserSettings>)userSettings).Value], CancellationToken.None);
         var failure = result.Match(
             saved => saved.Match(_ => Option.None<string>(), () => Option.Some("The scrape configuration no longer exists.")),
             exception => Option.Some($"Unable to save the scrape configuration. {exception.Message}"));
@@ -49,6 +52,9 @@ public partial class ConfigurationEditorWindow : Window
     }
 
     public void Cancel(object? sender, RoutedEventArgs eventArgs) => Close(false);
+
+    private static IReadOnlyList<ValidationError> CollectErrors<T>(Validation<T> validation) =>
+        validation is Invalid<T> invalid ? invalid.Errors : [];
 
     private void SetSaving(bool isSaving)
     {

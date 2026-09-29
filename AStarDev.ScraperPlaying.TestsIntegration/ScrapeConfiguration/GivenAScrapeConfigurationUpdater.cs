@@ -52,6 +52,23 @@ public sealed class GivenAScrapeConfigurationUpdater : IDisposable
     }
 
     [Fact]
+    public async Task when_user_settings_are_saved_then_a_fresh_read_returns_them_and_the_root_settings_are_unchanged()
+    {
+        var id = await SeedAsync();
+
+        var result = await updater.SaveAsync(id, [new UserSettings("new@example.test", "new-user", "new-secret", "new-key")], TestContext.Current.CancellationToken);
+
+        result.Match(option => option, exception => throw exception).Match(_ => true, () => false).ShouldBeTrue();
+        var reloaded = await ReadAsync(id);
+        reloaded.UserConfiguration.EmailAddress.ShouldBe("new@example.test");
+        reloaded.UserConfiguration.Username.ShouldBe("new-user");
+        reloaded.UserConfiguration.Password.ShouldBe("new-secret");
+        reloaded.UserConfiguration.ApiKey.ShouldBe("new-key");
+        reloaded.BaseUrl.ShouldBe(new Uri("https://example.com/scrape"));
+        reloaded.SearchConfiguration.SearchTerm.ShouldBe("search-config");
+    }
+
+    [Fact]
     public async Task when_the_slow_motion_delay_is_cleared_then_it_is_stored_as_null()
     {
         var id = await SeedAsync();
