@@ -76,7 +76,7 @@ public sealed class GivenAFilesQuery : IDisposable
     }
 
     [Fact]
-    public async Task when_the_name_differs_only_by_case_then_try_get_by_name_returns_none()
+    public async Task when_the_name_differs_only_by_case_then_try_get_by_name_still_finds_it_because_the_database_collation_ignores_case()
     {
         var fileEntity = FileEntityFactory.CreateFileEntity();
         await context.Files.AddAsync(fileEntity, TestContext.Current.CancellationToken);
@@ -85,11 +85,11 @@ public sealed class GivenAFilesQuery : IDisposable
 
         var result = await query.TryGetByNameAsync(FileName.Create(fileEntity.FileName.Value.ToUpperInvariant()), TestContext.Current.CancellationToken);
 
-        result.Match(option => option, exception => throw exception).Match(_ => true, () => false).ShouldBeFalse();
+        result.Match(option => option, exception => throw exception).Match(_ => true, () => false).ShouldBeTrue();
     }
 
     [Fact]
-    public async Task when_the_name_differs_only_by_case_then_check_exists_returns_false()
+    public async Task when_the_name_differs_only_by_case_then_check_exists_returns_true_because_the_database_collation_ignores_case()
     {
         var fileEntity = FileEntityFactory.CreateFileEntity();
         await context.Files.AddAsync(fileEntity, TestContext.Current.CancellationToken);
@@ -97,6 +97,32 @@ public sealed class GivenAFilesQuery : IDisposable
         var query = new FilesQuery(context);
 
         var result = await query.CheckExistsByNameAsync(FileName.Create(fileEntity.FileName.Value.ToUpperInvariant()), TestContext.Current.CancellationToken);
+
+        result.Match(exists => exists, exception => throw exception).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task when_the_name_is_only_a_substring_of_a_stored_name_then_try_get_by_name_returns_none()
+    {
+        var fileEntity = FileEntityFactory.CreateFileEntity(FileName.Create("my-file-name-2.jpg"));
+        await context.Files.AddAsync(fileEntity, TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var query = new FilesQuery(context);
+
+        var result = await query.TryGetByNameAsync(FileName.Create("file-name"), TestContext.Current.CancellationToken);
+
+        result.Match(option => option, exception => throw exception).Match(_ => true, () => false).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task when_the_name_is_only_a_substring_of_a_stored_name_then_check_exists_returns_false()
+    {
+        var fileEntity = FileEntityFactory.CreateFileEntity(FileName.Create("my-file-name-2.jpg"));
+        await context.Files.AddAsync(fileEntity, TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var query = new FilesQuery(context);
+
+        var result = await query.CheckExistsByNameAsync(FileName.Create("file-name"), TestContext.Current.CancellationToken);
 
         result.Match(exists => exists, exception => throw exception).ShouldBeFalse();
     }

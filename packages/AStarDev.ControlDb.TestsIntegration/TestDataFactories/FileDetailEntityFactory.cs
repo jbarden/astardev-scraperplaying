@@ -4,13 +4,15 @@ namespace AStarDev.ControlDb.TestsIntegration.TestDataFactories;
 
 internal static class FileEntityFactory
 {
-    public static FileEntity CreateFileEntity()
+    public static FileEntity CreateFileEntity() => CreateFileEntity(FileName.Create("file-name"));
+
+    public static FileEntity CreateFileEntity(FileName fileName)
     {
         var fileId = new FileId(Guid.Empty);
         var fileDetail = new FileEntity()
         {
             Id = fileId,
-            FileName = FileName.Create("file-name"),
+            FileName = fileName,
             DirectoryName = DirectoryName.Create("directory-name"),
             FileHandle = FileHandle.Create("file-handle"),
             FileSize = 12345,
