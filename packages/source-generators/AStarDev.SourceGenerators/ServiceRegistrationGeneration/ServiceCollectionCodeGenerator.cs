@@ -77,7 +77,9 @@ internal static class ServiceCollectionCodeGenerator
                 yield return $"        services.{method}<{model.ImplFqn}>();";
         }
         else
+        {
             yield return $"        services.{method}<{model.ImplFqn}>();";
+        }
     }
 
     private static string GetRegistrationMethod(ServiceLifetime lifetime)

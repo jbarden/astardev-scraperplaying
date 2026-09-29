@@ -33,7 +33,7 @@ csharp_style_expression_bodied_lambdas = true:warning
 csharp_style_expression_bodied_local_functions = when_on_single_line:warning
 
 # ── Braces: single-line statements go without braces (IDE0011) ───────────────
-csharp_prefer_braces = when_multiline:suggestion
+csharp_prefer_braces = when_multiline:warning
 
 # ── Modern C# (IDE0161, IDE0290, IDE0300-series, IDE0058) ────────────────────
 csharp_style_namespace_declarations = file_scoped:suggestion
