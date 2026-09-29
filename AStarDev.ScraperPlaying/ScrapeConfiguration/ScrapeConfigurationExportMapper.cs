@@ -24,7 +24,7 @@ public static class ScrapeConfigurationExportMapper
                 Id = search.Id.Value,
                 SearchTerm = search.SearchTerm,
                 MaxResults = search.MaxResults,
-                SearchCategories = search.SearchCategories.Select(category => new SearchCategoryImportDocument
+                SearchCategories = [.. search.SearchCategories.Select(category => new SearchCategoryImportDocument
                 {
                     Id = category.Id,
                     Name = category.Name,
@@ -34,7 +34,7 @@ public static class ScrapeConfigurationExportMapper
                     IncludeInSearch = category.IncludeInSearch,
                     IsFamous = category.IsFamous,
                     IsInternet = category.IsInternet
-                }).ToList(),
+                })],
                 PersonCategories = [.. search.PersonCategories.Select(category => category.Name)]
             },
             ScrapeDirectories = new ScrapeDirectoriesImportDocument
