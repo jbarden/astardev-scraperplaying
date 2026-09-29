@@ -26,7 +26,7 @@ public static class ScrapeConfigurationImportMapper
             new SearchConfigurationId(search.Id),
             new ScrapeConfigurationId(document.Id),
             search.SearchTerm,
-            search.MaxResults ?? 0,
+            search.MaxResults,
             categories);
 
         foreach (var name in search.PersonCategories)
