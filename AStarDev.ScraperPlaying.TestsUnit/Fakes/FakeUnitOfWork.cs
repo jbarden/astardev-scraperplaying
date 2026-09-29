@@ -13,6 +13,12 @@ internal sealed class FakeUnitOfWork : IUnitOfWork
     /// <summary>The number of times <see cref="SaveChangesAsync"/> was called.</summary>
     public int SaveCount { get; private set; }
 
+    /// <summary>The cancellation token passed to each <see cref="SaveChangesAsync"/> call, in order.</summary>
+    public List<CancellationToken> SaveTokens { get; } = [];
+
+    /// <summary>Runs on each <see cref="SaveChangesAsync"/> call before it is counted, so a test can make a save throw.</summary>
+    public Action<CancellationToken> OnSave { get; set; } = _ => { };
+
     /// <summary>Creates a repository whose operations are logged in <see cref="Operations"/> and makes it available to <see cref="GetRepository{TAggregate, TKey}"/>.</summary>
     public FakeRepository<TAggregate, TKey> Register<TAggregate, TKey>()
         where TAggregate : IAggregateRoot
@@ -29,7 +35,9 @@ internal sealed class FakeUnitOfWork : IUnitOfWork
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        OnSave(cancellationToken);
         SaveCount++;
+        SaveTokens.Add(cancellationToken);
         Operations.Add("save");
 
         return Task.FromResult(1);

@@ -1,8 +1,8 @@
-using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
+using AStarDev.ScraperPlaying.TestsUnit.Fakes;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,24 +11,18 @@ namespace AStarDev.ScraperPlaying.TestsUnit.Scraping;
 public sealed class GivenAPagesProcessor
 {
     private static readonly string[] personCategories = ["Celebrities"];
-    private readonly IHttpClientFactory httpClientFactory = Substitute.For<IHttpClientFactory>();
-    private readonly IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
-    private readonly IRepository<FileEntity, FileId> fileRepository = Substitute.For<IRepository<FileEntity, FileId>>();
-    private readonly IJsonResponseProcessor jsonResponseProcessor = Substitute.For<IJsonResponseProcessor>();
-    private readonly ISaveDirectoryResolver saveDirectoryResolver = Substitute.For<ISaveDirectoryResolver>();
-    private readonly IWallpaperIngestionService wallpaperIngestionService = Substitute.For<IWallpaperIngestionService>();
+    private readonly FakeHttpClientFactory httpClientFactory = new();
+    private readonly FakeUnitOfWork unitOfWork = new();
+    private readonly FakeRepository<FileEntity, FileId> fileRepository;
+    private readonly FakeJsonResponseProcessor jsonResponseProcessor = new();
+    private readonly FakeIngestionService wallpaperIngestionService = new();
     private readonly CapturingProgress progress = new();
     private readonly PagesProcessor processor;
 
     public GivenAPagesProcessor()
     {
-        httpClientFactory.CreateClient(ApplicationConstants.WallhavenHttpClientName).Returns(_ => new HttpClient());
-        unitOfWork.GetRepository<FileEntity, FileId>().Returns(fileRepository);
-        unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
-        saveDirectoryResolver.ResolveSaveDirectoryAsync(Arg.Any<Option<string>>(), Arg.Any<CancellationToken>()).Returns("resolved-directory");
-        wallpaperIngestionService.IngestAsync(Arg.Any<Data>(), Arg.Any<WallpaperIngestionContext>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-        processor = new(httpClientFactory, unitOfWork, jsonResponseProcessor, saveDirectoryResolver, wallpaperIngestionService, () => TimeSpan.FromMilliseconds(1));
+        fileRepository = unitOfWork.Register<FileEntity, FileId>();
+        processor = new(httpClientFactory, unitOfWork, jsonResponseProcessor, new FakeSaveDirectoryResolver(), wallpaperIngestionService, () => TimeSpan.FromMilliseconds(1));
     }
 
     [Fact]
@@ -39,8 +33,14 @@ public sealed class GivenAPagesProcessor
 
         await Run();
 
-        await wallpaperIngestionService.Received(1).IngestAsync(wallpaper, Arg.Is<WallpaperIngestionContext>(context => context.Directory == "resolved-directory" && context.FileRepository == fileRepository && context.CategoryLabel == "Top Wallpapers" && context.PersonCategories.SequenceEqual(personCategories)), progress, Arg.Any<CancellationToken>());
-        await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        var ingested = wallpaperIngestionService.Calls.Single();
+        ingested.Wallpaper.ShouldBe(wallpaper);
+        ingested.Context.Directory.ShouldBe("resolved-directory");
+        ingested.Context.FileRepository.ShouldBeSameAs(fileRepository);
+        ingested.Context.CategoryLabel.ShouldBe("Top Wallpapers");
+        ingested.Context.PersonCategories.ShouldBe(personCategories);
+        ingested.Progress.ShouldBeSameAs(progress);
+        unitOfWork.SaveCount.ShouldBe(1);
     }
 
     [Fact]
@@ -58,7 +58,9 @@ public sealed class GivenAPagesProcessor
             progress,
             CancellationToken.None);
 
-        await wallpaperIngestionService.Received(1).IngestAsync(wallpaper, Arg.Is<WallpaperIngestionContext>(context => context.CategoryLabel == "Cars"), progress, Arg.Any<CancellationToken>());
+        var ingested = wallpaperIngestionService.Calls.Single();
+        ingested.Wallpaper.ShouldBe(wallpaper);
+        ingested.Context.CategoryLabel.ShouldBe("Cars");
     }
 
     [Fact]
@@ -66,8 +68,7 @@ public sealed class GivenAPagesProcessor
     {
         var wallpaper = CreateWallpaper("wallpaper-2");
         SetUpPage(1, CreateSearchResponse(lastPage: 1, wallpaper));
-        wallpaperIngestionService.IngestAsync(Arg.Any<Data>(), Arg.Any<WallpaperIngestionContext>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
-            .Returns(_ => throw new InvalidOperationException("ingestion failed"));
+        wallpaperIngestionService.OnIngest = () => throw new InvalidOperationException("ingestion failed");
 
         await Should.ThrowAsync<InvalidOperationException>(Run);
 
@@ -84,7 +85,7 @@ public sealed class GivenAPagesProcessor
         progress.Messages.ShouldContain("Fetching wallpapers page 1.");
         progress.Messages.ShouldContain("Fetching wallpapers page 2.");
         progress.Messages.ShouldNotContain(message => message.Contains("page 3"));
-        await unitOfWork.Received(2).SaveChangesAsync(Arg.Any<CancellationToken>());
+        unitOfWork.SaveCount.ShouldBe(2);
     }
 
     [Fact]
@@ -96,7 +97,7 @@ public sealed class GivenAPagesProcessor
 
         progress.Messages.ShouldContain("Fetching wallpapers page 4.");
         progress.Messages.ShouldNotContain(message => message.Contains("page 5"));
-        await unitOfWork.Received(4).SaveChangesAsync(Arg.Any<CancellationToken>());
+        unitOfWork.SaveCount.ShouldBe(4);
     }
 
     [Fact]
@@ -105,25 +106,16 @@ public sealed class GivenAPagesProcessor
         var wallpaper = CreateWallpaper("wallpaper-cancelled");
         SetUpPage(1, CreateSearchResponse(lastPage: 1, wallpaper));
         using var cancellationTokenSource = new CancellationTokenSource();
-        wallpaperIngestionService.IngestAsync(Arg.Any<Data>(), Arg.Any<WallpaperIngestionContext>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
-            .Returns(async _ =>
-            {
-                await cancellationTokenSource.CancelAsync();
+        wallpaperIngestionService.OnIngest = () =>
+        {
+            cancellationTokenSource.Cancel();
 
-                throw new OperationCanceledException(cancellationTokenSource.Token);
-            });
+            throw new OperationCanceledException(cancellationTokenSource.Token);
+        };
 
-        await Should.ThrowAsync<OperationCanceledException>(
-            () => processor.FetchAndProcessPagesAsync(
-                "wallpapers",
-                Option.None<string>(),
-                page => new Uri($"https://example.test/page/{page}"),
-                new WallhavenConnection("api-key", new Uri("https://example.test")),
-            personCategories,
-                progress,
-                cancellationTokenSource.Token));
+        await Should.ThrowAsync<OperationCanceledException>(() => FetchWithCancellation(cancellationTokenSource.Token));
 
-        await unitOfWork.Received(1).SaveChangesAsync(Arg.Is<CancellationToken>(token => token == CancellationToken.None));
+        unitOfWork.SaveTokens.ShouldBe([CancellationToken.None]);
         progress.Messages.ShouldContain("Scrape cancelled - saved wallpapers downloaded so far this page.");
     }
 
@@ -133,25 +125,18 @@ public sealed class GivenAPagesProcessor
         var wallpaper = CreateWallpaper("wallpaper-cancelled-save-fails");
         SetUpPage(1, CreateSearchResponse(lastPage: 1, wallpaper));
         using var cancellationTokenSource = new CancellationTokenSource();
-        wallpaperIngestionService.IngestAsync(Arg.Any<Data>(), Arg.Any<WallpaperIngestionContext>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
-            .Returns(async _ =>
-            {
-                await cancellationTokenSource.CancelAsync();
+        wallpaperIngestionService.OnIngest = () =>
+        {
+            cancellationTokenSource.Cancel();
 
-                throw new OperationCanceledException(cancellationTokenSource.Token);
-            });
-        unitOfWork.SaveChangesAsync(Arg.Is<CancellationToken>(token => token == CancellationToken.None))
-            .Returns<Task<int>>(_ => throw new DbUpdateException("save failed"));
+            throw new OperationCanceledException(cancellationTokenSource.Token);
+        };
+        unitOfWork.OnSave = token =>
+        {
+            if (token == CancellationToken.None) throw new DbUpdateException("save failed");
+        };
 
-        await Should.ThrowAsync<OperationCanceledException>(
-            () => processor.FetchAndProcessPagesAsync(
-                "wallpapers",
-                Option.None<string>(),
-                page => new Uri($"https://example.test/page/{page}"),
-                new WallhavenConnection("api-key", new Uri("https://example.test")),
-            personCategories,
-                progress,
-                cancellationTokenSource.Token));
+        await Should.ThrowAsync<OperationCanceledException>(() => FetchWithCancellation(cancellationTokenSource.Token));
 
         progress.Messages.ShouldContain("Scrape cancelled - failed to save wallpapers downloaded so far this page: save failed");
     }
@@ -160,8 +145,7 @@ public sealed class GivenAPagesProcessor
     public async Task when_fetching_a_page_fails_then_the_failure_is_reported_and_rethrown()
     {
         var exception = new InvalidOperationException("page fetch failed");
-        jsonResponseProcessor.GetFromJsonAsync<SearchResponse>(Arg.Any<Uri>(), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
-            .Returns((Exceptional<Option<SearchResponse>>)exception);
+        jsonResponseProcessor.Response = exception;
 
         var thrown = await Should.ThrowAsync<InvalidOperationException>(Run);
 
@@ -169,7 +153,7 @@ public sealed class GivenAPagesProcessor
         progress.Messages.ShouldContain("An error occurred during the fetching and processing of pages: page fetch failed");
     }
 
-    private Task Run()
+    private Task FetchWithCancellation(CancellationToken cancellationToken)
         => processor.FetchAndProcessPagesAsync(
             "wallpapers",
             Option.None<string>(),
@@ -177,20 +161,21 @@ public sealed class GivenAPagesProcessor
             new WallhavenConnection("api-key", new Uri("https://example.test")),
             personCategories,
             progress,
-            CancellationToken.None);
+            cancellationToken);
+
+    private Task Run()
+        => FetchWithCancellation(CancellationToken.None);
 
     private void SetUpPage(int? page, SearchResponse response)
     {
         if (page is { } specificPage)
         {
-            jsonResponseProcessor.GetFromJsonAsync<SearchResponse>(new Uri($"https://example.test/page/{specificPage}"), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
-                .Returns((Exceptional<Option<SearchResponse>>)(Option<SearchResponse>)response);
+            jsonResponseProcessor.PageResponses[new Uri($"https://example.test/page/{specificPage}")] = response;
 
             return;
         }
 
-        jsonResponseProcessor.GetFromJsonAsync<SearchResponse>(Arg.Any<Uri>(), Arg.Any<HttpClient>(), Arg.Any<CancellationToken>())
-            .Returns((Exceptional<Option<SearchResponse>>)(Option<SearchResponse>)response);
+        jsonResponseProcessor.Response = (Option<SearchResponse>)response;
     }
 
     private static SearchResponse CreateSearchResponse(int lastPage, params Data[] wallpapers)
@@ -198,6 +183,47 @@ public sealed class GivenAPagesProcessor
 
     private static Data CreateWallpaper(string id, string path = "")
         => new(id, 0, 0, 0, "", path);
+
+    private sealed class FakeHttpClientFactory : IHttpClientFactory
+    {
+        public HttpClient CreateClient(string name) => new();
+    }
+
+    private sealed class FakeSaveDirectoryResolver : ISaveDirectoryResolver
+    {
+        public Task<string> ResolveSaveDirectoryAsync(Option<string> categoryName, CancellationToken cancellationToken) => Task.FromResult("resolved-directory");
+    }
+
+    private sealed class FakeJsonResponseProcessor : IJsonResponseProcessor
+    {
+        public Dictionary<Uri, SearchResponse> PageResponses { get; } = [];
+
+        public Exceptional<Option<SearchResponse>> Response { get; set; } = Option<SearchResponse>.None.Instance;
+
+        public Task<Exceptional<Option<T>>> GetFromJsonAsync<T>(Uri url, HttpClient client, CancellationToken cancellationToken)
+        {
+            Exceptional<Option<SearchResponse>> result = PageResponses.TryGetValue(url, out var page) ? (Option<SearchResponse>)page : Response;
+
+            return Task.FromResult((Exceptional<Option<T>>)(object)result);
+        }
+    }
+
+    private sealed record IngestCall(Data Wallpaper, WallpaperIngestionContext Context, IProgress<string> Progress);
+
+    private sealed class FakeIngestionService : IWallpaperIngestionService
+    {
+        public List<IngestCall> Calls { get; } = [];
+
+        public Action OnIngest { get; set; } = () => { };
+
+        public Task IngestAsync(Data wallpaper, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+        {
+            Calls.Add(new IngestCall(wallpaper, context, progress));
+            OnIngest();
+
+            return Task.CompletedTask;
+        }
+    }
 
     private sealed class CapturingProgress : IProgress<string>
     {
