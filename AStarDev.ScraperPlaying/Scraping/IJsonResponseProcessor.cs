@@ -17,5 +17,5 @@ public interface IJsonResponseProcessor
     /// response status code does not indicate success, or an <see cref="InvalidOperationException"/> when the
     /// successful response body could not be deserialized as <typeparamref name="T"/>.
     /// </returns>
-    Task<Exceptional<Option<T>>> GetFromJsonAsync<T>(string url, HttpClient client, CancellationToken cancellationToken);
+    Task<Exceptional<Option<T>>> GetFromJsonAsync<T>(Uri url, HttpClient client, CancellationToken cancellationToken);
 }

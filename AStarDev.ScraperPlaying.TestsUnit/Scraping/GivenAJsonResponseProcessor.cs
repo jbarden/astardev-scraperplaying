@@ -18,9 +18,26 @@ public sealed class GivenAJsonResponseProcessor
             Content = new StringContent("""{"name":"cats"}""", Encoding.UTF8, "application/json")
         });
 
-        var result = await processor.GetFromJsonAsync<TestPayload>("https://example.test/search", client, CancellationToken.None);
+        var result = await processor.GetFromJsonAsync<TestPayload>(new Uri("https://example.test/search"), client, CancellationToken.None);
 
         result.Match(option => option.Match(value => value.Name, () => (string?)null), ex => ex.Message).ShouldBe("cats");
+    }
+
+    [Fact]
+    public async Task when_the_url_is_relative_then_the_request_is_sent_to_the_client_base_address_combined_with_it()
+    {
+        var requested = new List<Uri>();
+        using var client = CreateClient(request =>
+        {
+            requested.Add(request.RequestUri!);
+
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"name":"cats"}""", Encoding.UTF8, "application/json") };
+        });
+        client.BaseAddress = new Uri("https://example.test/");
+
+        _ = await processor.GetFromJsonAsync<TestPayload>(new Uri("api/v1/search?page=2", UriKind.Relative), client, CancellationToken.None);
+
+        requested.ShouldBe([new Uri("https://example.test/api/v1/search?page=2")]);
     }
 
     [Fact]
@@ -31,7 +48,7 @@ public sealed class GivenAJsonResponseProcessor
             Content = new StringContent("null", Encoding.UTF8, "application/json")
         });
 
-        var result = await processor.GetFromJsonAsync<TestPayload>("https://example.test/search", client, CancellationToken.None);
+        var result = await processor.GetFromJsonAsync<TestPayload>(new Uri("https://example.test/search"), client, CancellationToken.None);
 
         result.Match(option => option.Match(_ => false, () => true), _ => false).ShouldBeTrue();
     }
@@ -44,7 +61,7 @@ public sealed class GivenAJsonResponseProcessor
             Content = new StringContent("not found")
         });
 
-        var result = await processor.GetFromJsonAsync<TestPayload>("https://example.test/search", client, CancellationToken.None);
+        var result = await processor.GetFromJsonAsync<TestPayload>(new Uri("https://example.test/search"), client, CancellationToken.None);
 
         var capturedException = result.Match(_ => (Exception?)null, ex => ex);
         capturedException.ShouldBeOfType<HttpRequestException>();
@@ -60,7 +77,7 @@ public sealed class GivenAJsonResponseProcessor
             Content = new StringContent("not json", Encoding.UTF8, "application/json")
         });
 
-        var result = await processor.GetFromJsonAsync<TestPayload>("https://example.test/search", client, CancellationToken.None);
+        var result = await processor.GetFromJsonAsync<TestPayload>(new Uri("https://example.test/search"), client, CancellationToken.None);
 
         var capturedException = result.Match(_ => (Exception?)null, ex => ex);
         capturedException.ShouldBeOfType<InvalidOperationException>();
@@ -75,7 +92,7 @@ public sealed class GivenAJsonResponseProcessor
         using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.OK));
 
         await Should.ThrowAsync<OperationCanceledException>(
-            () => processor.GetFromJsonAsync<TestPayload>("https://example.test/search", client, cancellationTokenSource.Token));
+            () => processor.GetFromJsonAsync<TestPayload>(new Uri("https://example.test/search"), client, cancellationTokenSource.Token));
     }
 
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient owns and disposes the handler.")]
