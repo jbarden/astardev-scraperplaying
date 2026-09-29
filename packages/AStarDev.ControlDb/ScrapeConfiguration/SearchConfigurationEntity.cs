@@ -9,9 +9,9 @@ public class SearchConfigurationEntity : AuditableEntity
     /// <param name="searchConfigurationId">The unique identifier for the search configuration entity.</param>
     /// <param name="scrapeConfigurationId">The unique identifier for the associated scrape configuration entity.</param>
     /// <param name="searchTerm">The search term used for scraping wallpapers.</param>
-    /// <param name="maxResults">The maximum number of results to retrieve for the search configuration entity.</param>
+    /// <param name="maxResults">The maximum number of results to retrieve, or null for no limit.</param>
     /// <param name="searchCategories">The list of search categories associated with the search configuration entity.</param>
-    public SearchConfigurationEntity(SearchConfigurationId searchConfigurationId, ScrapeConfigurationId scrapeConfigurationId, string searchTerm,  int maxResults, ICollection<SearchCategoryEntity> searchCategories)
+    public SearchConfigurationEntity(SearchConfigurationId searchConfigurationId, ScrapeConfigurationId scrapeConfigurationId, string searchTerm, int? maxResults, ICollection<SearchCategoryEntity> searchCategories)
     {
         Id = searchConfigurationId;
         ScrapeConfigurationId = scrapeConfigurationId;
