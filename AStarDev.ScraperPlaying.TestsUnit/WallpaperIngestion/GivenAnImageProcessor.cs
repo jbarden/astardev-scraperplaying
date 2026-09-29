@@ -12,12 +12,14 @@ public sealed class GivenAnImageProcessor
 {
     private static readonly DateTimeOffset now = new(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
     private readonly IRepository<FileEntity, FileId> fileRepository = Substitute.For<IRepository<FileEntity, FileId>>();
-    private readonly IImageDownloadNotifier imageDownloadNotifier = Substitute.For<IImageDownloadNotifier>();
+    private readonly ImageDownloadNotifier imageDownloadNotifier = new();
+    private readonly List<WallpaperDownloadDetails> notifications = [];
     private readonly MockFileSystem fileSystem = new();
     private readonly ImageProcessor processor;
 
     public GivenAnImageProcessor()
     {
+        imageDownloadNotifier.ImageDownloaded += (_, details) => notifications.Add(details);
         processor = new(() => now, fileSystem, () => TimeSpan.FromMilliseconds(1), imageDownloadNotifier);
     }
 
@@ -66,6 +68,7 @@ public sealed class GivenAnImageProcessor
         var result = await processor.ProcessTheImageAsync(fileRepository, request, CancellationToken.None);
 
         fileSystem.File.Exists(fileSystem.Path.Combine("some-directory", "Max_Verstappen_abc123.jpg")).ShouldBeTrue();
+        notifications.Select(details => details.Name).ShouldBe(["Max_Verstappen_abc123.jpg"]);
         result.Match(entity => entity, ex => throw ex).FileName.Value.ShouldBe("Max_Verstappen_abc123.jpg");
     }
 
@@ -123,7 +126,7 @@ public sealed class GivenAnImageProcessor
         fileSystem.File.Exists(expectedPath).ShouldBeTrue();
         fileSystem.File.ReadAllBytes(expectedPath).ShouldBe(imageBytes);
         progress.Messages.ShouldContain("Downloading image for wallpaper wallpaper-3 from https://example.test/image.jpg");
-        imageDownloadNotifier.Received(1).NotifyImageDownloaded(new WallpaperDownloadDetails(expectedPath, "wallpaper-3", "Cars", 5, 1920, 1080));
+        notifications.ShouldBe([new WallpaperDownloadDetails(expectedPath, "wallpaper-3.jpg", "Cars", 5, 1920, 1080)]);
     }
 
     [Fact]
@@ -140,7 +143,7 @@ public sealed class GivenAnImageProcessor
 
         fileSystem.File.Exists(expectedPath).ShouldBeTrue();
         fileSystem.File.Exists(fileSystem.Path.Combine(directory, "wallpaper-8.jpg")).ShouldBeFalse();
-        imageDownloadNotifier.Received(1).NotifyImageDownloaded(new WallpaperDownloadDetails(expectedPath, "wallpaper-8", "Top Wallpapers", 0, 0, 0));
+        notifications.ShouldBe([new WallpaperDownloadDetails(expectedPath, "wallpaper-8.png", "Top Wallpapers", 0, 0, 0)]);
     }
 
     [Fact]
@@ -158,7 +161,7 @@ public sealed class GivenAnImageProcessor
 
         fileSystem.Directory.Exists(directory).ShouldBeTrue();
         fileSystem.File.Exists(fileSystem.Path.Combine(directory, "wallpaper-6.jpg")).ShouldBeTrue();
-        imageDownloadNotifier.Received(1).NotifyImageDownloaded(new WallpaperDownloadDetails(fileSystem.Path.Combine(directory, "wallpaper-6.jpg"), "wallpaper-6", "Top Wallpapers", 0, 0, 0));
+        notifications.ShouldBe([new WallpaperDownloadDetails(fileSystem.Path.Combine(directory, "wallpaper-6.jpg"), "wallpaper-6.jpg", "Top Wallpapers", 0, 0, 0)]);
     }
 
     [Fact]
@@ -173,7 +176,7 @@ public sealed class GivenAnImageProcessor
             () => processor.DownloadImageAsync(new WallpaperFileRequest(wallpaper, directory, NameFor(wallpaper, ".jpg"), "Top Wallpapers"), progress, client, CancellationToken.None));
 
         fileSystem.File.Exists(fileSystem.Path.Combine(directory, "wallpaper-4.jpg")).ShouldBeFalse();
-        imageDownloadNotifier.DidNotReceive().NotifyImageDownloaded(Arg.Any<WallpaperDownloadDetails>());
+        notifications.ShouldBeEmpty();
     }
 
     private static FileName NameFor(Data wallpaper, string extension) => new($"{wallpaper.Id}{extension}");
