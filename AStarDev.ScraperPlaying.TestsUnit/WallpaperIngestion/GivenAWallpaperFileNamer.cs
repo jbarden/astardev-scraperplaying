@@ -18,7 +18,6 @@ public sealed class GivenAWallpaperFileNamer
     [InlineData("Models")]
     [InlineData("Pornstars")]
     [InlineData("Other Figures")]
-    [InlineData("Photographers")]
     [InlineData("other figures")]
     public void when_the_wallpaper_has_a_person_name_tag_then_its_name_prefixes_the_file_name(string category)
         => WallpaperFileNamer.Create("abc123", ".jpg", [Tag("Max Verstappen", category), Tag("men", "People")]).Value.ShouldBe("Max_Verstappen_abc123.jpg");
@@ -26,6 +25,10 @@ public sealed class GivenAWallpaperFileNamer
     [Fact]
     public void when_a_non_name_tag_shares_a_person_category_then_only_the_name_is_used()
         => WallpaperFileNamer.Create("abc123", ".jpg", [Tag("finger pointing", "Other Figures"), Tag("Max Verstappen", "Other Figures")]).Value.ShouldBe("Max_Verstappen_abc123.jpg");
+
+    [Fact]
+    public void when_a_tag_is_in_the_photographers_category_then_it_is_not_used()
+        => WallpaperFileNamer.Create("abc123", ".jpg", [Tag("Ansel Adams", "Photographers"), Tag("Emma Watson", "Celebrities")]).Value.ShouldBe("Emma_Watson_abc123.jpg");
 
     [Fact]
     public void when_a_capitalised_tag_is_outside_the_person_categories_then_it_is_not_used()
