@@ -1,25 +1,60 @@
 using AStarDev.ControlDb.ScrapeConfiguration;
+using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 
 namespace AStarDev.ScraperPlaying.UI;
 
-/// <summary>Hosts the section tabs used to edit a single root scrape configuration. Save closes with <c>true</c>, Cancel with <c>false</c>.</summary>
+/// <summary>Hosts the section tabs used to edit a single root scrape configuration. Save writes every section and closes with <c>true</c>, Cancel closes with <c>false</c>.</summary>
 public partial class ConfigurationEditorWindow : Window
 {
+    private readonly ScrapeConfigurationId configurationId;
+    private readonly IScrapeConfigurationUpdater updater = null!;
+
     /// <summary>Initializes the window for the design-time previewer.</summary>
     public ConfigurationEditorWindow() => InitializeComponent();
 
     /// <summary>Initializes a new instance of the <see cref="ConfigurationEditorWindow"/> class for the specified configuration.</summary>
     /// <param name="configuration">The scrape configuration to edit.</param>
-    public ConfigurationEditorWindow(ScrapeConfigurationEntity configuration)
+    /// <param name="updater">The service used to save the edits.</param>
+    public ConfigurationEditorWindow(ScrapeConfigurationEntity configuration, IScrapeConfigurationUpdater updater)
     {
         InitializeComponent();
+        configurationId = configuration.Id;
+        this.updater = updater;
         ConfigurationLabelText.Text = ScrapeConfigurationSummary.From(configuration).Label;
+        RootSettingsTabContent.Load(RootSettingsInput.From(configuration));
     }
 
-    public void Save(object? sender, RoutedEventArgs eventArgs) => Close(true);
+    public async void Save(object? sender, RoutedEventArgs eventArgs)
+    {
+        var validation = RootSettingsTabContent.ReadInput().Validate();
+        if (validation is Invalid<RootSettings> invalid)
+        {
+            ShowError(string.Join(Environment.NewLine, invalid.Errors.Select(error => $"{error.Property}: {error.Message}")));
+
+            return;
+        }
+
+        ShowError(string.Empty);
+        SetSaving(true);
+        var result = await updater.SaveAsync(configurationId, [((Valid<RootSettings>)validation).Value], CancellationToken.None);
+        var failure = result.Match(
+            saved => saved.Match(_ => Option.None<string>(), () => Option.Some("The scrape configuration no longer exists.")),
+            exception => Option.Some($"Unable to save the scrape configuration. {exception.Message}"));
+        SetSaving(false);
+        if (failure is Option<string>.Some some) ShowError(some.Value);
+        else Close(true);
+    }
 
     public void Cancel(object? sender, RoutedEventArgs eventArgs) => Close(false);
+
+    private void SetSaving(bool isSaving)
+    {
+        SaveButton.IsEnabled = !isSaving;
+        CancelButton.IsEnabled = !isSaving;
+    }
+
+    private void ShowError(string message) => ErrorText.Text = message;
 }

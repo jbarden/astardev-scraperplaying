@@ -1,4 +1,5 @@
 <Window xmlns="https://github.com/avaloniaui"
+        xmlns:ui="using:AStarDev.ScraperPlaying.UI"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="AStarDev.ScraperPlaying.UI.ConfigurationEditorWindow"
         Title="Edit Scrape Configuration"
@@ -6,20 +7,23 @@
         Height="640"
         MinWidth="480"
         MinHeight="320">
-  <Grid RowDefinitions="Auto,*,Auto" Margin="24">
+  <Grid RowDefinitions="Auto,*,Auto,Auto" Margin="24">
     <TextBlock x:Name="ConfigurationLabelText"
                FontSize="20"
                FontWeight="SemiBold"
                Margin="0,0,0,16" />
     <TabControl Grid.Row="1">
-      <TabItem x:Name="RootSettingsTab" Header="Root settings" />
+      <TabItem x:Name="RootSettingsTab" Header="Root settings">
+        <ui:RootSettingsEditor x:Name="RootSettingsTabContent" />
+      </TabItem>
       <TabItem x:Name="UserTab" Header="User" />
       <TabItem x:Name="DirectoriesTab" Header="Directories" />
       <TabItem x:Name="SearchTab" Header="Search" />
       <TabItem x:Name="SearchCategoriesTab" Header="Search categories" />
       <TabItem x:Name="PersonCategoriesTab" Header="Person categories" />
     </TabControl>
-    <StackPanel Grid.Row="2"
+    <TextBlock x:Name="ErrorText" Grid.Row="2" Foreground="Red" TextWrapping="Wrap" Margin="0,12,0,0" />
+    <StackPanel Grid.Row="3"
                 Orientation="Horizontal"
                 HorizontalAlignment="Right"
                 Spacing="12"

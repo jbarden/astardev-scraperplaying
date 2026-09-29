@@ -23,6 +23,7 @@ public partial class MainWindow : Window, IDisposable
     private readonly StatusMessageLog statusMessageLog = new(MaximumStatusMessages);
     private readonly IScrapeConfigurationFileService scrapeConfigurationFileService;
     private readonly IScrapeConfigurationCatalogue scrapeConfigurationCatalogue;
+    private readonly IScrapeConfigurationUpdater scrapeConfigurationUpdater;
     private readonly IScrapeService scrapeService;
     private readonly ILogger<MainWindow> logger;
     private readonly OperationCoordinator operationCoordinator;
@@ -30,11 +31,12 @@ public partial class MainWindow : Window, IDisposable
     private bool isRootDirectoryAvailable = true;
     private bool isImageDisplayEnabled = true;
 
-    public MainWindow(ILogger<MainWindow> logger, IScrapeConfigurationFileService scrapeConfigurationFileService, IScrapeConfigurationCatalogue scrapeConfigurationCatalogue, IScrapeService scrapeService, OperationCoordinator operationCoordinator, ImageDisplayCoordinator imageDisplayCoordinator)
+    public MainWindow(ILogger<MainWindow> logger, IScrapeConfigurationFileService scrapeConfigurationFileService, IScrapeConfigurationCatalogue scrapeConfigurationCatalogue, IScrapeConfigurationUpdater scrapeConfigurationUpdater, IScrapeService scrapeService, OperationCoordinator operationCoordinator, ImageDisplayCoordinator imageDisplayCoordinator)
     {
         InitializeComponent();
         this.scrapeConfigurationFileService = scrapeConfigurationFileService;
         this.scrapeConfigurationCatalogue = scrapeConfigurationCatalogue;
+        this.scrapeConfigurationUpdater = scrapeConfigurationUpdater;
         this.scrapeService = scrapeService;
         this.logger = logger;
         this.operationCoordinator = operationCoordinator;
@@ -52,7 +54,7 @@ public partial class MainWindow : Window, IDisposable
     public static MainWindow CreateStartupError(Exception exception)
     {
         // operationCoordinator/imageDisplayCoordinator must be non-null: the constructor subscribes to their events
-        var window = new MainWindow(NullLogger<MainWindow>.Instance, null!, null!, null!, new OperationCoordinator(), new ImageDisplayCoordinator(new ImageDownloadNotifier(), new DownloadedImageDecoder(new RealFileSystem())));
+        var window = new MainWindow(NullLogger<MainWindow>.Instance, null!, null!, null!, null!, new OperationCoordinator(), new ImageDisplayCoordinator(new ImageDownloadNotifier(), new DownloadedImageDecoder(new RealFileSystem())));
         window.AppendStatusMessage($"Startup failed: {exception.GetType().Name}: {exception.Message}");
 
         return window;
@@ -126,7 +128,7 @@ public partial class MainWindow : Window, IDisposable
         _ = await configuration.MatchAsync(
             async entity =>
             {
-                var saved = await new ConfigurationEditorWindow(entity).ShowDialog<bool>(this);
+                var saved = await new ConfigurationEditorWindow(entity, scrapeConfigurationUpdater).ShowDialog<bool>(this);
                 if (saved) await RefreshConfigurationPickerAsync();
 
                 return Unit.Instance;
