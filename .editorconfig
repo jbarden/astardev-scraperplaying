@@ -29,7 +29,7 @@ csharp_style_expression_bodied_operators = when_on_single_line:warning
 csharp_style_expression_bodied_properties = true:warning
 csharp_style_expression_bodied_indexers = true:warning
 csharp_style_expression_bodied_accessors = true:warning
-csharp_style_expression_bodied_lambdas = true:suggestion
+csharp_style_expression_bodied_lambdas = true:warning
 csharp_style_expression_bodied_local_functions = when_on_single_line:suggestion
 
 # ── Braces: single-line statements go without braces (IDE0011) ───────────────
@@ -80,5 +80,10 @@ dotnet_diagnostic.IDE1006.severity = none
 
 # ── Generated code ───────────────────────────────────────────────────────────
 [*.{generated,g}.cs]
+generated_code = true
+dotnet_analyzer_diagnostic.severity = none
+
+# EF Core migrations are tool-generated
+[**/Migrations/*.cs]
 generated_code = true
 dotnet_analyzer_diagnostic.severity = none

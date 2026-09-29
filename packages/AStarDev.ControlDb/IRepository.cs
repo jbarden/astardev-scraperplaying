@@ -34,10 +34,7 @@ public interface IRepository<TAggregate, TKey> where TAggregate : IAggregateRoot
     public async Task<Exceptional<Unit>> DeleteAsync(TKey key)
         => (await TryFindAsync(key)).Match(
             findById => findById.Match(
-                aggregate =>
-                {
-                    return Delete(aggregate);
-                },
+                aggregate => Delete(aggregate),
                 () => Unit.Instance
             ),
             ex => ex
