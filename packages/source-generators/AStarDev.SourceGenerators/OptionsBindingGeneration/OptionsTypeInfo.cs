@@ -12,7 +12,8 @@ namespace AStarDev.SourceGenerators.OptionsBindingGeneration;
 /// <param name="fullTypeName"></param>
 /// <param name="sectionName"></param>
 /// <param name="location"></param>
-public sealed class OptionsTypeInfo(string typeName, string fullTypeName, string sectionName, Location location) : IEquatable<OptionsTypeInfo>
+/// <param name="isGeneric">Whether the type, or a type containing it, has type parameters. Such types cannot be registered because no closed form can be chosen.</param>
+public sealed class OptionsTypeInfo(string typeName, string fullTypeName, string sectionName, Location location, bool isGeneric = false) : IEquatable<OptionsTypeInfo>
 {
     /// <summary>The <see cref="TypeName" /> property holds the simple name of the type (without namespace).</summary>
     public string TypeName { get; } = typeName ?? string.Empty;
@@ -30,6 +31,9 @@ public sealed class OptionsTypeInfo(string typeName, string fullTypeName, string
     /// </summary>
     public Location Location { get; } = location;
 
+    /// <summary>The <see cref="IsGeneric" /> property is <c>true</c> when the type, or a type containing it, has type parameters.</summary>
+    public bool IsGeneric { get; } = isGeneric;
+
     /// <inheritdoc />
     public override bool Equals(object obj) => obj is OptionsTypeInfo other && Equals(other);
 
@@ -37,6 +41,7 @@ public sealed class OptionsTypeInfo(string typeName, string fullTypeName, string
     public bool Equals(OptionsTypeInfo other) => ReferenceEquals(this, other) || (other is not null && string.Equals(TypeName, other.TypeName, StringComparison.Ordinal)
             && string.Equals(FullTypeName, other.FullTypeName, StringComparison.Ordinal)
             && string.Equals(SectionName, other.SectionName, StringComparison.Ordinal)
+            && IsGeneric == other.IsGeneric
             && Equals(Location, other.Location));
 
     /// <inheritdoc />
@@ -48,6 +53,7 @@ public sealed class OptionsTypeInfo(string typeName, string fullTypeName, string
             hash = (hash * 23) + (TypeName != null ? TypeName.GetHashCode() : 0);
             hash = (hash * 23) + (FullTypeName != null ? FullTypeName.GetHashCode() : 0);
             hash = (hash * 23) + (SectionName != null ? SectionName.GetHashCode() : 0);
+            hash = (hash * 23) + IsGeneric.GetHashCode();
             hash = (hash * 23) + (Location != null ? Location.GetHashCode() : 0);
             return hash;
         }

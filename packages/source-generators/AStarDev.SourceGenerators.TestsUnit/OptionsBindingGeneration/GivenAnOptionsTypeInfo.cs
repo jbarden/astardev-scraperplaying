@@ -28,6 +28,13 @@ public sealed class GivenAnOptionsTypeInfo
         => Create().Equals(Create(typeName, fullTypeName, sectionName)).ShouldBeFalse();
 
     [Fact]
+    public void when_only_the_generic_flag_differs_then_the_instances_are_not_equal()
+        => Create().Equals(new OptionsTypeInfo("MyOptions", "Ns.MyOptions", "Section", Location.None, isGeneric: true)).ShouldBeFalse();
+
+    [Fact]
+    public void when_no_generic_flag_is_given_then_the_type_is_not_generic() => Create().IsGeneric.ShouldBeFalse();
+
+    [Fact]
     public void when_compared_with_null_then_it_is_not_equal() => Create().Equals((object)null!).ShouldBeFalse();
 
     [Fact]
