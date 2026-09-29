@@ -1,6 +1,6 @@
 using AStarDev.VelopackPublishing;
 using AStarDev.VelopackPublishingAvalonia.Updates;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Velopack;
 
 namespace AStarDev.VelopackPublishingAvalonia.TestsUnit.Updates;
@@ -14,20 +14,14 @@ public sealed class GivenAnUpdateNotificationService
         return new UpdateInfo(asset, false, null, []);
     }
 
-    private static UpdateAvailableViewModel CreateViewModel(UpdateInfo updateInfo)
-    {
-        var updateCheckService = Substitute.For<IVelopackUpdateService>();
-        var textProvider = new FakeUpdateDialogTextProvider();
-        var logger = Substitute.For<ILogger<UpdateAvailableViewModel>>();
+    private static UpdateAvailableViewModel CreateViewModel(UpdateInfo updateInfo) =>
+        new(updateInfo, new FakeVelopackUpdateService(), new FakeUpdateDialogTextProvider(), NullLogger<UpdateAvailableViewModel>.Instance);
 
-        return new UpdateAvailableViewModel(updateInfo, updateCheckService, textProvider, logger);
-    }
-
-    private static (UpdateNotificationService Sut, IVelopackUpdateService UpdateCheckService, IUpdateAvailableViewModelFactory ViewModelFactory, IUpdateAvailableDialogService DialogService) CreateSut()
+    private static (UpdateNotificationService Sut, FakeVelopackUpdateService UpdateCheckService, FakeViewModelFactory ViewModelFactory, FakeDialogService DialogService) CreateSut()
     {
-        var updateCheckService = Substitute.For<IVelopackUpdateService>();
-        var viewModelFactory = Substitute.For<IUpdateAvailableViewModelFactory>();
-        var dialogService = Substitute.For<IUpdateAvailableDialogService>();
+        var updateCheckService = new FakeVelopackUpdateService();
+        var viewModelFactory = new FakeViewModelFactory();
+        var dialogService = new FakeDialogService();
         var sut = new UpdateNotificationService(updateCheckService, viewModelFactory, dialogService);
 
         return (sut, updateCheckService, viewModelFactory, dialogService);
@@ -36,12 +30,13 @@ public sealed class GivenAnUpdateNotificationService
     [Fact]
     public async Task when_no_update_is_available_then_dialog_is_never_shown()
     {
-        var (sut, updateCheckService, _, dialogService) = CreateSut();
-        updateCheckService.CheckForUpdatesAsync(Arg.Any<CancellationToken>()).Returns((UpdateInfo?)null);
+        var (sut, updateCheckService, viewModelFactory, dialogService) = CreateSut();
+        updateCheckService.Update = null;
 
         await sut.CheckAndNotifyAsync(TestContext.Current.CancellationToken);
 
-        await dialogService.DidNotReceive().ShowAsync(Arg.Any<UpdateAvailableViewModel>(), Arg.Any<CancellationToken>());
+        dialogService.Shown.ShouldBeEmpty();
+        viewModelFactory.Created.ShouldBeEmpty();
     }
 
     [Fact]
@@ -50,12 +45,12 @@ public sealed class GivenAnUpdateNotificationService
         var (sut, updateCheckService, viewModelFactory, _) = CreateSut();
         var updateInfo = CreateUpdateInfo();
         using var viewModel = CreateViewModel(updateInfo);
-        updateCheckService.CheckForUpdatesAsync(Arg.Any<CancellationToken>()).Returns(updateInfo);
-        viewModelFactory.Create(updateInfo).Returns(viewModel);
+        updateCheckService.Update = updateInfo;
+        viewModelFactory.Factory = _ => viewModel;
 
         await sut.CheckAndNotifyAsync(TestContext.Current.CancellationToken);
 
-        viewModelFactory.Received(1).Create(updateInfo);
+        viewModelFactory.Created.ShouldBe([updateInfo]);
     }
 
     [Fact]
@@ -64,11 +59,38 @@ public sealed class GivenAnUpdateNotificationService
         var (sut, updateCheckService, viewModelFactory, dialogService) = CreateSut();
         var updateInfo = CreateUpdateInfo();
         using var viewModel = CreateViewModel(updateInfo);
-        updateCheckService.CheckForUpdatesAsync(Arg.Any<CancellationToken>()).Returns(updateInfo);
-        viewModelFactory.Create(updateInfo).Returns(viewModel);
+        updateCheckService.Update = updateInfo;
+        viewModelFactory.Factory = _ => viewModel;
 
         await sut.CheckAndNotifyAsync(TestContext.Current.CancellationToken);
 
-        await dialogService.Received(1).ShowAsync(viewModel, Arg.Any<CancellationToken>());
+        dialogService.Shown.Count.ShouldBe(1);
+        dialogService.Shown[0].ShouldBeSameAs(viewModel);
+    }
+
+    private sealed class FakeViewModelFactory : IUpdateAvailableViewModelFactory
+    {
+        public Func<UpdateInfo, UpdateAvailableViewModel> Factory { get; set; } = _ => throw new InvalidOperationException("No view model configured.");
+
+        public List<UpdateInfo> Created { get; } = [];
+
+        public UpdateAvailableViewModel Create(UpdateInfo updateInfo)
+        {
+            Created.Add(updateInfo);
+
+            return Factory(updateInfo);
+        }
+    }
+
+    private sealed class FakeDialogService : IUpdateAvailableDialogService
+    {
+        public List<UpdateAvailableViewModel> Shown { get; } = [];
+
+        public Task ShowAsync(UpdateAvailableViewModel viewModel, CancellationToken cancellationToken = default)
+        {
+            Shown.Add(viewModel);
+
+            return Task.CompletedTask;
+        }
     }
 }
