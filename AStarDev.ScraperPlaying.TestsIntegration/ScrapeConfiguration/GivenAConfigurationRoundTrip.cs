@@ -31,7 +31,7 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
         {
             new RootSettings(
                 new Uri("https://edited.example/api/v1"),
-                new Uri("https://edited.example/login"),
+                "edited login: not a url, /login?x=1 & more",
                 "edited-api-key",
                 "edited search",
                 "edited-top",
@@ -69,7 +69,7 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
         var imported = await target.ReadFirstAsync();
         imported.Id.ShouldBe(id);
         imported.BaseUrl.ShouldBe(new Uri("https://edited.example/api/v1"));
-        imported.LoginUrl.ShouldBe(new Uri("https://edited.example/login"));
+        imported.LoginUrl.ShouldBe("edited login: not a url, /login?x=1 & more");
         imported.ApiKey.ShouldBe("edited-api-key");
         imported.SearchString.ShouldBe("edited search");
         imported.TopWallpapers.ShouldBe("edited-top");

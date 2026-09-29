@@ -1,12 +1,15 @@
+using System.Diagnostics.CodeAnalysis;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 
 namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 /// <summary>The validated root-level settings of a scrape configuration.</summary>
+[SuppressMessage("Design", "CA1054:URI parameters should not be strings", Justification = "The login page is free text and is not required to be a valid URL.")]
+[SuppressMessage("Design", "CA1056:URI properties should not be strings", Justification = "The login page is free text and is not required to be a valid URL.")]
 public sealed record RootSettings(
     Uri BaseUrl,
-    Uri LoginUrl,
+    string LoginUrl,
     string ApiKey,
     string SearchString,
     string TopWallpapers,

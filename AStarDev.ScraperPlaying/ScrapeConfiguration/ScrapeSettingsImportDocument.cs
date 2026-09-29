@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 internal sealed class ScrapeSettingsImportDocument
@@ -22,7 +23,8 @@ internal sealed class ScrapeSettingsUserConfiguration
 internal sealed class ScrapeSettingsSearchConfiguration
 {
     public Uri BaseUrl { get; init; } = new("https://example.com");
-    public Uri LoginUrl { get; init; } = new("https://example.com/login");
+    [SuppressMessage("Design", "CA1056:URI properties should not be strings", Justification = "The login page is free text and is not required to be a valid URL.")]
+    public string LoginUrl { get; init; } = "https://example.com/login";
     public List<SearchCategoryImportDocument> SearchCategories { get; init; } = [];
     public string SearchString { get; init; } = string.Empty;
     public string TopWallpapers { get; init; } = string.Empty;
