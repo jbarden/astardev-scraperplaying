@@ -18,10 +18,10 @@ public class ApplicationDirectories(IFileSystem fileSystem, ILogger<ApplicationD
     public void CreateIfRequired()
     {
         LogMessage.Debug(logger, "Ensuring application directories exist at {Root}", root);
-        fileSystem.Directory.CreateDirectory(DataDirectory);
-        fileSystem.Directory.CreateDirectory(LogsDirectory);
-        fileSystem.Directory.CreateDirectory(CacheDirectory);
-        fileSystem.Directory.CreateDirectory(DocumentsExportDirectory);
+        _ = fileSystem.Directory.CreateDirectory(DataDirectory);
+        _ = fileSystem.Directory.CreateDirectory(LogsDirectory);
+        _ = fileSystem.Directory.CreateDirectory(CacheDirectory);
+        _ = fileSystem.Directory.CreateDirectory(DocumentsExportDirectory);
     }
 
     /// <summary>Gets the root directory for application data, typically located in the user's application data folder.</summary>

@@ -131,7 +131,7 @@ public static class ExceptionalExtensions
                     break;
 
                 case Failure<T> failure:
-                    onFailure(failure.Exception);
+                    _ = onFailure(failure.Exception);
 
                     break;
 

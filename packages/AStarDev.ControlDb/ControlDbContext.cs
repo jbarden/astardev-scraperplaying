@@ -30,7 +30,7 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
     Exceptional<ScrapeConfigurationEntity> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.Add(ScrapeConfigurationEntity aggregate) =>
         Try.Run(() =>
         {
-            ScrapeConfigurations.Add(aggregate);
+            _ = ScrapeConfigurations.Add(aggregate);
             return aggregate;
         });
 
@@ -44,7 +44,7 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
     Exceptional<Unit> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.Delete(ScrapeConfigurationEntity aggregate) =>
         Try.Run(() =>
         {
-            ScrapeConfigurations.Remove(aggregate);
+            _ = ScrapeConfigurations.Remove(aggregate);
             return Unit.Instance;
         });
 
@@ -64,7 +64,7 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
     Exceptional<FileEntity> IRepository<FileEntity, FileId>.Add(FileEntity aggregate) =>
         Try.Run(() =>
         {
-            Files.Add(aggregate);
+            _ = Files.Add(aggregate);
             return aggregate;
         });
 
@@ -72,7 +72,7 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
     Exceptional<Unit> IRepository<FileEntity, FileId>.Delete(FileEntity aggregate) =>
         Try.Run(() =>
         {
-            Files.Remove(aggregate);
+            _ = Files.Remove(aggregate);
             return Unit.Instance;
         });
 
@@ -92,7 +92,7 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
     Exceptional<TagEntity> IRepository<TagEntity, TagId>.Add(TagEntity aggregate) =>
         Try.Run(() =>
         {
-            Tags.Add(aggregate);
+            _ = Tags.Add(aggregate);
             return aggregate;
         });
 
@@ -100,7 +100,7 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
     Exceptional<Unit> IRepository<TagEntity, TagId>.Delete(TagEntity aggregate) =>
         Try.Run(() =>
         {
-            Tags.Remove(aggregate);
+            _ = Tags.Remove(aggregate);
             return Unit.Instance;
         });
 
@@ -136,7 +136,7 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
             _ = optionsBuilder.UseSqlite($"Data Source={tempDir}/Scraper/files.db");
         }
 
-        optionsBuilder
+        _ = optionsBuilder
             .UseAsyncSeeding(async (context, _, cancellationToken) =>
             {
                 await Seeder.SeedAsync(context, cancellationToken);

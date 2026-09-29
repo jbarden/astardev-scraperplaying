@@ -16,7 +16,7 @@ public sealed class ScrapeConfigurationImportService(
         cancellationToken.ThrowIfCancellationRequested();
         var document = await fileReader.ReadAsync(filePath, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        await repository.ImportScrapeConfigurationAsync(document);
+        _ = await repository.ImportScrapeConfigurationAsync(document);
     }
 }
 

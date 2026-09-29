@@ -39,7 +39,7 @@ csharp_prefer_braces = when_multiline:warning
 csharp_style_namespace_declarations = file_scoped:warning
 csharp_style_prefer_primary_constructors = true:warning
 dotnet_style_prefer_collection_expression = true:warning
-csharp_style_unused_value_expression_statement_preference = discard_variable:suggestion
+csharp_style_unused_value_expression_statement_preference = discard_variable:warning
 csharp_style_unused_value_assignment_preference = discard_variable:suggestion
 
 # ── Immutability (IDE0044) ───────────────────────────────────────────────────
@@ -75,8 +75,10 @@ dotnet_naming_style.underscore_camel_case.required_prefix = _
 dotnet_naming_style.underscore_camel_case.capitalization = camel_case
 
 # ── Tests use when_..._then_... snake_case names ─────────────────────────────
-[**/*.{TestsUnit,TestsIntegration}/**/*.cs]
+[{**.TestsUnit/**.cs,**.TestsIntegration/**.cs}]
 dotnet_diagnostic.IDE1006.severity = none
+# Shouldly assertions return their subject; discarding every one adds only noise
+dotnet_diagnostic.IDE0058.severity = none
 
 # ── Generated code ───────────────────────────────────────────────────────────
 [*.{generated,g}.cs]

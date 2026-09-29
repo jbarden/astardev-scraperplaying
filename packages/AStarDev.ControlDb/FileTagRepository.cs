@@ -11,7 +11,7 @@ public class FileTagRepository(ControlDbContext context) : IFileTagRepository
     public Exceptional<FileTagEntity> Add(FileTagEntity fileTag) =>
         Try.Run(() =>
         {
-            context.FileTags.Add(fileTag);
+            _ = context.FileTags.Add(fileTag);
             return fileTag;
         });
 }

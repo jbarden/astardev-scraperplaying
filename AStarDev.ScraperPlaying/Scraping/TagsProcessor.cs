@@ -65,7 +65,7 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
                     resolvedTags.Add(tag.Id, tagEntity);
                 }
 
-                fileTagRepository.Add(new FileTagEntity { FileId = fileId, TagId = tagEntity.Id })
+                _ = fileTagRepository.Add(new FileTagEntity { FileId = fileId, TagId = tagEntity.Id })
                     .Match(_ => Unit.Instance, ex => throw ex);
             }
 

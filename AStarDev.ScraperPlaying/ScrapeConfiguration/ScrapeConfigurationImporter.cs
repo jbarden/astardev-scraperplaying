@@ -21,13 +21,13 @@ public sealed class ScrapeConfigurationImporter(IUnitOfWork unitOfWork) : IScrap
             await current.MatchAsync(
                 async e =>
                 {
-                    dbContext.Delete(e).Match(unit => unit, exception => throw exception);
-                    await unitOfWork.SaveChangesAsync();
+                    _ = dbContext.Delete(e).Match(unit => unit, exception => throw exception);
+                    _ = await unitOfWork.SaveChangesAsync();
                 },
                 () => { });
 
-            dbContext.Add(document.ToEntity()).Match(entity => entity, exception => throw exception);
-            await unitOfWork.SaveChangesAsync();
+            _ = dbContext.Add(document.ToEntity()).Match(entity => entity, exception => throw exception);
+            _ = await unitOfWork.SaveChangesAsync();
 
             return Unit.Instance;
         });

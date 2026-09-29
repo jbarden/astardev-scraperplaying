@@ -16,7 +16,7 @@ public sealed class StatusMessageLog(int maximumMessages)
         messages.Enqueue(message);
         while (messages.Count > maximumMessages)
         {
-            messages.Dequeue();
+            _ = messages.Dequeue();
         }
 
         Text = string.Join(Environment.NewLine, messages);

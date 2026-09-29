@@ -21,7 +21,7 @@ public static class Seeder
     public static void Seed(DbContext context)
     {
         SeedImpl(context);
-        context.SaveChanges();
+        _ = context.SaveChanges();
     }
 
     private static void SeedImpl(DbContext context)
@@ -46,7 +46,7 @@ public static class Seeder
             searchConfiguration.PersonCategories.Add(new PersonCategoryEntity { SearchConfigurationId = new SearchConfigurationId(Guid.Empty), Name = name });
         }
 
-        context.Set<ScrapeConfigurationEntity>().Add(new ScrapeConfigurationEntity(Guid.Empty)
+        _ = context.Set<ScrapeConfigurationEntity>().Add(new ScrapeConfigurationEntity(Guid.Empty)
         {
             UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, "jason.j.barden2@outlook.com", "jbarden", Environment.GetEnvironmentVariable("ScrapePassword") ?? "Password1!", "n/a"),
             SearchConfiguration = searchConfiguration,

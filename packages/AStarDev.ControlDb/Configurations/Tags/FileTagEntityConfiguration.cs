@@ -11,18 +11,18 @@ public sealed class FileTagEntityConfiguration : IEntityTypeConfiguration<FileTa
     /// <inheritdoc />
     public void Configure(EntityTypeBuilder<FileTagEntity> builder)
     {
-        builder.ToTable("FileTags");
+        _ = builder.ToTable("FileTags");
 
-        builder.HasKey(fileTag => new { fileTag.FileId, fileTag.TagId });
-        builder.Property(fileTag => fileTag.FileId).HasConversion(id => id.Value, guid => new FileId(guid));
-        builder.Property(fileTag => fileTag.TagId).HasConversion(id => id.Value, guid => new TagId(guid));
+        _ = builder.HasKey(fileTag => new { fileTag.FileId, fileTag.TagId });
+        _ = builder.Property(fileTag => fileTag.FileId).HasConversion(id => id.Value, guid => new FileId(guid));
+        _ = builder.Property(fileTag => fileTag.TagId).HasConversion(id => id.Value, guid => new TagId(guid));
 
-        builder.HasOne(fileTag => fileTag.FileDetail)
+        _ = builder.HasOne(fileTag => fileTag.FileDetail)
             .WithMany(file => file.FileTags)
             .HasForeignKey(fileTag => fileTag.FileId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne(fileTag => fileTag.Tag)
+        _ = builder.HasOne(fileTag => fileTag.Tag)
             .WithMany(tag => tag.FileTags)
             .HasForeignKey(fileTag => fileTag.TagId)
             .OnDelete(DeleteBehavior.Restrict);

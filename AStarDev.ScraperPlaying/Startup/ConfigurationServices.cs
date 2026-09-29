@@ -12,7 +12,7 @@ public static class ConfigurationServices
     /// <returns>The <paramref name="services" /> collection to allow further chaining.</returns>
     public static IServiceCollection AddConfigurationServices(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddSingleton(configuration);
+        _ = services.AddSingleton(configuration);
 
         return services;
     }

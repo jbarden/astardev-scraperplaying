@@ -37,7 +37,7 @@ public static class OTelLoggingConfigurator
         => loggingBuilder.AddOpenTelemetry(options =>
         {
             Configure(options, configuration, connectionStringConfigurationKey);
-            options.AddProcessor(inMemoryLogProcessor);
+            _ = options.AddProcessor(inMemoryLogProcessor);
         });
 
     private static void Configure(OpenTelemetryLoggerOptions options, IConfigurationRoot configuration, string connectionStringConfigurationKey)
@@ -45,11 +45,11 @@ public static class OTelLoggingConfigurator
         options.IncludeFormattedMessage = true;
         options.IncludeScopes = true;
         options.ParseStateValues = true;
-        options.AddConsoleExporter();
+        _ = options.AddConsoleExporter();
 
         string? connectionString = configuration[connectionStringConfigurationKey];
 
         if (!string.IsNullOrWhiteSpace(connectionString))
-            options.AddAzureMonitorLogExporter(exporterOptions => exporterOptions.ConnectionString = connectionString);
+            _ = options.AddAzureMonitorLogExporter(exporterOptions => exporterOptions.ConnectionString = connectionString);
     }
 }
