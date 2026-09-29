@@ -1,8 +1,7 @@
-using AStarDev.VelopackPublishing;
 using AStarDev.VelopackPublishingAvalonia.Updates;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Velopack;
 
 namespace AStarDev.VelopackPublishingAvalonia.TestsUnit.Updates;
@@ -18,11 +17,10 @@ public sealed class GivenUpdateAvailableViewDisplay
 
     private static UpdateAvailableViewModel CreateViewModel(UpdateInfo? updateInfo = null)
     {
-        var updateCheckService = Substitute.For<IVelopackUpdateService>();
+        var updateCheckService = new FakeVelopackUpdateService();
         var textProvider = new FakeUpdateDialogTextProvider();
-        var logger = Substitute.For<ILogger<UpdateAvailableViewModel>>();
 
-        return new UpdateAvailableViewModel(updateInfo ?? CreateUpdateInfo(), updateCheckService, textProvider, logger);
+        return new UpdateAvailableViewModel(updateInfo ?? CreateUpdateInfo(), updateCheckService, textProvider, NullLogger<UpdateAvailableViewModel>.Instance);
     }
 
     private static UpdateAvailableView CreateViewWithViewModel(UpdateAvailableViewModel viewModel)
