@@ -1,6 +1,7 @@
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
+using AStarDev.ScraperPlaying.TestsUnit.Fakes;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
 using Testably.Abstractions.Testing;
 
@@ -8,15 +9,15 @@ namespace AStarDev.ScraperPlaying.TestsUnit.WallpaperIngestion;
 
 public sealed class GivenASaveDirectoryResolver
 {
-    private readonly IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
-    private readonly IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> scrapeConfigurationRepository = Substitute.For<IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>>();
+    private readonly FakeUnitOfWork unitOfWork = new();
+    private readonly FakeRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> scrapeConfigurationRepository;
     private readonly MockFileSystem fileSystem = new();
     private readonly SaveDirectoryResolver resolver;
 
     public GivenASaveDirectoryResolver()
     {
-        unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().Returns(scrapeConfigurationRepository);
-        scrapeConfigurationRepository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration("root-directory"));
+        scrapeConfigurationRepository = unitOfWork.Register<ScrapeConfigurationEntity, ScrapeConfigurationId>();
+        scrapeConfigurationRepository.First = (Option<ScrapeConfigurationEntity>)CreateConfiguration("root-directory");
         resolver = new(fileSystem, unitOfWork);
     }
 
@@ -39,7 +40,7 @@ public sealed class GivenASaveDirectoryResolver
     [Fact]
     public async Task when_no_scrape_configuration_exists_then_it_throws()
     {
-        scrapeConfigurationRepository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)Option.None<ScrapeConfigurationEntity>());
+        scrapeConfigurationRepository.First = Option<ScrapeConfigurationEntity>.None.Instance;
 
         await Should.ThrowAsync<InvalidOperationException>(
             () => resolver.ResolveSaveDirectoryAsync(Option.None<string>(), CancellationToken.None));

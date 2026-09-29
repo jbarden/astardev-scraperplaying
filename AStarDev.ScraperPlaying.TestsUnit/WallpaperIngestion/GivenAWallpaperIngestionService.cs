@@ -141,23 +141,6 @@ public sealed class GivenAWallpaperIngestionService
     private static Data CreateWallpaper(string id, string path = "")
         => new(id, 0, 0, 0, "", path);
 
-    private sealed class FakeFilesQuery : IFilesQuery
-    {
-        public Exceptional<bool> ExistsResult { get; set; } = false;
-
-        public List<FileName> CheckedNames { get; } = [];
-
-        public Task<Exceptional<Option<FileEntity>>> TryGetByNameAsync(FileName name, CancellationToken cancellationToken = default) =>
-            Task.FromResult<Exceptional<Option<FileEntity>>>(Option<FileEntity>.None.Instance);
-
-        public Task<Exceptional<bool>> CheckExistsByNameAsync(FileName name, CancellationToken cancellationToken = default)
-        {
-            CheckedNames.Add(name);
-
-            return Task.FromResult(ExistsResult);
-        }
-    }
-
     private sealed class FakeImageProcessor : IImageProcessor
     {
         private static readonly FileEntity DefaultEntity = new() { FileName = new("default"), DirectoryName = new(""), FileHandle = new(""), FileSize = 0 };
