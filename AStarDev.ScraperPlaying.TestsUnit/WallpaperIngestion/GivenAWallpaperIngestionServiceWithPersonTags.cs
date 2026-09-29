@@ -5,6 +5,7 @@ using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
+using AStarDev.ScraperPlaying.TestsUnit.Fakes;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
 using Testably.Abstractions.Testing;
 using Tag = AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse.Tag;
@@ -14,22 +15,14 @@ namespace AStarDev.ScraperPlaying.TestsUnit.WallpaperIngestion;
 public sealed class GivenAWallpaperIngestionServiceWithPersonTags
 {
     private readonly MockFileSystem fileSystem = new();
-    private readonly List<FileEntity> addedFiles = [];
-    private readonly IRepository<FileEntity, FileId> fileRepository = Substitute.For<IRepository<FileEntity, FileId>>();
-    private readonly IFilesQuery filesQuery = Substitute.For<IFilesQuery>();
+    private readonly FakeRepository<FileEntity, FileId> fileRepository = new();
+    private readonly FakeFilesQuery filesQuery = new();
     private readonly StubTagsProcessor tagsProcessor = new();
     private readonly WallpaperIngestionService service;
 
     public GivenAWallpaperIngestionServiceWithPersonTags()
     {
-        filesQuery.CheckExistsByNameAsync(Arg.Any<FileName>(), Arg.Any<CancellationToken>()).Returns((Exceptional<bool>)false);
-        fileRepository.Add(Arg.Any<FileEntity>()).Returns(call =>
-        {
-            addedFiles.Add(call.Arg<FileEntity>());
-
-            return (Exceptional<FileEntity>)call.Arg<FileEntity>();
-        });
-        var imageProcessor = new ImageProcessor(() => DateTimeOffset.UnixEpoch, fileSystem, () => TimeSpan.Zero, Substitute.For<IImageDownloadNotifier>());
+        var imageProcessor = new ImageProcessor(() => DateTimeOffset.UnixEpoch, fileSystem, () => TimeSpan.Zero, new ImageDownloadNotifier());
         service = new(filesQuery, imageProcessor, tagsProcessor, () => TimeSpan.Zero);
     }
 
@@ -42,8 +35,8 @@ public sealed class GivenAWallpaperIngestionServiceWithPersonTags
 
         fileSystem.File.Exists(fileSystem.Path.Combine("some-directory", "Max_Verstappen_abc123.jpg")).ShouldBeTrue();
         fileSystem.File.Exists(fileSystem.Path.Combine("some-directory", "abc123.jpg")).ShouldBeFalse();
-        addedFiles.Select(file => file.FileName.Value).ShouldBe(["Max_Verstappen_abc123.jpg"]);
-        addedFiles.Select(file => file.FileHandle.Value).ShouldBe(["abc123"]);
+        fileRepository.Added.Select(file => file.FileName.Value).ShouldBe(["Max_Verstappen_abc123.jpg"]);
+        fileRepository.Added.Select(file => file.FileHandle.Value).ShouldBe(["abc123"]);
     }
 
     [Fact]
@@ -54,7 +47,7 @@ public sealed class GivenAWallpaperIngestionServiceWithPersonTags
         await Ingest("abc123");
 
         fileSystem.File.Exists(fileSystem.Path.Combine("some-directory", "abc123.jpg")).ShouldBeTrue();
-        addedFiles.Select(file => file.FileName.Value).ShouldBe(["abc123.jpg"]);
+        fileRepository.Added.Select(file => file.FileName.Value).ShouldBe(["abc123.jpg"]);
     }
 
     [Fact]
@@ -65,7 +58,7 @@ public sealed class GivenAWallpaperIngestionServiceWithPersonTags
         await Ingest("abc123");
 
         fileSystem.File.Exists(fileSystem.Path.Combine("some-directory", "abc123.jpg")).ShouldBeTrue();
-        addedFiles.Select(file => file.FileName.Value).ShouldBe(["abc123.jpg"]);
+        fileRepository.Added.Select(file => file.FileName.Value).ShouldBe(["abc123.jpg"]);
         tagsProcessor.LinkedTags.ShouldBeEmpty();
     }
 

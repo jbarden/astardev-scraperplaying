@@ -3,6 +3,7 @@ using System.Net;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
+using AStarDev.ScraperPlaying.TestsUnit.Fakes;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 using Testably.Abstractions.Testing;
@@ -12,7 +13,7 @@ namespace AStarDev.ScraperPlaying.TestsUnit.WallpaperIngestion;
 public sealed class GivenAnImageProcessor
 {
     private static readonly DateTimeOffset now = new(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
-    private readonly IRepository<FileEntity, FileId> fileRepository = Substitute.For<IRepository<FileEntity, FileId>>();
+    private readonly FakeRepository<FileEntity, FileId> fileRepository = new();
     private readonly ImageDownloadNotifier imageDownloadNotifier = new();
     private readonly List<WallpaperDownloadDetails> notifications = [];
     private readonly MockFileSystem fileSystem = new();
@@ -27,7 +28,6 @@ public sealed class GivenAnImageProcessor
     [Fact]
     public async Task when_processing_a_wallpaper_then_a_matching_file_entity_is_added_and_returned()
     {
-        fileRepository.Add(Arg.Any<FileEntity>()).Returns(call => (Exceptional<FileEntity>)call.Arg<FileEntity>());
         var wallpaper = CreateWallpaper(id: "wallpaper-1", fileSize: 1234, fileType: "image/jpeg", dimensionX: 1920, dimensionY: 1080, path: "https://example.test/full/wallpaper-1.jpg");
 
         var result = await processor.ProcessTheImageAsync(fileRepository, new WallpaperFileRequest(wallpaper, "some-directory", NameFor(wallpaper, ".jpg"), "Top Wallpapers"), CancellationToken.None);
@@ -47,7 +47,6 @@ public sealed class GivenAnImageProcessor
     [Fact]
     public async Task when_a_non_jpg_extension_is_supplied_then_the_file_name_uses_that_extension()
     {
-        fileRepository.Add(Arg.Any<FileEntity>()).Returns(call => (Exceptional<FileEntity>)call.Arg<FileEntity>());
         var wallpaper = CreateWallpaper(id: "wallpaper-7", path: "https://example.test/full/wallpaper-7.png");
 
         var result = await processor.ProcessTheImageAsync(fileRepository, new WallpaperFileRequest(wallpaper, "some-directory", NameFor(wallpaper, ".png"), "Top Wallpapers"), CancellationToken.None);
@@ -60,7 +59,6 @@ public sealed class GivenAnImageProcessor
     [Fact]
     public async Task when_the_request_has_a_prefixed_file_name_then_it_is_used_for_the_file_entity_and_the_saved_file()
     {
-        fileRepository.Add(Arg.Any<FileEntity>()).Returns(call => (Exceptional<FileEntity>)call.Arg<FileEntity>());
         using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1, 2, 3]) });
         var wallpaper = CreateWallpaper(id: "abc123", path: "https://example.test/full/abc123.jpg");
         var request = new WallpaperFileRequest(wallpaper, "some-directory", new FileName("Max_Verstappen_abc123.jpg"), "Top Wallpapers");
@@ -76,7 +74,6 @@ public sealed class GivenAnImageProcessor
     [Fact]
     public async Task when_a_directory_is_supplied_then_it_is_used_as_the_directory_name()
     {
-        fileRepository.Add(Arg.Any<FileEntity>()).Returns(call => (Exceptional<FileEntity>)call.Arg<FileEntity>());
         var wallpaper = CreateWallpaper(id: "wallpaper-top");
 
         var result = await processor.ProcessTheImageAsync(fileRepository, new WallpaperFileRequest(wallpaper, "root-directory/top-wallpapers", NameFor(wallpaper, ".jpg"), "Top Wallpapers"), CancellationToken.None);
@@ -89,7 +86,6 @@ public sealed class GivenAnImageProcessor
     [Fact]
     public async Task when_the_wallpaper_path_does_not_have_an_image_extension_then_is_image_is_false()
     {
-        fileRepository.Add(Arg.Any<FileEntity>()).Returns(call => (Exceptional<FileEntity>)call.Arg<FileEntity>());
         var wallpaper = CreateWallpaper(id: "wallpaper-5", path: "https://example.test/full/wallpaper-5.txt");
 
         var result = await processor.ProcessTheImageAsync(fileRepository, new WallpaperFileRequest(wallpaper, "some-directory", NameFor(wallpaper, ".txt"), "Top Wallpapers"), CancellationToken.None);
@@ -103,7 +99,7 @@ public sealed class GivenAnImageProcessor
     public async Task when_adding_the_file_entity_fails_then_the_failure_is_returned_not_swallowed()
     {
         var exception = new InvalidOperationException("add failed");
-        fileRepository.Add(Arg.Any<FileEntity>()).Returns((Exceptional<FileEntity>)exception);
+        fileRepository.AddFailure = Option.Some<Exception>(exception);
         var wallpaper = CreateWallpaper(id: "wallpaper-2");
 
         var result = await processor.ProcessTheImageAsync(fileRepository, new WallpaperFileRequest(wallpaper, "some-directory", NameFor(wallpaper, ".jpg"), "Top Wallpapers"), CancellationToken.None);

@@ -2,16 +2,17 @@ using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
+using AStarDev.ScraperPlaying.TestsUnit.Fakes;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.ScrapeConfiguration;
 
 public sealed class GivenAScrapeConfigurationExporter
 {
-    private readonly IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
-    private readonly IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> repository = Substitute.For<IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>>();
+    private readonly FakeUnitOfWork unitOfWork = new();
+    private readonly FakeRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> repository;
 
     public GivenAScrapeConfigurationExporter() =>
-        unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().Returns(repository);
+        repository = unitOfWork.Register<ScrapeConfigurationEntity, ScrapeConfigurationId>();
 
     [Fact]
     public async Task when_a_configuration_exists_then_it_is_returned_as_a_document()
@@ -26,7 +27,7 @@ public sealed class GivenAScrapeConfigurationExporter
             ]),
             ScrapeDirectories = new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.CreateVersion7()), scrapeConfigurationId, "Pictures", "Pictures/Famous", "Wallhaven")
         };
-        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)existing);
+        repository.First = (Option<ScrapeConfigurationEntity>)existing;
         var exporter = new ScrapeConfigurationExporter(unitOfWork);
 
         var result = await exporter.ExportScrapeConfigurationAsync();
@@ -42,7 +43,7 @@ public sealed class GivenAScrapeConfigurationExporter
     [Fact]
     public async Task when_no_configuration_exists_then_none_is_returned()
     {
-        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)Option<ScrapeConfigurationEntity>.None.Instance);
+        repository.First = Option<ScrapeConfigurationEntity>.None.Instance;
         var exporter = new ScrapeConfigurationExporter(unitOfWork);
 
         var result = await exporter.ExportScrapeConfigurationAsync();
@@ -55,7 +56,7 @@ public sealed class GivenAScrapeConfigurationExporter
     public async Task when_looking_up_the_configuration_fails_then_the_failure_is_returned()
     {
         var exception = new InvalidOperationException("lookup failed");
-        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)exception);
+        repository.First = exception;
         var exporter = new ScrapeConfigurationExporter(unitOfWork);
 
         var result = await exporter.ExportScrapeConfigurationAsync();

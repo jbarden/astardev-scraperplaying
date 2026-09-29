@@ -2,21 +2,22 @@ using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
+using AStarDev.ScraperPlaying.TestsUnit.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.ScrapeConfiguration;
 
 public sealed class GivenAScrapeConfigurationCatalogue : IDisposable
 {
-    private readonly IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> repository = Substitute.For<IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>>();
+    private readonly FakeRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> repository;
     private readonly ServiceProvider serviceProvider;
     private readonly ScrapeConfigurationCatalogue catalogue;
 
     public GivenAScrapeConfigurationCatalogue()
     {
-        var unitOfWork = Substitute.For<IUnitOfWork>();
-        unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().Returns(repository);
-        serviceProvider = new ServiceCollection().AddScoped(_ => unitOfWork).BuildServiceProvider();
+        var unitOfWork = new FakeUnitOfWork();
+        repository = unitOfWork.Register<ScrapeConfigurationEntity, ScrapeConfigurationId>();
+        serviceProvider = new ServiceCollection().AddScoped<IUnitOfWork>(_ => unitOfWork).BuildServiceProvider();
         catalogue = new ScrapeConfigurationCatalogue(serviceProvider.GetRequiredService<IServiceScopeFactory>());
     }
 
@@ -25,7 +26,7 @@ public sealed class GivenAScrapeConfigurationCatalogue : IDisposable
     {
         var first = CreateEntity("cats");
         var second = CreateEntity("dogs");
-        repository.TryGetAllAsync().Returns(Success<IEnumerable<ScrapeConfigurationEntity>>([first, second]));
+        repository.All = Success<IEnumerable<ScrapeConfigurationEntity>>([first, second]);
 
         var result = await catalogue.ListAsync();
 
@@ -37,7 +38,7 @@ public sealed class GivenAScrapeConfigurationCatalogue : IDisposable
     [Fact]
     public async Task when_no_configurations_exist_then_the_list_is_empty()
     {
-        repository.TryGetAllAsync().Returns((Exceptional<Option<IEnumerable<ScrapeConfigurationEntity>>>)Option<IEnumerable<ScrapeConfigurationEntity>>.None.Instance);
+        repository.All = Option<IEnumerable<ScrapeConfigurationEntity>>.None.Instance;
 
         var result = await catalogue.ListAsync();
 
@@ -48,7 +49,7 @@ public sealed class GivenAScrapeConfigurationCatalogue : IDisposable
     public async Task when_listing_fails_then_the_failure_is_returned()
     {
         var failure = new InvalidOperationException("list failed");
-        repository.TryGetAllAsync().Returns((Exceptional<Option<IEnumerable<ScrapeConfigurationEntity>>>)failure);
+        repository.All = failure;
 
         var result = await catalogue.ListAsync();
 
@@ -59,7 +60,7 @@ public sealed class GivenAScrapeConfigurationCatalogue : IDisposable
     public async Task when_a_configuration_is_found_then_it_is_returned()
     {
         var entity = CreateEntity("cats");
-        repository.TryFindAsync(entity.Id).Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)entity);
+        repository.Found = (Option<ScrapeConfigurationEntity>)entity;
 
         var result = await catalogue.FindAsync(entity.Id);
 
@@ -69,7 +70,7 @@ public sealed class GivenAScrapeConfigurationCatalogue : IDisposable
     [Fact]
     public async Task when_a_configuration_is_not_found_then_none_is_returned()
     {
-        repository.TryFindAsync(Arg.Any<ScrapeConfigurationId>()).Returns((Exceptional<Option<ScrapeConfigurationEntity>>)Option<ScrapeConfigurationEntity>.None.Instance);
+        repository.Found = Option<ScrapeConfigurationEntity>.None.Instance;
 
         var result = await catalogue.FindAsync(new ScrapeConfigurationId(Guid.CreateVersion7()));
 
@@ -80,7 +81,7 @@ public sealed class GivenAScrapeConfigurationCatalogue : IDisposable
     public async Task when_finding_fails_then_the_failure_is_returned()
     {
         var failure = new InvalidOperationException("find failed");
-        repository.TryFindAsync(Arg.Any<ScrapeConfigurationId>()).Returns((Exceptional<Option<ScrapeConfigurationEntity>>)failure);
+        repository.Found = failure;
 
         var result = await catalogue.FindAsync(new ScrapeConfigurationId(Guid.CreateVersion7()));
 
