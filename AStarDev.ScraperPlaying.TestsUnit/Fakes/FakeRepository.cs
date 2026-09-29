@@ -24,7 +24,10 @@ internal sealed class FakeRepository<TAggregate, TKey>(List<string> operations) 
     /// <summary>The failure returned by <see cref="Delete"/>, or none for it to succeed.</summary>
     public Option<Exception> DeleteFailure { get; set; } = Option.None<Exception>();
 
-    /// <summary>The aggregates passed to <see cref="Add"/> that did not fail.</summary>
+    /// <summary>Simulates the store completing an added aggregate (for example assigning its id). It is applied before the aggregate is recorded and returned.</summary>
+    public Func<TAggregate, TAggregate> Store { get; set; } = aggregate => aggregate;
+
+    /// <summary>The aggregates passed to <see cref="Add"/> that did not fail, as completed by <see cref="Store"/>.</summary>
     public List<TAggregate> Added { get; } = [];
 
     /// <summary>The aggregates passed to <see cref="Delete"/> that did not fail.</summary>
@@ -41,10 +44,11 @@ internal sealed class FakeRepository<TAggregate, TKey>(List<string> operations) 
     {
         if (AddFailure is Option<Exception>.Some failure) return failure.Value;
 
-        Added.Add(aggregate);
+        var stored = Store(aggregate);
+        Added.Add(stored);
         operations.Add("add");
 
-        return aggregate;
+        return stored;
     }
 
     public Exceptional<Unit> Delete(TAggregate aggregate)
