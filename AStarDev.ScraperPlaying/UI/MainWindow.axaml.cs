@@ -134,7 +134,7 @@ public partial class MainWindow : Window, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private void Dispose(bool disposing)
+    protected virtual void Dispose(bool disposing)
     {
         if (isDisposing) return;
 
