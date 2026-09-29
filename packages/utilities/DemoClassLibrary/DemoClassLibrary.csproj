@@ -7,7 +7,6 @@
 
     <ItemGroup>
       <ProjectReference Include="../AStarDev.TechnicalDebtReporting/AStarDev.TechnicalDebtReporting.csproj" />
-      <ProjectReference Include="..\..\src\AStarDev.Technical.Debt.Reporting\AStarDev.Technical.Debt.Reporting.csproj" />
     </ItemGroup>
 
 </Project>
