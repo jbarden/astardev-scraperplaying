@@ -110,6 +110,63 @@ public sealed class GivenAScrapeConfigurationUpdater : IDisposable
     }
 
     [Fact]
+    public async Task when_search_categories_are_saved_then_edits_additions_and_removals_persist_and_progress_is_preserved()
+    {
+        var id = await SeedAsync(
+            new SearchCategoryEntity { Id = "cat-keep", Name = "Keep", LastKnownImageCount = 7, LastPageVisited = 3, TotalPages = 9 },
+            new SearchCategoryEntity { Id = "cat-remove", Name = "Remove" });
+
+        var result = await updater.SaveAsync(
+            id,
+            [new SearchCategoriesSettings([
+                new SearchCategorySettings("cat-keep", "Renamed", false, true, true),
+                new SearchCategorySettings("cat-new", "Added", true, false, false)
+            ])],
+            TestContext.Current.CancellationToken);
+
+        result.Match(option => option, exception => throw exception).Match(_ => true, () => false).ShouldBeTrue();
+        var categories = (await ReadAsync(id)).SearchConfiguration.SearchCategories.OrderBy(category => category.Id).ToList();
+        categories.Select(category => category.Id).ShouldBe(["cat-keep", "cat-new"]);
+        var kept = categories[0];
+        kept.Name.ShouldBe("Renamed");
+        kept.IncludeInSearch.ShouldBeFalse();
+        kept.IsFamous.ShouldBeTrue();
+        kept.IsInternet.ShouldBeTrue();
+        (kept.LastKnownImageCount, kept.LastPageVisited, kept.TotalPages).ShouldBe((7, 3, 9));
+        var added = categories[1];
+        added.Name.ShouldBe("Added");
+        (added.LastKnownImageCount, added.LastPageVisited, added.TotalPages).ShouldBe((0, 0, 0));
+    }
+
+    [Fact]
+    public async Task when_every_search_category_is_removed_then_none_remain_and_the_search_term_is_unchanged()
+    {
+        var id = await SeedAsync(new SearchCategoryEntity { Id = "cat-only", Name = "Only" });
+
+        await updater.SaveAsync(id, [new SearchCategoriesSettings([])], TestContext.Current.CancellationToken);
+
+        var reloaded = await ReadAsync(id);
+        reloaded.SearchConfiguration.SearchCategories.ShouldBeEmpty();
+        reloaded.SearchConfiguration.SearchTerm.ShouldBe("search-config");
+    }
+
+    [Fact]
+    public async Task when_a_new_search_category_reuses_an_id_from_another_configuration_then_the_save_fails_and_nothing_changes()
+    {
+        var id = await SeedAsync(new SearchCategoryEntity { Id = "cat-keep", Name = "Keep" });
+        var otherId = await SeedAsync(new SearchCategoryEntity { Id = "cat-other", Name = "Other" });
+
+        var result = await updater.SaveAsync(
+            otherId,
+            [new SearchCategoriesSettings([new SearchCategorySettings("CAT-KEEP", "Clash", true, false, false), new SearchCategorySettings("cat-other", "Other", true, false, false)])],
+            TestContext.Current.CancellationToken);
+
+        result.Match(_ => false, _ => true).ShouldBeTrue();
+        (await ReadAsync(id)).SearchConfiguration.SearchCategories.Single().Name.ShouldBe("Keep");
+        (await ReadAsync(otherId)).SearchConfiguration.SearchCategories.Single().Name.ShouldBe("Other");
+    }
+
+    [Fact]
     public async Task when_the_slow_motion_delay_is_cleared_then_it_is_stored_as_null()
     {
         var id = await SeedAsync();
@@ -141,7 +198,7 @@ public sealed class GivenAScrapeConfigurationUpdater : IDisposable
         if (File.Exists(databasePath)) File.Delete(databasePath);
     }
 
-    private async Task<ScrapeConfigurationId> SeedAsync()
+    private async Task<ScrapeConfigurationId> SeedAsync(params SearchCategoryEntity[] categories)
     {
         using var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ControlDbContext>();
@@ -150,7 +207,7 @@ public sealed class GivenAScrapeConfigurationUpdater : IDisposable
         var entity = new ScrapeConfigurationEntity(rootId)
         {
             UserConfiguration = new UserConfigurationEntity(new UserConfigurationId(Guid.Empty), rootId, "user@example.com", "username", "password", "apiKey"),
-            SearchConfiguration = new SearchConfigurationEntity(new SearchConfigurationId(Guid.Empty), rootId, "search-config", 10, []),
+            SearchConfiguration = new SearchConfigurationEntity(new SearchConfigurationId(Guid.Empty), rootId, "search-config", 10, [.. categories]),
             ScrapeDirectories = new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.Empty), rootId, "root-save-directory", "root-directory-famous", "sub-directory-name"),
             BaseUrl = new Uri("https://example.com/scrape"),
             LoginUrl = new Uri("https://example.com/scrape/login"),
