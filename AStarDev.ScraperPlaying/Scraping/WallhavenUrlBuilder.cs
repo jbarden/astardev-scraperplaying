@@ -13,16 +13,18 @@ public static class WallhavenUrlBuilder
 
     /// <summary>
     /// Builds the URL for the given page of a search category, substituting <paramref name="category"/>'s id
-    /// into the "%7Bid%7D" placeholder in <paramref name="searchCategoriesUrl"/>. The page number is omitted
-    /// for page 1 to match Wallhaven's URL convention.
+    /// into the "<paramref name="searchCategoriesUrl"/>. The page number is omitted for page 1 to match Wallhaven's URL convention.
     /// </summary>
-    /// <param name="searchCategoriesUrl">The configured search URL template, containing a "%7Bid%7D" placeholder.</param>
+    /// <param name="searchCategoriesUrl">The configured search URL template.</param>
     /// <param name="category">The search category whose id is substituted into the template.</param>
     /// <param name="page">The page number to append, omitted for page 1.</param>
     public static string BuildCategoryPageUrl(string searchCategoriesUrl, string searchCategoriesSuffix, SearchCategoryEntity category, int page)
     {
-        var url = searchCategoriesUrl.Replace("%7Bid%7D", category.Id) + searchCategoriesSuffix;
+        var url = searchCategoriesUrl + category.Id + searchCategoriesSuffix;
 
         return page == 1 ? url : url + page;
     }
+
+    internal static string BuildSubscriptionsPageUrl(string subscriptionsUrl, int page, string searchCategoriesSuffix)
+        => subscriptionsUrl + page + searchCategoriesSuffix;
 }

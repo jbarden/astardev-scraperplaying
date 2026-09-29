@@ -53,7 +53,7 @@ public sealed partial class OptionsBindingGenerator : IIncrementalGenerator
             if (validTypes.Count == 0)
                 return;
             string code = OptionsBindingCodeGenerator.Generate(validTypes);
-            spc.AddSource("AutoOptionsRegistrationExtensions.g.cs", code);
+            spc.AddSource("AutoOptionsRegistrationExtensions.generated.cs", code);
         });
     }
 

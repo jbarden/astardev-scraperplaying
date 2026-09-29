@@ -67,6 +67,6 @@ public sealed partial class ServiceRegistrationGenerator : IIncrementalGenerator
         string? code = ServiceCollectionCodeGenerator.Generate(pair.Right);
 
         if (code is not null)
-            spc.AddSource("GeneratedServiceCollectionExtensions.g.cs", code);
+            spc.AddSource("GeneratedServiceCollectionExtensions.generated.cs", code);
     }
 }

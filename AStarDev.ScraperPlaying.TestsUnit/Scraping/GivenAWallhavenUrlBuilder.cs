@@ -14,8 +14,8 @@ public sealed class GivenAWallhavenUrlBuilder
     {
         var category = new SearchCategoryEntity { SearchConfigurationId = new SearchConfigurationId(Guid.CreateVersion7()), Id = "cat1", Name = "category one" };
 
-        WallhavenUrlBuilder.BuildCategoryPageUrl("https://example.test/search/%7Bid%7D/", string.Empty, category, 1)
-            .ShouldBe("https://example.test/search/cat1/");
+        WallhavenUrlBuilder.BuildCategoryPageUrl("https://example.test/search/", string.Empty, category, 1)
+            .ShouldBe("https://example.test/search/cat1");
     }
 
     [Fact]
@@ -23,7 +23,7 @@ public sealed class GivenAWallhavenUrlBuilder
     {
         var category = new SearchCategoryEntity { SearchConfigurationId = new SearchConfigurationId(Guid.CreateVersion7()), Id = "cat1", Name = "category one" };
 
-        WallhavenUrlBuilder.BuildCategoryPageUrl("https://example.test/search/%7Bid%7D/", string.Empty, category, 2)
+        WallhavenUrlBuilder.BuildCategoryPageUrl("https://example.test/search/", "/", category, 2)
             .ShouldBe("https://example.test/search/cat1/2");
     }
 
@@ -32,7 +32,7 @@ public sealed class GivenAWallhavenUrlBuilder
     {
         var category = new SearchCategoryEntity { SearchConfigurationId = new SearchConfigurationId(Guid.CreateVersion7()), Id = "cat1", Name = "category one" };
 
-        WallhavenUrlBuilder.BuildCategoryPageUrl("https://example.test/search/%7Bid%7D", "&categories=001&page=", category, 3)
+        WallhavenUrlBuilder.BuildCategoryPageUrl("https://example.test/search/", "&categories=001&page=", category, 3)
             .ShouldBe("https://example.test/search/cat1&categories=001&page=3");
     }
 
@@ -41,7 +41,7 @@ public sealed class GivenAWallhavenUrlBuilder
     {
         var category = new SearchCategoryEntity { SearchConfigurationId = new SearchConfigurationId(Guid.CreateVersion7()), Id = "cat1", Name = "category one" };
 
-        WallhavenUrlBuilder.BuildCategoryPageUrl("https://example.test/search/%7Bid%7D", "&categories=001&page=", category, 1)
+        WallhavenUrlBuilder.BuildCategoryPageUrl("https://example.test/search/", "&categories=001&page=", category, 1)
             .ShouldBe("https://example.test/search/cat1&categories=001&page=");
     }
 }

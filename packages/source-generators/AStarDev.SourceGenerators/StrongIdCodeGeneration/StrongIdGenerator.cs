@@ -28,7 +28,6 @@ public class StrongIdGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(context.CompilationProvider.Combine(recordStructs), static (spc, source) =>
         {
             (var compilation, var structs) = source;
-            // Cache attribute symbol lookup
             var strongIdAttrSymbol = compilation.GetTypeByMetadataName("AStarDev.SourceGeneratorAttributes.StrongIdAttribute");
             if (strongIdAttrSymbol == null)
                 return;
@@ -43,16 +42,14 @@ public class StrongIdGenerator : IIncrementalGenerator
                 if (attr == null)
                     continue;
 
-                // Only allow 0 or 1 constructor argument
                 if (attr.ConstructorArguments.Length > 1)
                     continue;
 
-                // Use StrongIdModel logic for underlying type
                 string underlyingType = StrongIdModelExtensions.CreateUnderlyingTypeFromAttribute(attr);
                 string? ns = symbol.ContainingNamespace.IsGlobalNamespace ? null : symbol.ContainingNamespace.ToDisplayString();
                 var modelObj = new StrongIdModel(ns, symbol.Name, symbol.DeclaredAccessibility, underlyingType);
                 string code = StrongIdCodeGenerator.Generate(modelObj);
-                spc.AddSource($"{modelObj.ModelName}_StrongId.g.cs", SourceText.From(code, Encoding.UTF8));
+                spc.AddSource($"{modelObj.ModelName}_StrongId.generated.cs", SourceText.From(code, Encoding.UTF8));
             }
         });
     }
