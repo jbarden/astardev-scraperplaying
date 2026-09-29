@@ -30,7 +30,7 @@ public sealed class GivenAScrapeConfigurationImport
         var reader = Substitute.For<IScrapeConfigurationFileReader>();
         var service = new ScrapeConfigurationImportService(repository, reader);
         using var cancellationTokenSource = new CancellationTokenSource();
-        cancellationTokenSource.Cancel();
+        await cancellationTokenSource.CancelAsync();
 
         await Should.ThrowAsync<OperationCanceledException>(
             () => service.ImportAsync("configuration.json", cancellationTokenSource.Token));

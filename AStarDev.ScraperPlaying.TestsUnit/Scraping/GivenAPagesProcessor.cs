@@ -106,9 +106,9 @@ public sealed class GivenAPagesProcessor
         SetUpPage(1, CreateSearchResponse(lastPage: 1, wallpaper));
         using var cancellationTokenSource = new CancellationTokenSource();
         wallpaperIngestionService.IngestAsync(Arg.Any<Data>(), Arg.Any<WallpaperIngestionContext>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
-            .Returns(_ =>
+            .Returns(async _ =>
             {
-                cancellationTokenSource.Cancel();
+                await cancellationTokenSource.CancelAsync();
 
                 throw new OperationCanceledException(cancellationTokenSource.Token);
             });
@@ -134,9 +134,9 @@ public sealed class GivenAPagesProcessor
         SetUpPage(1, CreateSearchResponse(lastPage: 1, wallpaper));
         using var cancellationTokenSource = new CancellationTokenSource();
         wallpaperIngestionService.IngestAsync(Arg.Any<Data>(), Arg.Any<WallpaperIngestionContext>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
-            .Returns(_ =>
+            .Returns(async _ =>
             {
-                cancellationTokenSource.Cancel();
+                await cancellationTokenSource.CancelAsync();
 
                 throw new OperationCanceledException(cancellationTokenSource.Token);
             });

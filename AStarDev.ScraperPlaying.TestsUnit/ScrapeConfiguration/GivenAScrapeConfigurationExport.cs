@@ -62,7 +62,7 @@ public sealed class GivenAScrapeConfigurationExport
         var writer = Substitute.For<IScrapeConfigurationFileWriter>();
         var service = new ScrapeConfigurationExportService(exporter, writer);
         using var cancellationTokenSource = new CancellationTokenSource();
-        cancellationTokenSource.Cancel();
+        await cancellationTokenSource.CancelAsync();
 
         await Should.ThrowAsync<OperationCanceledException>(
             () => service.ExportAsync("configuration.json", cancellationTokenSource.Token));
