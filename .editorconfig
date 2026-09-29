@@ -30,7 +30,7 @@ csharp_style_expression_bodied_properties = true:warning
 csharp_style_expression_bodied_indexers = true:warning
 csharp_style_expression_bodied_accessors = true:warning
 csharp_style_expression_bodied_lambdas = true:warning
-csharp_style_expression_bodied_local_functions = when_on_single_line:suggestion
+csharp_style_expression_bodied_local_functions = when_on_single_line:warning
 
 # ── Braces: single-line statements go without braces (IDE0011) ───────────────
 csharp_prefer_braces = when_multiline:suggestion
