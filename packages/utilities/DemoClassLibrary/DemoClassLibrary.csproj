@@ -6,7 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\AStarDev.Technical.Debt.Reporting\AStarDev.Technical.Debt.Reporting.csproj" />
+      <ProjectReference Include="../AStarDev.TechnicalDebtReporting/AStarDev.TechnicalDebtReporting.csproj" />
     </ItemGroup>
 
 </Project>
