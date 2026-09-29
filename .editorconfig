@@ -37,7 +37,7 @@ csharp_prefer_braces = when_multiline:warning
 
 # ── Modern C# (IDE0161, IDE0290, IDE0300-series, IDE0058) ────────────────────
 csharp_style_namespace_declarations = file_scoped:warning
-csharp_style_prefer_primary_constructors = true:suggestion
+csharp_style_prefer_primary_constructors = true:warning
 dotnet_style_prefer_collection_expression = true:suggestion
 csharp_style_unused_value_expression_statement_preference = discard_variable:suggestion
 csharp_style_unused_value_assignment_preference = discard_variable:suggestion
