@@ -29,6 +29,7 @@ public partial class ConfigurationEditorWindow : Window
         RootSettingsTabContent.Load(RootSettingsInput.From(configuration));
         UserTabContent.Load(UserSettingsInput.From(configuration));
         SearchTabContent.Load(SearchSettingsInput.From(configuration));
+        SearchCategoriesTabContent.Load(SearchCategoriesInput.From(configuration));
         DirectoriesTabContent.Load(DirectorySettingsInput.From(configuration), fileSystem);
     }
 
@@ -38,7 +39,8 @@ public partial class ConfigurationEditorWindow : Window
         var userSettings = UserTabContent.ReadInput().Validate();
         var directorySettings = DirectoriesTabContent.ReadInput().Validate();
         var searchSettings = SearchTabContent.ReadInput().Validate();
-        var errors = CollectErrors(rootSettings).Concat(CollectErrors(userSettings)).Concat(CollectErrors(directorySettings)).Concat(CollectErrors(searchSettings)).ToList();
+        var searchCategories = SearchCategoriesTabContent.ReadInput().Validate();
+        var errors = CollectErrors(rootSettings).Concat(CollectErrors(userSettings)).Concat(CollectErrors(directorySettings)).Concat(CollectErrors(searchSettings)).Concat(CollectErrors(searchCategories)).ToList();
         if (errors.Count > 0)
         {
             ShowError(string.Join(Environment.NewLine, errors.Select(error => $"{error.Property}: {error.Message}")));
@@ -48,7 +50,7 @@ public partial class ConfigurationEditorWindow : Window
 
         ShowError(string.Empty);
         SetSaving(true);
-        var result = await updater.SaveAsync(configurationId, [((Valid<RootSettings>)rootSettings).Value, ((Valid<UserSettings>)userSettings).Value, ((Valid<DirectorySettings>)directorySettings).Value, ((Valid<SearchSettings>)searchSettings).Value], CancellationToken.None);
+        var result = await updater.SaveAsync(configurationId, [((Valid<RootSettings>)rootSettings).Value, ((Valid<UserSettings>)userSettings).Value, ((Valid<DirectorySettings>)directorySettings).Value, ((Valid<SearchSettings>)searchSettings).Value, ((Valid<SearchCategoriesSettings>)searchCategories).Value], CancellationToken.None);
         var failure = result.Match(
             saved => saved.Match(_ => Option.None<string>(), () => Option.Some("The scrape configuration no longer exists.")),
             exception => Option.Some($"Unable to save the scrape configuration. {exception.Message}"));
