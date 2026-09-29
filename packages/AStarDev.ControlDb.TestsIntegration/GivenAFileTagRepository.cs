@@ -41,6 +41,24 @@ public sealed class GivenAFileTagRepository : IDisposable
     }
 
     [Fact]
+    public async Task when_a_file_and_a_tag_are_linked_then_both_read_only_navigation_collections_are_populated_on_load()
+    {
+        var fileEntity = FileEntityFactory.CreateFileEntity();
+        var tagEntity = TagEntityFactory.CreateTagEntity();
+        await context.Files.AddAsync(fileEntity, TestContext.Current.CancellationToken);
+        await context.Tags.AddAsync(tagEntity, TestContext.Current.CancellationToken);
+        new FileTagRepository(context).Add(new FileTagEntity { FileId = fileEntity.Id, TagId = tagEntity.Id }).Match(fileTag => fileTag, exception => throw exception);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        context.ChangeTracker.Clear();
+
+        var file = await context.Files.Include(item => item.FileTags).SingleAsync(TestContext.Current.CancellationToken);
+        var tag = await context.Tags.Include(item => item.FileTags).SingleAsync(TestContext.Current.CancellationToken);
+
+        file.FileTags.Select(fileTag => fileTag.TagId).ShouldBe([tagEntity.Id]);
+        tag.FileTags.Select(fileTag => fileTag.FileId).ShouldBe([fileEntity.Id]);
+    }
+
+    [Fact]
     public async Task when_the_linked_file_is_deleted_then_the_file_tag_is_also_deleted()
     {
         var fileEntity = FileEntityFactory.CreateFileEntity();
