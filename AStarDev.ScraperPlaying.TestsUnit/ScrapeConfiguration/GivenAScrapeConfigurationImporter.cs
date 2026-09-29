@@ -1,93 +1,80 @@
-using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
+using AStarDev.ScraperPlaying.TestsUnit.Fakes;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.ScrapeConfiguration;
 
 public sealed class GivenAScrapeConfigurationImporter
 {
-    private readonly IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
-    private readonly IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> repository = Substitute.For<IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>>();
+    private readonly FakeUnitOfWork unitOfWork = new();
+    private readonly FakeRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> repository;
+    private readonly ScrapeConfigurationImporter importer;
 
     public GivenAScrapeConfigurationImporter()
     {
-        unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().Returns(repository);
-        unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
+        repository = unitOfWork.Register<ScrapeConfigurationEntity, ScrapeConfigurationId>();
+        importer = new ScrapeConfigurationImporter(unitOfWork);
     }
 
     [Fact]
     public async Task when_no_configuration_exists_then_the_document_is_added_without_a_prior_delete()
     {
-        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)Option<ScrapeConfigurationEntity>.None.Instance);
-        repository.Add(Arg.Any<ScrapeConfigurationEntity>()).Returns(callInfo => (Exceptional<ScrapeConfigurationEntity>)callInfo.Arg<ScrapeConfigurationEntity>());
-        var document = new ScrapeConfigurationImportDocument
-        {
-            UserConfiguration = new() { Username = "user", Password = "secret" },
-            SearchConfiguration = new() { SearchTerm = "cats", SearchCategories = [] },
-            ScrapeDirectories = new() { RootDirectory = "/tmp" }
-        };
-        var importer = new ScrapeConfigurationImporter(unitOfWork);
+        repository.First = Option<ScrapeConfigurationEntity>.None.Instance;
 
-        var result = await importer.ImportScrapeConfigurationAsync(document);
+        var result = await importer.ImportScrapeConfigurationAsync(CreateDocument("user"));
 
         result.Match(_ => true, _ => false).ShouldBeTrue();
-        repository.DidNotReceive().Delete(Arg.Any<ScrapeConfigurationEntity>());
-        repository.Received(1).Add(Arg.Is<ScrapeConfigurationEntity>(entity => entity.UserConfiguration.Username == "user"));
-        await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        repository.Deleted.ShouldBeEmpty();
+        repository.Added.Single().UserConfiguration.Username.ShouldBe("user");
+        unitOfWork.SaveCount.ShouldBe(1);
+        unitOfWork.Operations.ShouldBe(["add", "save"]);
     }
 
     [Fact]
     public async Task when_a_configuration_already_exists_then_it_is_deleted_before_the_new_one_is_added()
     {
         var existing = new ScrapeConfigurationEntity(new ScrapeConfigurationId(Guid.CreateVersion7()));
-        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)existing);
-        repository.Delete(existing).Returns(Unit.Instance);
-        repository.Add(Arg.Any<ScrapeConfigurationEntity>()).Returns(callInfo => (Exceptional<ScrapeConfigurationEntity>)callInfo.Arg<ScrapeConfigurationEntity>());
-        var document = new ScrapeConfigurationImportDocument
-        {
-            UserConfiguration = new() { Username = "new-user", Password = "secret" },
-            SearchConfiguration = new() { SearchTerm = "cats", SearchCategories = [] },
-            ScrapeDirectories = new() { RootDirectory = "/tmp" }
-        };
-        var importer = new ScrapeConfigurationImporter(unitOfWork);
+        repository.First = (Option<ScrapeConfigurationEntity>)existing;
 
-        var result = await importer.ImportScrapeConfigurationAsync(document);
+        var result = await importer.ImportScrapeConfigurationAsync(CreateDocument("new-user"));
 
         result.Match(_ => true, _ => false).ShouldBeTrue();
-        repository.Received(1).Delete(existing);
-        repository.Received(1).Add(Arg.Is<ScrapeConfigurationEntity>(entity => entity.UserConfiguration.Username == "new-user"));
-        await unitOfWork.Received(2).SaveChangesAsync(Arg.Any<CancellationToken>());
+        repository.Deleted.ShouldBe([existing]);
+        repository.Added.Single().UserConfiguration.Username.ShouldBe("new-user");
+        unitOfWork.SaveCount.ShouldBe(2);
+        unitOfWork.Operations.ShouldBe(["delete", "save", "add", "save"]);
     }
 
     [Fact]
     public async Task when_looking_up_the_existing_configuration_fails_then_the_failure_is_returned_and_nothing_is_written()
     {
         var exception = new InvalidOperationException("lookup failed");
-        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)exception);
-        var importer = new ScrapeConfigurationImporter(unitOfWork);
+        repository.First = exception;
 
         var result = await importer.ImportScrapeConfigurationAsync(new ScrapeConfigurationImportDocument());
 
-        var capturedException = result.Match(_ => (Exception?)null, ex => ex);
-        capturedException.ShouldBeSameAs(exception);
-        repository.DidNotReceive().Add(Arg.Any<ScrapeConfigurationEntity>());
-        repository.DidNotReceive().Delete(Arg.Any<ScrapeConfigurationEntity>());
-        await unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+        result.Match(_ => (Exception?)null, ex => ex).ShouldBeSameAs(exception);
+        unitOfWork.Operations.ShouldBeEmpty();
     }
 
     [Fact]
-    public async Task when_adding_the_new_configuration_fails_then_the_failure_is_returned()
+    public async Task when_adding_the_new_configuration_fails_then_the_failure_is_returned_and_nothing_is_saved()
     {
-        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)Option<ScrapeConfigurationEntity>.None.Instance);
         var exception = new InvalidOperationException("add failed");
-        repository.Add(Arg.Any<ScrapeConfigurationEntity>()).Returns((Exceptional<ScrapeConfigurationEntity>)exception);
-        var importer = new ScrapeConfigurationImporter(unitOfWork);
+        repository.First = Option<ScrapeConfigurationEntity>.None.Instance;
+        repository.AddFailure = Option.Some<Exception>(exception);
 
         var result = await importer.ImportScrapeConfigurationAsync(new ScrapeConfigurationImportDocument());
 
-        var capturedException = result.Match(_ => (Exception?)null, ex => ex);
-        capturedException.ShouldBeSameAs(exception);
-        await unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+        result.Match(_ => (Exception?)null, ex => ex).ShouldBeSameAs(exception);
+        unitOfWork.SaveCount.ShouldBe(0);
     }
+
+    private static ScrapeConfigurationImportDocument CreateDocument(string username) => new()
+    {
+        UserConfiguration = new() { Username = username, Password = "secret" },
+        SearchConfiguration = new() { SearchTerm = "cats", SearchCategories = [] },
+        ScrapeDirectories = new() { RootDirectory = "/tmp" }
+    };
 }

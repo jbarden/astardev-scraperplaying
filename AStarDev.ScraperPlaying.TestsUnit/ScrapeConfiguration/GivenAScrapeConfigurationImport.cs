@@ -1,3 +1,4 @@
+using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using System.Text.Json;
 
@@ -8,54 +9,47 @@ public sealed class GivenAScrapeConfigurationImport
     [Fact]
     public async Task when_a_file_is_imported_then_the_repository_receives_the_complete_document()
     {
-        var repository = Substitute.For<IScrapeConfigurationImporter>();
-        var reader = Substitute.For<IScrapeConfigurationFileReader>();
         var document = new ScrapeConfigurationImportDocument
         {
             ApiKey = "api-key",
             SearchConfiguration = new() { SearchCategories = [new() { Id = "general" }] }
         };
-        reader.ReadAsync("configuration.json", Arg.Any<CancellationToken>()).Returns(document);
+        var repository = new FakeImporter();
+        var reader = new FakeReader { Document = document };
         var service = new ScrapeConfigurationImportService(repository, reader);
 
         await service.ImportAsync("configuration.json", TestContext.Current.CancellationToken);
 
-        await repository.Received(1).ImportScrapeConfigurationAsync(document);
+        reader.ReadPaths.ShouldBe(["configuration.json"]);
+        repository.Imported.ShouldBe([document]);
     }
 
     [Fact]
     public async Task when_import_is_cancelled_then_file_processing_does_not_start()
     {
-        var repository = Substitute.For<IScrapeConfigurationImporter>();
-        var reader = Substitute.For<IScrapeConfigurationFileReader>();
-        var service = new ScrapeConfigurationImportService(repository, reader);
+        var reader = new FakeReader();
+        var service = new ScrapeConfigurationImportService(new FakeImporter(), reader);
         using var cancellationTokenSource = new CancellationTokenSource();
         await cancellationTokenSource.CancelAsync();
 
         await Should.ThrowAsync<OperationCanceledException>(
             () => service.ImportAsync("configuration.json", cancellationTokenSource.Token));
 
-        await reader.DidNotReceive().ReadAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        reader.ReadPaths.ShouldBeEmpty();
     }
 
     [Fact]
     public async Task when_import_is_cancelled_while_reading_then_the_repository_is_not_updated()
     {
-        var repository = Substitute.For<IScrapeConfigurationImporter>();
-        var reader = Substitute.For<IScrapeConfigurationFileReader>();
-        var document = new ScrapeConfigurationImportDocument();
         using var cancellationTokenSource = new CancellationTokenSource();
-        reader.ReadAsync("configuration.json", cancellationTokenSource.Token).Returns(_ =>
-        {
-            cancellationTokenSource.Cancel();
-            return document;
-        });
+        var repository = new FakeImporter();
+        var reader = new FakeReader { OnRead = () => cancellationTokenSource.Cancel() };
         var service = new ScrapeConfigurationImportService(repository, reader);
 
         await Should.ThrowAsync<OperationCanceledException>(
             () => service.ImportAsync("configuration.json", cancellationTokenSource.Token));
 
-        await repository.DidNotReceive().ImportScrapeConfigurationAsync(Arg.Any<ScrapeConfigurationImportDocument>());
+        repository.Imported.ShouldBeEmpty();
     }
 
     [Fact]
@@ -200,6 +194,35 @@ public sealed class GivenAScrapeConfigurationImport
         finally
         {
             File.Delete(path);
+        }
+    }
+
+    private sealed class FakeImporter : IScrapeConfigurationImporter
+    {
+        public List<ScrapeConfigurationImportDocument> Imported { get; } = [];
+
+        public Task<Exceptional<Unit>> ImportScrapeConfigurationAsync(ScrapeConfigurationImportDocument document)
+        {
+            Imported.Add(document);
+
+            return Task.FromResult<Exceptional<Unit>>(Unit.Instance);
+        }
+    }
+
+    private sealed class FakeReader : IScrapeConfigurationFileReader
+    {
+        public ScrapeConfigurationImportDocument Document { get; set; } = new();
+
+        public Action OnRead { get; set; } = () => { };
+
+        public List<string> ReadPaths { get; } = [];
+
+        public Task<ScrapeConfigurationImportDocument> ReadAsync(string filePath, CancellationToken cancellationToken = default)
+        {
+            ReadPaths.Add(filePath);
+            OnRead();
+
+            return Task.FromResult(Document);
         }
     }
 }
