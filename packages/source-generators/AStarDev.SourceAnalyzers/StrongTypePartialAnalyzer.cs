@@ -14,7 +14,7 @@ namespace AStarDev.SourceAnalyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class StrongTypePartialAnalyzer : DiagnosticAnalyzer
 {
-    private static readonly DiagnosticDescriptor _rule = new(
+    private static readonly DiagnosticDescriptor rule = new(
         DiagnosticId,
         "StrongType record struct must be readonly and partial",
         "Record '{0}' decorated with [StrongType] must be declared partial, otherwise StrongTypeGenerator silently skips it and no members are generated",
@@ -26,7 +26,7 @@ public sealed class StrongTypePartialAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticId = "ASTARID001";
 
     /// <inheritdoc/>
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [_rule];
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [rule];
 
     /// <inheritdoc/>
     public override void Initialize(AnalysisContext context)
@@ -55,7 +55,7 @@ public sealed class StrongTypePartialAnalyzer : DiagnosticAnalyzer
         bool isPartial = recordDecl.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword));
         if (isPartial) return;
 
-        var diag = Diagnostic.Create(_rule, recordDecl.Identifier.GetLocation(), symbol.Name);
+        var diag = Diagnostic.Create(rule, recordDecl.Identifier.GetLocation(), symbol.Name);
         context.ReportDiagnostic(diag);
     }
 }

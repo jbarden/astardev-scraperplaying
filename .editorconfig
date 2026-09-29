@@ -1,8 +1,7 @@
 root = true
 
 # Code-style severities mirror .claude/rules (standards.md, styling.md).
-# Rules are 'warning' (TreatWarningsAsErrors makes them fail the build). The private-field naming
-# rule stays at 'suggestion': existing code mostly uses plain camelCase fields, not _camelCase.
+# Rules are 'warning' (TreatWarningsAsErrors makes them fail the build).
 #
 # Not enforceable by an analyzer, so review-only:
 #   - blank line before every 'return' (except in short if/else/try blocks)
@@ -65,14 +64,22 @@ csharp_style_prefer_not_pattern = true:warning
 dotnet_sort_system_directives_first = true
 csharp_using_directive_placement = outside_namespace:warning
 
-# ── Naming: private fields are _camelCase (IDE1006) ──────────────────────────
-dotnet_naming_rule.private_fields_underscore.symbols = private_fields
-dotnet_naming_rule.private_fields_underscore.style = underscore_camel_case
-dotnet_naming_rule.private_fields_underscore.severity = suggestion
+# ── Naming (IDE1006): consts PascalCase, other private fields camelCase (no underscore prefix) ──
+dotnet_naming_rule.constants_pascal_case.symbols = constant_fields
+dotnet_naming_rule.constants_pascal_case.style = pascal_case_style
+dotnet_naming_rule.constants_pascal_case.severity = warning
+dotnet_naming_symbols.constant_fields.applicable_kinds = field
+dotnet_naming_symbols.constant_fields.required_modifiers = const
+dotnet_naming_style.pascal_case_style.capitalization = pascal_case
+
+dotnet_naming_rule.private_fields_camel_case.symbols = private_fields
+dotnet_naming_rule.private_fields_camel_case.style = camel_case_style
+dotnet_naming_rule.private_fields_camel_case.severity = warning
 dotnet_naming_symbols.private_fields.applicable_kinds = field
 dotnet_naming_symbols.private_fields.applicable_accessibilities = private
-dotnet_naming_style.underscore_camel_case.required_prefix = _
-dotnet_naming_style.underscore_camel_case.capitalization = camel_case
+dotnet_naming_style.camel_case_style.capitalization = camel_case
+# Build only enforces IDE1006 when its severity is also set explicitly
+dotnet_diagnostic.IDE1006.severity = warning
 
 # ── Tests use when_..._then_... snake_case names ─────────────────────────────
 [{**.TestsUnit/**.cs,**.TestsIntegration/**.cs}]

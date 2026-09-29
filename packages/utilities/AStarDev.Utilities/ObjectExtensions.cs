@@ -5,7 +5,7 @@ namespace AStarDev.Utilities;
 /// <summary>The <see cref="ObjectExtensions" /> class contains some useful methods to enable various tasks to be performed in a more fluid, English sentence, style</summary>
 public static class ObjectExtensions
 {
-    private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+    private static readonly JsonSerializerOptions options = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
     extension<T>(T obj)
     {
@@ -15,6 +15,6 @@ public static class ObjectExtensions
         /// </summary>
         /// <returns>The JSON string of the object supplied</returns>
         public string ToJson() =>
-            JsonSerializer.Serialize(obj, Options);
+            JsonSerializer.Serialize(obj, options);
     }
 }

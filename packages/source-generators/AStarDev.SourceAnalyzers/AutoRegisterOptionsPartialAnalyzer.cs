@@ -10,7 +10,7 @@ namespace AStarDev.SourceAnalyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class AutoRegisterOptionsPartialAnalyzer : DiagnosticAnalyzer
 {
-    private static readonly DiagnosticDescriptor _rule = new(
+    private static readonly DiagnosticDescriptor rule = new(
         DiagnosticId,
         "Options class must be partial",
         "Options class '{0}' must be declared partial to support source generation",
@@ -22,7 +22,7 @@ public sealed class AutoRegisterOptionsPartialAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticId = "ASTAROPT002";
 
     /// <inheritdoc/>
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [_rule];
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [rule];
 
     /// <inheritdoc/>
     public override void Initialize(AnalysisContext context)
@@ -50,7 +50,7 @@ public sealed class AutoRegisterOptionsPartialAnalyzer : DiagnosticAnalyzer
 
         if (typeDecl.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword))) return;
 
-        var diag = Diagnostic.Create(_rule, typeDecl.Identifier.GetLocation(), symbol.Name);
+        var diag = Diagnostic.Create(rule, typeDecl.Identifier.GetLocation(), symbol.Name);
         context.ReportDiagnostic(diag);
     }
 }

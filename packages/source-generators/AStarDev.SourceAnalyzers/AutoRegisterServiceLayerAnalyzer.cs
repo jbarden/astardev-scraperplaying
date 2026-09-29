@@ -13,7 +13,7 @@ namespace AStarDev.SourceAnalyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class AutoRegisterServiceLayerAnalyzer : DiagnosticAnalyzer
 {
-    private static readonly DiagnosticDescriptor _rule = new(
+    private static readonly DiagnosticDescriptor rule = new(
         DiagnosticId,
         "AutoRegisterService should specify a Layer",
         "Class '{0}' is decorated with [AutoRegisterService] but does not specify a Layer, so it defaults to Layer.Miscellaneous. Specify Layer.Application, Layer.Domain or Layer.Infrastructure if applicable.",
@@ -25,7 +25,7 @@ public sealed class AutoRegisterServiceLayerAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticId = "ASTARSVC001";
 
     /// <inheritdoc/>
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [_rule];
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [rule];
 
     /// <inheritdoc/>
     public override void Initialize(AnalysisContext context)
@@ -52,7 +52,7 @@ public sealed class AutoRegisterServiceLayerAnalyzer : DiagnosticAnalyzer
 
         if (IsLayerExplicitlySupplied(attrSyntax)) return;
 
-        var diag = Diagnostic.Create(_rule, classDecl.Identifier.GetLocation(), symbol.Name);
+        var diag = Diagnostic.Create(rule, classDecl.Identifier.GetLocation(), symbol.Name);
         context.ReportDiagnostic(diag);
     }
 
