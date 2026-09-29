@@ -38,7 +38,7 @@
 </ItemGroup>
 
 <!-- Also register the generator and its Attributes dependency as analyzers
-     so the compiler runs generators during build (needed by TestStrongIds.cs). -->
+     so the compiler runs generators during build (needed by strong type tests). -->
 <Target Name="AddGeneratorAnalyzerRefs" BeforeTargets="CoreCompile">
     <MSBuild Projects="..\AStarDev.SourceGenerators\AStarDev.SourceGenerators.csproj"
              Targets="GetTargetPath"

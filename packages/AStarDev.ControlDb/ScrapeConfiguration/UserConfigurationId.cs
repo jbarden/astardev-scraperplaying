@@ -3,5 +3,5 @@ using AStarDev.SourceGeneratorAttributes;
 namespace AStarDev.ControlDb.ScrapeConfiguration;
 
 /// <summary>Represents the unique identifier for a user configuration entity.</summary>
-[StrongId]
+[StrongType]
 public partial record struct UserConfigurationId;

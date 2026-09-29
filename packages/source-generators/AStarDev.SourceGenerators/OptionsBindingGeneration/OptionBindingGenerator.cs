@@ -7,7 +7,6 @@ namespace AStarDev.SourceGenerators.OptionsBindingGeneration;
 ///   The <see cref="OptionsBindingGenerator" /> class is a source generator that produces code for registering options classes annotated with the <see cref="SourceGeneratorAttributes.AutoRegisterOptionsAttribute" />.
 /// </summary>
 [Generator]
-[System.Diagnostics.CodeAnalysis.SuppressMessage("MicrosoftCodeAnalysisCorrectness", "RS1038:Compiler extensions should be implemented in assemblies with compiler-provided references", Justification = "<Pending>")]
 public sealed partial class OptionsBindingGenerator : IIncrementalGenerator
 {
     private const string AttrFqn = "AStarDev.SourceGeneratorAttributes.AutoRegisterOptionsAttribute";
@@ -62,8 +61,7 @@ public sealed partial class OptionsBindingGenerator : IIncrementalGenerator
         if (ctx.TargetSymbol is not INamedTypeSymbol typeSymbol)
             return null;
         string typeName = typeSymbol.Name;
-        string? ns = typeSymbol.ContainingNamespace?.ToDisplayString();
-        string fullTypeName = ns != null ? string.Concat(ns, ".", typeName) : typeName;
+        string fullTypeName = typeSymbol.ToDisplayString();
         string? sectionName = null;
         var attr = typeSymbol.GetAttributes().FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == AttrFqn);
         if (attr is { ConstructorArguments.Length: > 0 } && attr.ConstructorArguments[0].Value is string s && !string.IsNullOrWhiteSpace(s))

@@ -1,13 +1,13 @@
 using Microsoft.CodeAnalysis;
 
-namespace AStarDev.SourceGenerators.StrongIdCodeGeneration;
+namespace AStarDev.SourceGenerators.StrongTypeCodeGeneration;
 
 /// <summary>
-///  The <see cref="StrongIdModelExtensions" /> class provides extension methods for working with the <see cref="StrongIdModel" /> class, including a method to create the underlying type from a StrongId attribute.
+///  The <see cref="StrongTypeModelExtensions" /> class provides extension methods for working with the <see cref="StrongTypeModel" /> class, including a method to create the underlying type from a StrongType attribute.
 /// </summary>
-public static partial class StrongIdModelExtensions
+public static partial class StrongTypeModelExtensions
 {
-    /// <summary>Extracts the underlying type from a StrongId attribute, defaulting to System.Guid if not specified.</summary>
+    /// <summary>Extracts the underlying type from a StrongType attribute, defaulting to System.Guid if not specified.</summary>
     public static string CreateUnderlyingTypeFromAttribute(AttributeData attr)
     {
         if (attr?.ConstructorArguments.Length != 1)

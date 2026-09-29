@@ -6,10 +6,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace AStarDev.SourceGenerators.ServiceRegistrationGeneration;
 
 /// <summary>
-///  The <see cref="ServiceRegistrationGenerator" /> class is a source generator that scans for classes annotated with the <see cref="SourceGeneratorAttributes.AutoRegisterServiceAttribute" /> and generates extension methods to register those classes as services in an IServiceCollection. It uses Roslyn's incremental generator APIs to efficiently analyze the syntax tree and generate code at compile time.
+///  The <see cref="ServiceRegistrationGenerator" /> class is a source generator that scans for classes annotated with the <see cref="SourceGeneratorAttributes.AutoRegisterServiceAttribute" /> and generates extension methods to register those classes as services in an IServiceCollection.
+/// It uses Roslyn's incremental generator APIs to efficiently analyze the syntax tree and generate code at compile time.
 /// </summary>
 [Generator]
-[System.Diagnostics.CodeAnalysis.SuppressMessage("MicrosoftCodeAnalysisCorrectness", "RS1038:Compiler extensions should be implemented in assemblies with compiler-provided references", Justification = "<Pending>")]
 public sealed partial class ServiceRegistrationGenerator : IIncrementalGenerator
 {
     /// <summary>

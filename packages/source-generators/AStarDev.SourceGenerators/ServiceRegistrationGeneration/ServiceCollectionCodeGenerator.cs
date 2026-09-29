@@ -13,7 +13,7 @@ internal static class ServiceCollectionCodeGenerator
         var byLayer = GroupByLayer(items);
         var methods = BuildLayerMethods(byLayer).Append(BuildUmbrellaMethod(byLayer.Select(l => l.Layer)));
 
-        return BuildSourceFile(methods, items[0]?.Namespace ?? "AStarDev");
+        return BuildSourceFile(methods, string.IsNullOrEmpty(items[0].Namespace) ? "AStarDev" : items[0].Namespace!);
     }
 
     private static List<(Layer Layer, string[] Registrations)> GroupByLayer(IReadOnlyList<ServiceModel> items)
@@ -35,15 +35,16 @@ internal static class ServiceCollectionCodeGenerator
     private static IEnumerable<string> BuildLayerMethods(IEnumerable<(Layer Layer, string[] Registrations)> byLayer)
     {
         foreach (var (layer, registrations) in byLayer)
-            yield return BuildMethod($"Add{layer}Services", registrations);
+            yield return BuildMethod($"Add{layer}Services", $"Registers all services annotated with <see cref=\"AStarDev.SourceGeneratorAttributes.AutoRegisterServiceAttribute\" /> for the {layer} layer.", registrations);
     }
 
     private static string BuildUmbrellaMethod(IEnumerable<Layer> layers)
-        => BuildMethod("AddAnnotatedServices", layers.Select(layer => $"        services.Add{layer}Services();"));
+        => BuildMethod("AddAnnotatedServices", "Registers all annotated services for every layer that has at least one registration.", layers.Select(layer => $"        services.Add{layer}Services();"));
 
-    private static string BuildMethod(string name, IEnumerable<string> bodyLines)
+    private static string BuildMethod(string name, string summary, IEnumerable<string> bodyLines)
     {
         var sb = new StringBuilder();
+        _ = sb.AppendLine($"    /// <summary>{summary}</summary>");
         _ = sb.AppendLine($"    public static IServiceCollection {name}(this IServiceCollection services)");
         _ = sb.AppendLine("    {");
 
@@ -96,6 +97,7 @@ internal static class ServiceCollectionCodeGenerator
         _ = sb.AppendLine();
         _ = sb.AppendLine($"namespace {@namespace};");
         _ = sb.AppendLine();
+        _ = sb.AppendLine("/// <summary>Generated extension methods for registering services annotated with <see cref=\"AStarDev.SourceGeneratorAttributes.AutoRegisterServiceAttribute\" />.</summary>");
         _ = sb.AppendLine("public static class GeneratedServiceCollectionExtensions");
         _ = sb.AppendLine("{");
         _ = sb.Append(string.Join("\n\n", methods));
