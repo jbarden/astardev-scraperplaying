@@ -12,6 +12,7 @@ public static class Seeder
     /// <returns>A task representing the asynchronous seeding operation.</returns>
     public static Task SeedAsync(DbContext context, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(context);
         SeedImpl(context);
         return context.SaveChangesAsync(cancellationToken);
     }
@@ -20,6 +21,7 @@ public static class Seeder
     /// <param name="context">The database context used for seeding data.</param>
     public static void Seed(DbContext context)
     {
+        ArgumentNullException.ThrowIfNull(context);
         SeedImpl(context);
         _ = context.SaveChanges();
     }

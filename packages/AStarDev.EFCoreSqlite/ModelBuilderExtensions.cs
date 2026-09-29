@@ -18,6 +18,8 @@ public static class ModelBuilderExtensions
     /// <param name="mb">The model builder to configure.</param>
     public static void UseSqliteFriendlyConversions(this ModelBuilder mb)
     {
+        ArgumentNullException.ThrowIfNull(mb);
+
         foreach (var et in mb.Model.GetEntityTypes())
         {
             ConfigureEntity(mb, et);

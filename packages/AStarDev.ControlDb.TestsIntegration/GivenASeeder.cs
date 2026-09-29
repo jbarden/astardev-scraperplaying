@@ -21,6 +21,14 @@ public sealed class GivenASeeder : IDisposable
     }
 
     [Fact]
+    public void when_the_context_is_null_then_seeding_throws_an_argument_null_exception()
+        => Should.Throw<ArgumentNullException>(() => Seeder.Seed(null!)).ParamName.ShouldBe("context");
+
+    [Fact]
+    public void when_the_context_is_null_then_async_seeding_throws_an_argument_null_exception()
+        => Should.Throw<ArgumentNullException>(() => Seeder.SeedAsync(null!, TestContext.Current.CancellationToken)).ParamName.ShouldBe("context");
+
+    [Fact]
     public async Task when_the_database_is_empty_then_seeding_adds_a_scrape_configuration()
     {
         await Seeder.SeedAsync(context, TestContext.Current.CancellationToken);

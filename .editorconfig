@@ -81,11 +81,12 @@ dotnet_naming_style.camel_case_style.capitalization = camel_case
 # Build only enforces IDE1006 when its severity is also set explicitly
 dotnet_diagnostic.IDE1006.severity = warning
 
-# ── Code-analysis rules cleaned up in #270-#274: keep them fixed ──────────────────
+# ── Code-analysis rules cleaned up in #270-#275: keep them fixed ──────────────────
 dotnet_diagnostic.CA1031.severity = warning
 dotnet_diagnostic.CA1063.severity = warning
 dotnet_diagnostic.CA1054.severity = warning
 dotnet_diagnostic.CA1055.severity = warning
+dotnet_diagnostic.CA1062.severity = warning
 dotnet_diagnostic.CA1307.severity = warning
 dotnet_diagnostic.CA1508.severity = warning
 dotnet_diagnostic.CA1819.severity = warning
@@ -98,6 +99,17 @@ dotnet_diagnostic.CA2000.severity = warning
 dotnet_diagnostic.IDE1006.severity = none
 # Shouldly assertions return their subject; discarding every one adds only noise
 dotnet_diagnostic.IDE0058.severity = none
+# Parameterised tests pass null on purpose; nullable annotations cover the rest
+dotnet_diagnostic.CA1062.severity = none
+
+# ── CA1062 is enforced for the packages only ─────────────────────────────────
+# The app project relies on nullable annotations (its callers are all in-repo), and EF Core
+# callbacks (Configure, OnModelCreating, ...) never pass null.
+[AStarDev.ScraperPlaying/**.cs]
+dotnet_diagnostic.CA1062.severity = none
+
+[packages/AStarDev.ControlDb/{Configurations/**.cs,ControlDbContext.cs}]
+dotnet_diagnostic.CA1062.severity = none
 
 # ── Generated code ───────────────────────────────────────────────────────────
 [*.{generated,g}.cs]
