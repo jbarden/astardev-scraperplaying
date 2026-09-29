@@ -17,11 +17,11 @@ public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, 
         using var httpRequest = new HttpRequestMessage(HttpMethod.Get, request.Wallpaper.Path);
 
         using var response = await client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        _ = response.EnsureSuccessStatusCode();
         progress.Report($"Downloading image for wallpaper {request.Wallpaper.Id} from {request.Wallpaper.Path}");
         using Stream downloadStream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
-        fileSystem.Directory.CreateDirectory(request.Directory);
+        _ = fileSystem.Directory.CreateDirectory(request.Directory);
         var savedPath = fileSystem.Path.Combine(request.Directory, request.FileName.Value);
         using (var fileStream = fileSystem.FileStream.New(savedPath, FileMode.Create, FileAccess.Write, FileShare.None))
         {

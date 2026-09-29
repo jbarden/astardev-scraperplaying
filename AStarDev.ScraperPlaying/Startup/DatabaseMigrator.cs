@@ -16,7 +16,7 @@ public static class DatabaseMigrator
     {
         try
         {
-            await ApplyPendingMigrationsAsync(dbContextFactory, logger);
+            _ = await ApplyPendingMigrationsAsync(dbContextFactory, logger);
         }
         catch (Exception exception)
         {

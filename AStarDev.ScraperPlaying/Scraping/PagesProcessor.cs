@@ -33,7 +33,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
                     await wallpaperIngestionService.IngestAsync(wallpaper, ingestionContext, progress, cancellationToken);
                 }
 
-                await unitOfWork.SaveChangesAsync(cancellationToken);
+                _ = await unitOfWork.SaveChangesAsync(cancellationToken);
                 await Task.Delay(pacingDelay(), cancellationToken);
                 page++;
             } while (page <= pageResult.Meta.LastPage && page <= 4);
@@ -55,7 +55,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
     {
         try
         {
-            await unitOfWork.SaveChangesAsync(CancellationToken.None);
+            _ = await unitOfWork.SaveChangesAsync(CancellationToken.None);
             progress.Report("Scrape cancelled - saved wallpapers downloaded so far this page.");
         }
         catch (DbUpdateException ex)

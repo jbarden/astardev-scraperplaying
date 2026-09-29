@@ -12,7 +12,7 @@ public static class InfrastructureServices
     /// <returns>The <paramref name="services" /> collection to allow further chaining.</returns>
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
-        services.AddSingleton<IFileSystem, RealFileSystem>();
+        _ = services.AddSingleton<IFileSystem, RealFileSystem>();
 
         return services;
     }
