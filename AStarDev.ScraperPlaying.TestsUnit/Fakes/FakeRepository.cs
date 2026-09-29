@@ -1,0 +1,59 @@
+using AStarDev.ControlDb;
+using AStarDev.FunctionalParadigm;
+
+namespace AStarDev.ScraperPlaying.TestsUnit.Fakes;
+
+/// <summary>An in-memory repository whose lookup results are set by the test and which records what was added and deleted.</summary>
+internal sealed class FakeRepository<TAggregate, TKey>(List<string> operations) : IRepository<TAggregate, TKey>
+    where TAggregate : IAggregateRoot
+{
+    public FakeRepository()
+        : this([])
+    {
+    }
+
+    /// <summary>The result of <see cref="TryGetFirstAsync"/>.</summary>
+    public Exceptional<Option<TAggregate>> First { get; set; } = Option<TAggregate>.None.Instance;
+
+    /// <summary>The result of <see cref="TryFindAsync"/>.</summary>
+    public Exceptional<Option<TAggregate>> Found { get; set; } = Option<TAggregate>.None.Instance;
+
+    /// <summary>The failure returned by <see cref="Add"/>, or none for it to succeed.</summary>
+    public Option<Exception> AddFailure { get; set; } = Option.None<Exception>();
+
+    /// <summary>The failure returned by <see cref="Delete"/>, or none for it to succeed.</summary>
+    public Option<Exception> DeleteFailure { get; set; } = Option.None<Exception>();
+
+    /// <summary>The aggregates passed to <see cref="Add"/> that did not fail.</summary>
+    public List<TAggregate> Added { get; } = [];
+
+    /// <summary>The aggregates passed to <see cref="Delete"/> that did not fail.</summary>
+    public List<TAggregate> Deleted { get; } = [];
+
+    public Task<Exceptional<Option<TAggregate>>> TryFindAsync(TKey key) => Task.FromResult(Found);
+
+    public Task<Exceptional<Option<TAggregate>>> TryGetFirstAsync() => Task.FromResult(First);
+
+    public Task<Exceptional<Option<IEnumerable<TAggregate>>>> TryGetAllAsync() =>
+        Task.FromResult<Exceptional<Option<IEnumerable<TAggregate>>>>(Option<IEnumerable<TAggregate>>.None.Instance);
+
+    public Exceptional<TAggregate> Add(TAggregate aggregate)
+    {
+        if (AddFailure is Option<Exception>.Some failure) return failure.Value;
+
+        Added.Add(aggregate);
+        operations.Add("add");
+
+        return aggregate;
+    }
+
+    public Exceptional<Unit> Delete(TAggregate aggregate)
+    {
+        if (DeleteFailure is Option<Exception>.Some failure) return failure.Value;
+
+        Deleted.Add(aggregate);
+        operations.Add("delete");
+
+        return Unit.Instance;
+    }
+}

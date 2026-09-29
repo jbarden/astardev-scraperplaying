@@ -10,64 +10,61 @@ public sealed class GivenAScrapeConfigurationExport
     [Fact]
     public async Task when_a_configuration_exists_then_it_is_written_to_the_destination_file()
     {
-        var exporter = Substitute.For<IScrapeConfigurationExporter>();
-        var writer = Substitute.For<IScrapeConfigurationFileWriter>();
         var document = new ScrapeConfigurationImportDocument
         {
             ApiKey = "api-key",
             SearchConfiguration = new() { SearchCategories = [new() { Id = "general" }] }
         };
-        exporter.ExportScrapeConfigurationAsync().Returns((Exceptional<Option<ScrapeConfigurationImportDocument>>)(Option<ScrapeConfigurationImportDocument>)document);
+        var exporter = new FakeExporter { Result = (Option<ScrapeConfigurationImportDocument>)document };
+        var writer = new FakeWriter();
         var service = new ScrapeConfigurationExportService(exporter, writer);
 
         var exported = await service.ExportAsync("configuration.json", TestContext.Current.CancellationToken);
 
         exported.ShouldBeTrue();
-        await writer.Received(1).WriteAsync(document, "configuration.json", Arg.Any<CancellationToken>());
+        writer.Written.ShouldBe([(document, "configuration.json")]);
     }
 
     [Fact]
     public async Task when_no_configuration_exists_then_nothing_is_written()
     {
-        var exporter = Substitute.For<IScrapeConfigurationExporter>();
-        var writer = Substitute.For<IScrapeConfigurationFileWriter>();
-        exporter.ExportScrapeConfigurationAsync().Returns((Exceptional<Option<ScrapeConfigurationImportDocument>>)Option<ScrapeConfigurationImportDocument>.None.Instance);
+        var exporter = new FakeExporter { Result = Option<ScrapeConfigurationImportDocument>.None.Instance };
+        var writer = new FakeWriter();
         var service = new ScrapeConfigurationExportService(exporter, writer);
 
         var exported = await service.ExportAsync("configuration.json", TestContext.Current.CancellationToken);
 
         exported.ShouldBeFalse();
-        await writer.DidNotReceive().WriteAsync(Arg.Any<ScrapeConfigurationImportDocument>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        writer.Written.ShouldBeEmpty();
     }
 
     [Fact]
     public async Task when_the_lookup_fails_then_the_exception_propagates()
     {
-        var exporter = Substitute.For<IScrapeConfigurationExporter>();
-        var writer = Substitute.For<IScrapeConfigurationFileWriter>();
         var exception = new InvalidOperationException("lookup failed");
-        exporter.ExportScrapeConfigurationAsync().Returns((Exceptional<Option<ScrapeConfigurationImportDocument>>)exception);
+        var exporter = new FakeExporter { Result = exception };
+        var writer = new FakeWriter();
         var service = new ScrapeConfigurationExportService(exporter, writer);
 
-        await Should.ThrowAsync<InvalidOperationException>(
+        var thrown = await Should.ThrowAsync<InvalidOperationException>(
             () => service.ExportAsync("configuration.json", TestContext.Current.CancellationToken));
 
-        await writer.DidNotReceive().WriteAsync(Arg.Any<ScrapeConfigurationImportDocument>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        thrown.ShouldBeSameAs(exception);
+        writer.Written.ShouldBeEmpty();
     }
 
     [Fact]
     public async Task when_export_is_cancelled_then_the_export_does_not_start()
     {
-        var exporter = Substitute.For<IScrapeConfigurationExporter>();
-        var writer = Substitute.For<IScrapeConfigurationFileWriter>();
-        var service = new ScrapeConfigurationExportService(exporter, writer);
+        var exporter = new FakeExporter();
+        var service = new ScrapeConfigurationExportService(exporter, new FakeWriter());
         using var cancellationTokenSource = new CancellationTokenSource();
         await cancellationTokenSource.CancelAsync();
 
         await Should.ThrowAsync<OperationCanceledException>(
             () => service.ExportAsync("configuration.json", cancellationTokenSource.Token));
 
-        await exporter.DidNotReceive().ExportScrapeConfigurationAsync();
+        exporter.LookupCount.ShouldBe(0);
     }
 
     [Fact]
@@ -119,5 +116,31 @@ public sealed class GivenAScrapeConfigurationExport
         document.SearchConfiguration.SearchCategories.Single().Name.ShouldBe("General");
         document.SearchConfiguration.PersonCategories.ShouldBe(["Drivers"]);
         document.ScrapeDirectories.RootDirectory.ShouldBe("/tmp");
+    }
+
+    private sealed class FakeExporter : IScrapeConfigurationExporter
+    {
+        public Exceptional<Option<ScrapeConfigurationImportDocument>> Result { get; set; } = Option<ScrapeConfigurationImportDocument>.None.Instance;
+
+        public int LookupCount { get; private set; }
+
+        public Task<Exceptional<Option<ScrapeConfigurationImportDocument>>> ExportScrapeConfigurationAsync()
+        {
+            LookupCount++;
+
+            return Task.FromResult(Result);
+        }
+    }
+
+    private sealed class FakeWriter : IScrapeConfigurationFileWriter
+    {
+        public List<(ScrapeConfigurationImportDocument Document, string FilePath)> Written { get; } = [];
+
+        public Task WriteAsync(ScrapeConfigurationImportDocument document, string filePath, CancellationToken cancellationToken = default)
+        {
+            Written.Add((document, filePath));
+
+            return Task.CompletedTask;
+        }
     }
 }
