@@ -22,6 +22,10 @@ public sealed class GivenAConfiguredModel
         entity.FindProperty(nameof(ConversionEntity.Amount))!.GetColumnType().ShouldBe("INTEGER");
     }
 
+    [Fact]
+    public void when_the_model_builder_is_null_then_applying_sqlite_conversions_throws_an_argument_null_exception()
+        => Should.Throw<ArgumentNullException>(() => ModelBuilderExtensions.UseSqliteFriendlyConversions(null!)).ParamName.ShouldBe("mb");
+
     private sealed class ConversionEntity
     {
         public int Id { get; set; }
