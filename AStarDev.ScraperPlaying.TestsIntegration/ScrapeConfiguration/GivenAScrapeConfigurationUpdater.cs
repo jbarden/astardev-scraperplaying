@@ -246,7 +246,7 @@ public sealed class GivenAScrapeConfigurationUpdater : IDisposable
             SearchConfiguration = new SearchConfigurationEntity(new SearchConfigurationId(Guid.Empty), rootId, "search-config", 10, [.. categories]),
             ScrapeDirectories = new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.Empty), rootId, "root-save-directory", "root-directory-famous", "sub-directory-name"),
             BaseUrl = new Uri("https://example.com/scrape"),
-            LoginUrl = new Uri("https://example.com/scrape/login"),
+            LoginUrl = "https://example.com/scrape/login",
             SlowMotionDelay = 250f
         };
         foreach (var name in personCategoryNames) entity.SearchConfiguration.PersonCategories.Add(new PersonCategoryEntity { Name = name });

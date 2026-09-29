@@ -34,7 +34,7 @@ public sealed record RootSettingsInput(
 
         return new RootSettingsInput(
             settings.BaseUrl.ToString(),
-            settings.LoginUrl.ToString(),
+            settings.LoginUrl,
             settings.ApiKey,
             settings.SearchString,
             settings.TopWallpapers,
@@ -52,13 +52,12 @@ public sealed record RootSettingsInput(
             settings.SlowMotionDelay);
     }
 
-    /// <summary>Validates the input: URLs must be absolute http(s), numbers must not be negative and a starting page must not exceed its total pages.</summary>
+    /// <summary>Validates the input: the base URL must be absolute http(s), the login URL is free text, numbers must not be negative and a starting page must not exceed its total pages.</summary>
     /// <returns>The validated <see cref="RootSettings"/>, or every validation error found.</returns>
     public Validation<RootSettings> Validate()
     {
         List<ValidationError> errors = [];
         var baseUrl = ParseUrl(nameof(BaseUrl), BaseUrl, errors);
-        var loginUrl = ParseUrl(nameof(LoginUrl), LoginUrl, errors);
         _ = RequireNotNegative(nameof(ImagePauseInSeconds), ImagePauseInSeconds, errors);
         RequirePages(nameof(StartingPageNumber), StartingPageNumber, nameof(TotalPages), TotalPages, errors);
         RequirePages(nameof(SubscriptionsStartingPageNumber), SubscriptionsStartingPageNumber, nameof(SubscriptionsTotalPages), SubscriptionsTotalPages, errors);
@@ -69,7 +68,7 @@ public sealed record RootSettingsInput(
             ? Validation.Invalid<RootSettings>(errors)
             : Validation.Valid(new RootSettings(
                 baseUrl,
-                loginUrl,
+                LoginUrl,
                 ApiKey,
                 SearchString,
                 TopWallpapers,

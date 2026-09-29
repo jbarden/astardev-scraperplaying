@@ -41,7 +41,7 @@ public sealed class GivenRootSettings
         var entity = CreateEntity(250f);
         var settings = new RootSettings(
             new Uri("https://other.example/api"),
-            new Uri("https://other.example/login"),
+            "https://other.example/login",
             "new-key",
             "dogs",
             "new-top",
@@ -61,7 +61,7 @@ public sealed class GivenRootSettings
         settings.ApplyTo(entity);
 
         entity.BaseUrl.ShouldBe(new Uri("https://other.example/api"));
-        entity.LoginUrl.ShouldBe(new Uri("https://other.example/login"));
+        entity.LoginUrl.ShouldBe("https://other.example/login");
         entity.ApiKey.ShouldBe("new-key");
         entity.SearchString.ShouldBe("dogs");
         entity.TopWallpapers.ShouldBe("new-top");
@@ -92,7 +92,7 @@ public sealed class GivenRootSettings
             SearchConfiguration = new SearchConfigurationEntity(new SearchConfigurationId(Guid.CreateVersion7()), id, "term", 10, []),
             ScrapeDirectories = new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.CreateVersion7()), id, "root", "famous", "sub"),
             BaseUrl = new Uri("https://wallhaven.cc/api/v1"),
-            LoginUrl = new Uri("https://wallhaven.cc/login"),
+            LoginUrl = "https://wallhaven.cc/login",
             ApiKey = "api-key",
             SearchString = "cats",
             TopWallpapers = "top",

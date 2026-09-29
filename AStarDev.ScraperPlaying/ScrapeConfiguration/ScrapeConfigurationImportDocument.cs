@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using AStarDev.ControlDb.ScrapeConfiguration;
 
 namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
@@ -23,7 +24,8 @@ public sealed class ScrapeConfigurationImportDocument
     public int SubscriptionsTotalPages { get; init; }
     public int TopWallpapersStartingPageNumber { get; init; }
     public int TopWallpapersTotalPages { get; init; }
-    public Uri LoginUrl { get; init; } = new("https://example.com/login");
+    [SuppressMessage("Design", "CA1056:URI properties should not be strings", Justification = "The login page is free text and is not required to be a valid URL.")]
+    public string LoginUrl { get; init; } = "https://example.com/login";
     public bool UseHeadless { get; init; }
     public float? SlowMotionDelay { get; init; }
 }

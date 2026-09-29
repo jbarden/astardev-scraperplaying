@@ -29,7 +29,7 @@ internal static class ScrapeConfigurationEntityFactory
             SubscriptionsTotalPages = 30,
             TopWallpapersStartingPageNumber = 3,
             TopWallpapersTotalPages = 40,
-            LoginUrl = new Uri("https://example.com/scrape/login"),
+            LoginUrl = "https://example.com/scrape/login",
             UseHeadless = true,
             SlowMotionDelay = 250f
         };

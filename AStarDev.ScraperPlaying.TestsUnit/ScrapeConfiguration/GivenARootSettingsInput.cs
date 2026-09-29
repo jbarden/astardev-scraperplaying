@@ -31,7 +31,7 @@ public sealed class GivenARootSettingsInput
 
         var settings = result.ShouldBeOfType<Valid<RootSettings>>().Value;
         settings.BaseUrl.ShouldBe(new Uri("https://wallhaven.cc/api/v1"));
-        settings.LoginUrl.ShouldBe(new Uri("https://wallhaven.cc/login"));
+        settings.LoginUrl.ShouldBe("https://wallhaven.cc/login");
         settings.ApiKey.ShouldBe("api-key");
         settings.SearchString.ShouldBe("cats");
         settings.TopWallpapers.ShouldBe("top");
@@ -70,8 +70,10 @@ public sealed class GivenARootSettingsInput
     [InlineData("")]
     [InlineData("   ")]
     [InlineData("login")]
-    public void when_the_login_url_is_not_an_absolute_http_url_then_it_is_rejected(string enteredText) =>
-        ErrorsFor(ValidInput with { LoginUrl = enteredText }).ShouldContain(error => error.Property == nameof(RootSettingsInput.LoginUrl));
+    [InlineData("not a url, just text: /login?x=1 & more")]
+    [InlineData("ftp://example.com/login")]
+    public void when_the_login_url_is_any_text_then_it_is_valid_and_stored_exactly_as_entered(string enteredText) =>
+        (ValidInput with { LoginUrl = enteredText }).Validate().ShouldBeOfType<Valid<RootSettings>>().Value.LoginUrl.ShouldBe(enteredText);
 
     [Fact]
     public void when_the_image_pause_is_negative_then_it_is_rejected() =>

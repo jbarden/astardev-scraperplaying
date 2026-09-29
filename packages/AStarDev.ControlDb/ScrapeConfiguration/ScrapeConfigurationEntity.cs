@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace AStarDev.ControlDb.ScrapeConfiguration;
 
 /// <summary>Represents a scrape configuration entity in the database.</summary>
@@ -55,8 +57,9 @@ public record ScrapeConfigurationEntity(ScrapeConfigurationId Id) : IAggregateRo
     /// <summary>The total number of pages available for top wallpapers.</summary>
     public int TopWallpapersTotalPages { get; set; }
 
-    /// <summary>The URL of the login page on the target website.</summary>
-    public Uri LoginUrl { get; set; } = new("https://example.com/login");
+    /// <summary>The login page on the target website. Free text: it is not required to be a valid URL.</summary>
+    [SuppressMessage("Design", "CA1056:URI properties should not be strings", Justification = "The login page is free text and is not required to be a valid URL.")]
+    public string LoginUrl { get; set; } = "https://example.com/login";
 
     /// <summary>Whether the browser runs in headless mode.</summary>
     public bool UseHeadless { get; set; }
