@@ -110,12 +110,14 @@ public sealed class GivenAScrapeConfigurationExport
             ]),
             ScrapeDirectories = new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.CreateVersion7()), scrapeConfigurationId, "/tmp", "Pictures/Famous", "Wallhaven")
         };
+        entity.SearchConfiguration.PersonCategories.Add(new PersonCategoryEntity { SearchConfigurationId = searchConfigurationId, Name = "Drivers" });
 
         var document = entity.ToImportDocument();
 
         document.UserConfiguration.Username.ShouldBe("user");
         document.SearchConfiguration.SearchTerm.ShouldBe("cats");
         document.SearchConfiguration.SearchCategories.Single().Name.ShouldBe("General");
+        document.SearchConfiguration.PersonCategories.ShouldBe(["Drivers"]);
         document.ScrapeDirectories.RootDirectory.ShouldBe("/tmp");
     }
 }

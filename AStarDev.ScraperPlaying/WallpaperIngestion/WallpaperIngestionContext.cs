@@ -8,4 +8,5 @@ namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 /// <param name="Client">The HTTP client used to make requests.</param>
 /// <param name="FileRepository">The repository used to store wallpapers' file entities.</param>
 /// <param name="CategoryLabel">The search category being ingested, or "Top Wallpapers" when it is not a specific search category.</param>
-public sealed record WallpaperIngestionContext(string Directory, HttpClient Client, IRepository<FileEntity, FileId> FileRepository, string CategoryLabel);
+/// <param name="PersonCategories">The tag category names whose tags are person names when naming the saved file.</param>
+public sealed record WallpaperIngestionContext(string Directory, HttpClient Client, IRepository<FileEntity, FileId> FileRepository, string CategoryLabel, IReadOnlyList<string> PersonCategories);

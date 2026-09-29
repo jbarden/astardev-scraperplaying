@@ -34,7 +34,8 @@ public static class ScrapeConfigurationExportMapper
                     IncludeInSearch = category.IncludeInSearch,
                     IsFamous = category.IsFamous,
                     IsInternet = category.IsInternet
-                }).ToList()
+                }).ToList(),
+                PersonCategories = [.. search.PersonCategories.Select(category => category.Name)]
             },
             ScrapeDirectories = new ScrapeDirectoriesImportDocument
             {

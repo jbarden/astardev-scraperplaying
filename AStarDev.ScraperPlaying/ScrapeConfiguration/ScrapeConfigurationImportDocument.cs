@@ -1,3 +1,5 @@
+using AStarDev.ControlDb.ScrapeConfiguration;
+
 namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 /// <summary>Serializable representation of the complete scrape configuration aggregate.</summary>
@@ -41,6 +43,7 @@ public sealed class SearchConfigurationImportDocument
     public string SearchTerm { get; init; } = string.Empty;
     public int? MaxResults { get; init; }
     public List<SearchCategoryImportDocument> SearchCategories { get; init; } = [];
+    public List<string> PersonCategories { get; init; } = [.. PersonCategoryEntity.DefaultNames];
 }
 
 public sealed class SearchCategoryImportDocument

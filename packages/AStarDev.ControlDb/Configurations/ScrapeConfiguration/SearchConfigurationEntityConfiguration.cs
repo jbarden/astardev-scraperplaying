@@ -27,5 +27,10 @@ public sealed class SearchConfigurationEntityConfiguration : IEntityTypeConfigur
             .WithOne(searchCategory => searchCategory.SearchConfiguration)
             .HasForeignKey(searchCategory => searchCategory.SearchConfigurationId)
             .HasPrincipalKey(searchConfiguration => searchConfiguration.Id);
+
+        builder.HasMany(searchConfiguration => searchConfiguration.PersonCategories)
+            .WithOne(personCategory => personCategory.SearchConfiguration)
+            .HasForeignKey(personCategory => personCategory.SearchConfigurationId)
+            .HasPrincipalKey(searchConfiguration => searchConfiguration.Id);
     }
 }

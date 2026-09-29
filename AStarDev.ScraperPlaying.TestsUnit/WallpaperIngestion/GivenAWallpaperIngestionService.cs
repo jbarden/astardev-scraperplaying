@@ -152,7 +152,7 @@ public sealed class GivenAWallpaperIngestionService
     }
 
     private Task Ingest(Data wallpaper, string directory = "some-directory")
-        => service.IngestAsync(wallpaper, new WallpaperIngestionContext(directory, new HttpClient(), fileRepository, "resolved-category"), progress, CancellationToken.None);
+        => service.IngestAsync(wallpaper, new WallpaperIngestionContext(directory, new HttpClient(), fileRepository, "resolved-category", []), progress, CancellationToken.None);
 
     private static FileName NameFor(Data wallpaper, string extension) => new($"{wallpaper.Id}{extension}");
 

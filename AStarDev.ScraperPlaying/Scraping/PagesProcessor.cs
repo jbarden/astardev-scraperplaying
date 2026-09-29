@@ -11,7 +11,7 @@ namespace AStarDev.ScraperPlaying.Scraping;
 public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork unitOfWork, IJsonResponseProcessor jsonResponseProcessor, ISaveDirectoryResolver saveDirectoryResolver, IWallpaperIngestionService wallpaperIngestionService, Func<TimeSpan> pacingDelay) : IPagesProcessor
 {
     /// <inheritdoc/>
-    public async Task FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Func<int, string> pageUrlFactory, WallhavenConnection connection, IProgress<string> progress, CancellationToken cancellationToken)
+    public async Task FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Func<int, string> pageUrlFactory, WallhavenConnection connection, IReadOnlyList<string> personCategories, IProgress<string> progress, CancellationToken cancellationToken)
     {
         var client = CreateHttpClient(connection);
         try
@@ -20,7 +20,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
             var fileRepository = unitOfWork.GetRepository<FileEntity, FileId>();
             var directory = await saveDirectoryResolver.ResolveSaveDirectoryAsync(categoryName, cancellationToken);
             var categoryLabel = categoryName.Match(name => name, () => "Top Wallpapers");
-            var ingestionContext = new WallpaperIngestionContext(directory, client, fileRepository, categoryLabel);
+            var ingestionContext = new WallpaperIngestionContext(directory, client, fileRepository, categoryLabel, personCategories);
             SearchResponse pageResult;
             await Task.Delay(pacingDelay(), cancellationToken);
             do

@@ -29,6 +29,11 @@ public static class ScrapeConfigurationImportMapper
             search.MaxResults ?? 0,
             categories);
 
+        foreach (var name in search.PersonCategories)
+        {
+            searchEntity.PersonCategories.Add(new PersonCategoryEntity { SearchConfigurationId = searchEntity.Id, Name = name, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow });
+        }
+
         return new ScrapeConfigurationEntity(new ScrapeConfigurationId(document.Id))
         {
             UserConfiguration = new UserConfigurationEntity(
