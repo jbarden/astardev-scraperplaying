@@ -11,64 +11,70 @@ namespace AStarDev.ScraperPlaying.TestsUnit.Scraping;
 public sealed class GivenAScrapeService : IDisposable
 {
     private static readonly string[] expectedPersonCategories = ["Celebrities", "Models"];
+    private static readonly WallhavenConnection ExpectedConnection = new("api-key", new Uri("https://example.test"));
     private readonly OperationCoordinator operationCoordinator = new();
-    private readonly IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
-    private readonly IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> repository = Substitute.For<IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>>();
-    private readonly IPagesProcessor pagesProcessor = Substitute.For<IPagesProcessor>();
+    private readonly FakeRepository repository = new();
+    private readonly FakePagesProcessor pagesProcessor = new();
     private readonly MockFileSystem fileSystem = new();
     private readonly CapturingProgress progress = new();
+    private readonly ServiceProvider serviceProvider;
     private readonly ScrapeService service;
 
     public GivenAScrapeService()
     {
-        unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().Returns(repository);
-        pagesProcessor.FetchAndProcessPagesAsync(Arg.Any<string>(), Arg.Any<Option<string>>(), Arg.Any<Func<int, Uri>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
+        serviceProvider = new ServiceCollection()
+            .AddSingleton<IUnitOfWork>(new FakeUnitOfWork(repository))
+            .AddSingleton<IPagesProcessor>(pagesProcessor)
+            .BuildServiceProvider();
 
-        var services = new ServiceCollection();
-        services.AddSingleton(unitOfWork);
-        services.AddSingleton(pagesProcessor);
-        var scopeFactory = services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
-
-        service = new(operationCoordinator, scopeFactory, fileSystem);
+        service = new(operationCoordinator, serviceProvider.GetRequiredService<IServiceScopeFactory>(), fileSystem);
     }
 
     [Fact]
-    public async Task when_a_configuration_exists_then_top_wallpapers_and_up_to_three_categories_are_processed_and_completion_is_reported()
+    public async Task when_a_configuration_exists_then_up_to_three_categories_then_top_wallpapers_are_processed_and_completion_is_reported()
     {
-        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration(categoryCount: 5));
+        repository.First = Found(CreateConfiguration(categoryCount: 5));
 
         await Run();
 
         progress.Messages.ShouldContain("Starting scrape operation.");
         progress.Messages.ShouldContain("Fetching top wallpapers.");
         progress.Messages.ShouldContain(message => message.StartsWith("Search completed in:"));
-        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("top wallpapers", Option.None<string>(), Arg.Any<Func<int, Uri>>(), new WallhavenConnection("api-key", new Uri("https://example.test")), Arg.Is<IReadOnlyList<string>>(categories => categories.SequenceEqual(expectedPersonCategories)), progress, Arg.Any<CancellationToken>());
-        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category category one", Option.Some("category one"), Arg.Any<Func<int, Uri>>(), new WallhavenConnection("api-key", new Uri("https://example.test")), Arg.Is<IReadOnlyList<string>>(categories => categories.SequenceEqual(expectedPersonCategories)), progress, Arg.Any<CancellationToken>());
-        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category category two", Option.Some("category two"), Arg.Any<Func<int, Uri>>(), new WallhavenConnection("api-key", new Uri("https://example.test")), Arg.Is<IReadOnlyList<string>>(categories => categories.SequenceEqual(expectedPersonCategories)), progress, Arg.Any<CancellationToken>());
-        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category category three", Option.Some("category three"), Arg.Any<Func<int, Uri>>(), new WallhavenConnection("api-key", new Uri("https://example.test")), Arg.Is<IReadOnlyList<string>>(categories => categories.SequenceEqual(expectedPersonCategories)), progress, Arg.Any<CancellationToken>());
-        await pagesProcessor.DidNotReceive().FetchAndProcessPagesAsync("search category category four", Arg.Any<Option<string>>(), Arg.Any<Func<int, Uri>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
-        await pagesProcessor.DidNotReceive().FetchAndProcessPagesAsync("search category category five", Arg.Any<Option<string>>(), Arg.Any<Func<int, Uri>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
+        pagesProcessor.Calls.Select(call => (call.LogLabel, call.CategoryName)).ShouldBe([
+            ("search category category one", Option.Some("category one")),
+            ("search category category two", Option.Some("category two")),
+            ("search category category three", Option.Some("category three")),
+            ("top wallpapers", Option.None<string>())
+        ]);
         operationCoordinator.IsOperationRunning.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task when_pages_are_processed_then_every_call_uses_the_configured_connection_person_categories_and_progress()
+    {
+        repository.First = Found(CreateConfiguration(categoryCount: 2));
+
+        await Run();
+
+        pagesProcessor.Calls.ShouldAllBe(call => call.Connection == ExpectedConnection);
+        pagesProcessor.Calls.ShouldAllBe(call => call.PersonCategories.SequenceEqual(expectedPersonCategories));
+        pagesProcessor.Calls.ShouldAllBe(call => ReferenceEquals(call.Progress, progress));
     }
 
     [Fact]
     public async Task when_categories_are_processed_then_each_is_labelled_with_its_name_and_not_its_id()
     {
-        var recorder = new RecordingPagesProcessor();
-        var recordingScopeFactory = new ServiceCollection().AddSingleton(unitOfWork).AddSingleton<IPagesProcessor>(recorder).BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
-        var recordingService = new ScrapeService(operationCoordinator, recordingScopeFactory, fileSystem);
-        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration(categoryCount: 3));
+        repository.First = Found(CreateConfiguration(categoryCount: 3));
 
-        await recordingService.RunScraperAsync(progress);
+        await Run();
 
-        recorder.Labels.ShouldBe(["search category category one", "search category category two", "search category category three", "top wallpapers"]);
+        pagesProcessor.Calls.Select(call => call.LogLabel).ShouldBe(["search category category one", "search category category two", "search category category three", "top wallpapers"]);
     }
 
     [Fact]
     public async Task when_no_configuration_row_exists_then_it_throws_and_still_completes_the_operation()
     {
-        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)Option<ScrapeConfigurationEntity>.None.Instance);
+        repository.First = Option<ScrapeConfigurationEntity>.None.Instance;
 
         await Should.ThrowAsync<InvalidOperationException>(Run);
 
@@ -81,7 +87,7 @@ public sealed class GivenAScrapeService : IDisposable
     public async Task when_looking_up_the_configuration_fails_then_the_failure_is_rethrown_and_the_operation_still_completes()
     {
         var exception = new InvalidOperationException("query failed");
-        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)exception);
+        repository.First = exception;
 
         var thrown = await Should.ThrowAsync<InvalidOperationException>(Run);
 
@@ -93,9 +99,8 @@ public sealed class GivenAScrapeService : IDisposable
     [Fact]
     public async Task when_fetching_pages_raises_a_request_error_then_it_is_reported_not_thrown()
     {
-        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration());
-        pagesProcessor.FetchAndProcessPagesAsync(Arg.Any<string>(), Arg.Any<Option<string>>(), Arg.Any<Func<int, Uri>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
-            .Returns(_ => throw new HttpRequestException("boom"));
+        repository.First = Found(CreateConfiguration());
+        pagesProcessor.OnFetch = () => throw new HttpRequestException("boom");
 
         await Run();
 
@@ -106,14 +111,13 @@ public sealed class GivenAScrapeService : IDisposable
     [Fact]
     public async Task when_the_operation_is_cancelled_while_fetching_pages_then_cancellation_is_reported_not_thrown()
     {
-        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration());
-        pagesProcessor.FetchAndProcessPagesAsync(Arg.Any<string>(), Arg.Any<Option<string>>(), Arg.Any<Func<int, Uri>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>())
-            .Returns(_ =>
-            {
-                operationCoordinator.Cancel();
+        repository.First = Found(CreateConfiguration());
+        pagesProcessor.OnFetch = () =>
+        {
+            operationCoordinator.Cancel();
 
-                throw new OperationCanceledException();
-            });
+            throw new OperationCanceledException();
+        };
 
         await Run();
 
@@ -129,7 +133,7 @@ public sealed class GivenAScrapeService : IDisposable
         await Run();
 
         progress.Messages.ShouldBeEmpty();
-        await pagesProcessor.DidNotReceive().FetchAndProcessPagesAsync(Arg.Any<string>(), Arg.Any<Option<string>>(), Arg.Any<Func<int, Uri>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
+        pagesProcessor.Calls.ShouldBeEmpty();
         operationCoordinator.IsOperationRunning.ShouldBeTrue();
     }
 
@@ -137,7 +141,7 @@ public sealed class GivenAScrapeService : IDisposable
     public async Task when_the_root_directory_exists_on_disk_then_root_directory_exists_async_returns_true()
     {
         fileSystem.Directory.CreateDirectory("/scrapes/root");
-        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration(rootDirectory: "/scrapes/root"));
+        repository.First = Found(CreateConfiguration(rootDirectory: "/scrapes/root"));
 
         var exists = await service.RootDirectoryExistsAsync();
 
@@ -147,14 +151,20 @@ public sealed class GivenAScrapeService : IDisposable
     [Fact]
     public async Task when_the_root_directory_does_not_exist_on_disk_then_root_directory_exists_async_returns_false()
     {
-        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration(rootDirectory: "/scrapes/missing"));
+        repository.First = Found(CreateConfiguration(rootDirectory: "/scrapes/missing"));
 
         var exists = await service.RootDirectoryExistsAsync();
 
         exists.ShouldBeFalse();
     }
 
-    public void Dispose() => operationCoordinator.Dispose();
+    public void Dispose()
+    {
+        serviceProvider.Dispose();
+        operationCoordinator.Dispose();
+    }
+
+    private static Exceptional<Option<ScrapeConfigurationEntity>> Found(ScrapeConfigurationEntity configuration) => (Option<ScrapeConfigurationEntity>)configuration;
 
     private Task Run() => service.RunScraperAsync(progress);
 
@@ -182,16 +192,45 @@ public sealed class GivenAScrapeService : IDisposable
         return configuration;
     }
 
-    private sealed class RecordingPagesProcessor : IPagesProcessor
+    private sealed record PagesCall(string LogLabel, Option<string> CategoryName, WallhavenConnection Connection, IReadOnlyList<string> PersonCategories, IProgress<string> Progress);
+
+    private sealed class FakePagesProcessor : IPagesProcessor
     {
-        public List<string> Labels { get; } = [];
+        public List<PagesCall> Calls { get; } = [];
+
+        public Action OnFetch { get; set; } = () => { };
 
         public Task FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Func<int, Uri> pageUrlFactory, WallhavenConnection connection, IReadOnlyList<string> personCategories, IProgress<string> progress, CancellationToken cancellationToken)
         {
-            Labels.Add(logLabel);
+            Calls.Add(new PagesCall(logLabel, categoryName, connection, personCategories, progress));
+            OnFetch();
 
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class FakeRepository : IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>
+    {
+        public Exceptional<Option<ScrapeConfigurationEntity>> First { get; set; } = Option<ScrapeConfigurationEntity>.None.Instance;
+
+        public Task<Exceptional<Option<ScrapeConfigurationEntity>>> TryGetFirstAsync() => Task.FromResult(First);
+
+        public Task<Exceptional<Option<ScrapeConfigurationEntity>>> TryFindAsync(ScrapeConfigurationId key) => Task.FromResult(First);
+
+        public Task<Exceptional<Option<IEnumerable<ScrapeConfigurationEntity>>>> TryGetAllAsync() =>
+            Task.FromResult<Exceptional<Option<IEnumerable<ScrapeConfigurationEntity>>>>(Option<IEnumerable<ScrapeConfigurationEntity>>.None.Instance);
+
+        public Exceptional<ScrapeConfigurationEntity> Add(ScrapeConfigurationEntity aggregate) => aggregate;
+
+        public Exceptional<Unit> Delete(ScrapeConfigurationEntity aggregate) => Unit.Instance;
+    }
+
+    private sealed class FakeUnitOfWork(FakeRepository repository) : IUnitOfWork
+    {
+        public IRepository<TAggregate, TKey> GetRepository<TAggregate, TKey>() where TAggregate : IAggregateRoot =>
+            (IRepository<TAggregate, TKey>)(object)repository;
+
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) => Task.FromResult(0);
     }
 
     private sealed class CapturingProgress : IProgress<string>
