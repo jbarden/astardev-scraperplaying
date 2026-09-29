@@ -22,7 +22,9 @@
       <TabItem x:Name="DirectoriesTab" Header="Directories">
         <ui:DirectorySettingsEditor x:Name="DirectoriesTabContent" />
       </TabItem>
-      <TabItem x:Name="SearchTab" Header="Search" />
+      <TabItem x:Name="SearchTab" Header="Search">
+        <ui:SearchSettingsEditor x:Name="SearchTabContent" />
+      </TabItem>
       <TabItem x:Name="SearchCategoriesTab" Header="Search categories" />
       <TabItem x:Name="PersonCategoriesTab" Header="Person categories" />
     </TabControl>

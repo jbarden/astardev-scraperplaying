@@ -27,10 +27,10 @@ public class SearchConfigurationEntity : AuditableEntity
     public ScrapeConfigurationId ScrapeConfigurationId { get; init; } = new ScrapeConfigurationId(Guid.Empty);
 
     /// <summary>Gets or sets the search term used for scraping wallpapers.</summary>
-    public string SearchTerm { get; init; } = string.Empty;
+    public string SearchTerm { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the maximum number of results to retrieve for the search configuration entity. This property is optional and can be null.</summary>
-    public int? MaxResults { get; init; }
+    public int? MaxResults { get; set; }
 
     /// <summary>The categories the scraper targets.</summary>
     public ICollection<SearchCategoryEntity> SearchCategories { get; } = [];

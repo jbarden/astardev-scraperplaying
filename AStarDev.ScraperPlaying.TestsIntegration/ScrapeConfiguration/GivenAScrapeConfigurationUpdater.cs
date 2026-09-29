@@ -85,6 +85,31 @@ public sealed class GivenAScrapeConfigurationUpdater : IDisposable
     }
 
     [Fact]
+    public async Task when_search_settings_are_saved_then_a_fresh_read_returns_them_and_the_other_sections_are_unchanged()
+    {
+        var id = await SeedAsync();
+
+        var result = await updater.SaveAsync(id, [new SearchSettings("dogs", Option.Some(50))], TestContext.Current.CancellationToken);
+
+        result.Match(option => option, exception => throw exception).Match(_ => true, () => false).ShouldBeTrue();
+        var reloaded = await ReadAsync(id);
+        reloaded.SearchConfiguration.SearchTerm.ShouldBe("dogs");
+        reloaded.SearchConfiguration.MaxResults.ShouldBe(50);
+        reloaded.UserConfiguration.Username.ShouldBe("username");
+        reloaded.ScrapeDirectories.RootDirectory.ShouldBe("root-save-directory");
+    }
+
+    [Fact]
+    public async Task when_max_results_is_cleared_then_it_is_stored_as_null()
+    {
+        var id = await SeedAsync();
+
+        await updater.SaveAsync(id, [new SearchSettings("search-config", Option.None<int>())], TestContext.Current.CancellationToken);
+
+        (await ReadAsync(id)).SearchConfiguration.MaxResults.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task when_the_slow_motion_delay_is_cleared_then_it_is_stored_as_null()
     {
         var id = await SeedAsync();
