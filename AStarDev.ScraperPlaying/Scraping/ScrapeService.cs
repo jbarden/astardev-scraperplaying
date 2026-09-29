@@ -66,6 +66,7 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
         var connection = new WallhavenConnection(configuration.UserConfiguration.ApiKey, configuration.BaseUrl);
         var topWallpapersUrl = configuration.TopWallpapers;
         var searchCategoriesUrl = configuration.SearchStringPrefix;
+        var searchCategoriesSuffix = configuration.SearchStringSuffix;
         var searchCategories = configuration.SearchConfiguration.SearchCategories;
 
         progress.Report("Fetching top wallpapers.");
@@ -73,7 +74,7 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
 
         foreach (var category in searchCategories.Take(3))
         {
-            await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Id}", Option.Some(category.Name), page => WallhavenUrlBuilder.BuildCategoryPageUrl(searchCategoriesUrl, category, page), connection, progress, cancellationToken);
+            await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Id}", Option.Some(category.Name), page => WallhavenUrlBuilder.BuildCategoryPageUrl(searchCategoriesUrl, searchCategoriesSuffix, category, page), connection, progress, cancellationToken);
         }
     }
 }
