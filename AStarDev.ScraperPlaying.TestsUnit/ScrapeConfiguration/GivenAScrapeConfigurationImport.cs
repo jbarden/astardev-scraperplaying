@@ -153,7 +153,7 @@ public sealed class GivenAScrapeConfigurationImport
         {
             Id = Guid.CreateVersion7(),
             UserConfiguration = new() { Username = "user", Password = "secret" },
-            SearchConfiguration = new() { SearchTerm = "cats", SearchCategories = [new() { Id = "1", Name = "General" }] },
+            SearchConfiguration = new() { SearchTerm = "cats", SearchCategories = [new() { Id = "1", Name = "General" }], PersonCategories = ["Drivers", "Models"] },
             ScrapeDirectories = new() { RootDirectory = "/tmp" }
         };
 
@@ -162,6 +162,44 @@ public sealed class GivenAScrapeConfigurationImport
         entity.UserConfiguration.Username.ShouldBe("user");
         entity.SearchConfiguration.SearchTerm.ShouldBe("cats");
         entity.SearchConfiguration.SearchCategories.Single().Name.ShouldBe("General");
+        entity.SearchConfiguration.PersonCategories.Select(category => category.Name).ShouldBe(["Drivers", "Models"]);
+        entity.SearchConfiguration.PersonCategories.ShouldAllBe(category => category.SearchConfigurationId == entity.SearchConfiguration.Id);
         entity.ScrapeDirectories.RootDirectory.ShouldBe("/tmp");
+    }
+
+    [Fact]
+    public async Task when_a_document_predates_person_categories_then_the_default_categories_are_used()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllTextAsync(path, """{ "SearchConfiguration": { "SearchTerm": "cats" } }""", TestContext.Current.CancellationToken);
+
+            var document = await new ScrapeConfigurationFileReader().ReadAsync(path, TestContext.Current.CancellationToken);
+
+            document.SearchConfiguration.PersonCategories.ShouldBe(["Celebrities", "Models", "Pornstars", "Other Figures", "Actress"]);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task when_a_document_has_an_empty_person_category_list_then_it_stays_empty()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllTextAsync(path, """{ "SearchConfiguration": { "PersonCategories": [] } }""", TestContext.Current.CancellationToken);
+
+            var document = await new ScrapeConfigurationFileReader().ReadAsync(path, TestContext.Current.CancellationToken);
+
+            document.SearchConfiguration.PersonCategories.ShouldBeEmpty();
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 }

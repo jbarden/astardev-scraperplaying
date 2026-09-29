@@ -40,10 +40,16 @@ public static class Seeder
                     new(){SearchConfigurationId = new SearchConfigurationId(Guid.Empty), CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, Name = "category2", IsFamous = false, IncludeInSearch = true, IsInternet = true, Id = "2"},
                     new(){SearchConfigurationId = new SearchConfigurationId(Guid.Empty), CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, Name = "category3", IsFamous = false, IncludeInSearch = true, IsInternet = false, Id = "3"}
                 };
+        var searchConfiguration = new SearchConfigurationEntity(Guid.Empty, Guid.Empty, "search term", 500, searchCategories);
+        foreach (var name in PersonCategoryEntity.DefaultNames)
+        {
+            searchConfiguration.PersonCategories.Add(new PersonCategoryEntity { SearchConfigurationId = new SearchConfigurationId(Guid.Empty), Name = name });
+        }
+
         context.Set<ScrapeConfigurationEntity>().Add(new ScrapeConfigurationEntity(Guid.Empty)
         {
             UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, "jason.j.barden2@outlook.com", "jbarden", Environment.GetEnvironmentVariable("ScrapePassword") ?? "Password1!", "n/a"),
-            SearchConfiguration = new SearchConfigurationEntity(Guid.Empty, Guid.Empty, "search term", 500, searchCategories),
+            SearchConfiguration = searchConfiguration,
             ScrapeDirectories = new ScrapeDirectoriesEntity(Guid.Empty, Guid.Empty, "/run/media/jbarden/Tbdrive/sync/jason.barden1@outlook.com/", "Pictures/WallHaven/Famous", "subdirectory"),
             BaseUrl = new Uri("https://wallhaven.cc/"),
             ApiKey = "your-api-key",

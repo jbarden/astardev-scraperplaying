@@ -31,7 +31,7 @@ public class WallpaperIngestionService(IFilesQuery filesQuery, IImageProcessor i
                 {
                     progress.Report($"No existing data found for wallpaper {wallpaper.Id}.");
                     var tags = await FetchTagsAsync(wallpaper.Id, context.Client, progress, cancellationToken);
-                    var fileRequest = new WallpaperFileRequest(wallpaper, context.Directory, WallpaperFileNamer.Create(wallpaper.Id, extension, tags), context.CategoryLabel);
+                    var fileRequest = new WallpaperFileRequest(wallpaper, context.Directory, WallpaperFileNamer.Create(wallpaper.Id, extension, tags, context.PersonCategories), context.CategoryLabel);
 
                     await imageProcessor.DownloadImageAsync(fileRequest, progress, context.Client, cancellationToken);
                     progress.Report($"Downloaded image data for wallpaper {wallpaper.Id}");

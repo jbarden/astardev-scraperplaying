@@ -82,7 +82,7 @@ public sealed class GivenAWallpaperIngestionServiceWithPersonTags
     {
         using var client = new HttpClient(new StubHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1, 2, 3]) }));
 
-        return service.IngestAsync(new Data(id, 1920, 1080, 3, "image/jpeg", $"https://example.test/full/{id}.jpg"), new WallpaperIngestionContext("some-directory", client, fileRepository, "Top Wallpapers"), new Progress<string>(), CancellationToken.None);
+        return service.IngestAsync(new Data(id, 1920, 1080, 3, "image/jpeg", $"https://example.test/full/{id}.jpg"), new WallpaperIngestionContext("some-directory", client, fileRepository, "Top Wallpapers", ["Celebrities", "Models", "Pornstars", "Other Figures", "Actress"]), new Progress<string>(), CancellationToken.None);
     }
 
     private sealed class StubTagsProcessor : ITagsProcessor

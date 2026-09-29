@@ -34,4 +34,7 @@ public class SearchConfigurationEntity : AuditableEntity
 
     /// <summary>The categories the scraper targets.</summary>
     public ICollection<SearchCategoryEntity> SearchCategories { get; } = [];
+
+    /// <summary>The Wallhaven tag categories whose tags are treated as person names when naming wallpaper files.</summary>
+    public ICollection<PersonCategoryEntity> PersonCategories { get; } = [];
 }

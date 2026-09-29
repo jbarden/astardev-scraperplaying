@@ -10,6 +10,7 @@ namespace AStarDev.ScraperPlaying.TestsUnit.Scraping;
 
 public sealed class GivenAPagesProcessor
 {
+    private static readonly string[] personCategories = ["Celebrities"];
     private readonly IHttpClientFactory httpClientFactory = Substitute.For<IHttpClientFactory>();
     private readonly IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly IRepository<FileEntity, FileId> fileRepository = Substitute.For<IRepository<FileEntity, FileId>>();
@@ -38,7 +39,7 @@ public sealed class GivenAPagesProcessor
 
         await Run();
 
-        await wallpaperIngestionService.Received(1).IngestAsync(wallpaper, Arg.Is<WallpaperIngestionContext>(context => context.Directory == "resolved-directory" && context.FileRepository == fileRepository && context.CategoryLabel == "Top Wallpapers"), progress, Arg.Any<CancellationToken>());
+        await wallpaperIngestionService.Received(1).IngestAsync(wallpaper, Arg.Is<WallpaperIngestionContext>(context => context.Directory == "resolved-directory" && context.FileRepository == fileRepository && context.CategoryLabel == "Top Wallpapers" && context.PersonCategories.SequenceEqual(personCategories)), progress, Arg.Any<CancellationToken>());
         await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
@@ -53,6 +54,7 @@ public sealed class GivenAPagesProcessor
             Option.Some("Cars"),
             page => $"https://example.test/page/{page}",
             new WallhavenConnection("api-key", new Uri("https://example.test")),
+            personCategories,
             progress,
             CancellationToken.None);
 
@@ -117,6 +119,7 @@ public sealed class GivenAPagesProcessor
                 Option.None<string>(),
                 page => $"https://example.test/page/{page}",
                 new WallhavenConnection("api-key", new Uri("https://example.test")),
+            personCategories,
                 progress,
                 cancellationTokenSource.Token));
 
@@ -146,6 +149,7 @@ public sealed class GivenAPagesProcessor
                 Option.None<string>(),
                 page => $"https://example.test/page/{page}",
                 new WallhavenConnection("api-key", new Uri("https://example.test")),
+            personCategories,
                 progress,
                 cancellationTokenSource.Token));
 
@@ -171,6 +175,7 @@ public sealed class GivenAPagesProcessor
             Option.None<string>(),
             page => $"https://example.test/page/{page}",
             new WallhavenConnection("api-key", new Uri("https://example.test")),
+            personCategories,
             progress,
             CancellationToken.None);
 

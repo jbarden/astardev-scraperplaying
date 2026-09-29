@@ -132,6 +132,27 @@ public sealed class GivenAControlDbContext : IDisposable
     }
 
     [Fact]
+    public async Task when_person_categories_are_saved_then_a_fresh_context_reloads_them_with_the_scrape_configuration()
+    {
+        var scrapeConfigurationEntity = ScrapeConfigurationEntityFactory.CreateScrapeConfigurationEntity();
+        scrapeConfigurationEntity.SearchConfiguration.PersonCategories.Add(new PersonCategoryEntity { Name = "Celebrities" });
+        scrapeConfigurationEntity.SearchConfiguration.PersonCategories.Add(new PersonCategoryEntity { Name = "Drivers" });
+        await context.ScrapeConfigurations.AddAsync(scrapeConfigurationEntity, TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var options = new DbContextOptionsBuilder<ControlDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+
+        using var freshContext = new ControlDbContext(options);
+        var reloaded = await new ScrapeConfigurationQuery().Apply(freshContext.ScrapeConfigurations)
+            .SingleAsync(configuration => configuration.Id == scrapeConfigurationEntity.Id, TestContext.Current.CancellationToken);
+
+        reloaded.SearchConfiguration.PersonCategories.Select(category => category.Name).Order().ShouldBe(["Celebrities", "Drivers"]);
+        reloaded.SearchConfiguration.PersonCategories.ShouldAllBe(category => category.SearchConfigurationId == reloaded.SearchConfiguration.Id);
+    }
+
+    [Fact]
     public async Task when_the_database_is_created_then_a_file_detail_entity_with_related_details_can_be_saved_and_reloaded()
     {
         var FileEntity = FileEntityFactory.CreateFileEntity();
