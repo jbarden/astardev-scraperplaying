@@ -31,6 +31,20 @@ public sealed partial class OptionsBindingGenerator : IIncrementalGenerator
                 if (info == null)
                     continue;
 
+                if (info.IsGeneric)
+                {
+                    spc.ReportDiagnostic(Diagnostic.Create(
+                        new DiagnosticDescriptor(
+                            id: "ASTAROPT002",
+                            title: "Generic Options Type",
+                            messageFormat: $"Options class '{info.TypeName}' is generic (or nested in a generic type); generic options types cannot be registered automatically. Register a closed type instead.",
+                            category: "AStarDev.SourceGenerators",
+                            DiagnosticSeverity.Error,
+                            isEnabledByDefault: true),
+                        info.Location));
+                    continue;
+                }
+
                 if (string.IsNullOrWhiteSpace(info.SectionName))
                 {
                     var diag = Diagnostic.Create(
@@ -62,6 +76,7 @@ public sealed partial class OptionsBindingGenerator : IIncrementalGenerator
             return null;
         string typeName = typeSymbol.Name;
         string fullTypeName = typeSymbol.ToDisplayString();
+        bool isGeneric = IsOrIsNestedInGenericType(typeSymbol);
         string? sectionName = null;
         var attr = typeSymbol.GetAttributes().FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == AttrFqn);
         if (attr is { ConstructorArguments.Length: > 0 } && attr.ConstructorArguments[0].Value is string s && !string.IsNullOrWhiteSpace(s))
@@ -70,9 +85,12 @@ public sealed partial class OptionsBindingGenerator : IIncrementalGenerator
             sectionName = FallbackToParsingFromSyntax(ctx, sectionName);
 
         return !string.IsNullOrWhiteSpace(sectionName)
-            ? new OptionsTypeInfo(typeName, fullTypeName, sectionName!, ctx.TargetNode.GetLocation())
-            : ExtractSectionNameFromMembers(ctx, typeSymbol, sectionName, typeName, fullTypeName);
+            ? new OptionsTypeInfo(typeName, fullTypeName, sectionName!, ctx.TargetNode.GetLocation(), isGeneric)
+            : ExtractSectionNameFromMembers(ctx, typeSymbol, sectionName, typeName, fullTypeName, isGeneric);
     }
+
+    private static bool IsOrIsNestedInGenericType(INamedTypeSymbol typeSymbol)
+        => typeSymbol.IsGenericType || (typeSymbol.ContainingType is { } containingType && IsOrIsNestedInGenericType(containingType));
 
     private static string? FallbackToParsingFromSyntax(GeneratorAttributeSyntaxContext ctx, string? sectionName)
     {
@@ -86,7 +104,7 @@ public sealed partial class OptionsBindingGenerator : IIncrementalGenerator
         return sectionName;
     }
 
-    private static OptionsTypeInfo? ExtractSectionNameFromMembers(GeneratorAttributeSyntaxContext ctx, INamedTypeSymbol typeSymbol, string? sectionName, string typeName, string fullTypeName)
+    private static OptionsTypeInfo? ExtractSectionNameFromMembers(GeneratorAttributeSyntaxContext ctx, INamedTypeSymbol typeSymbol, string? sectionName, string typeName, string fullTypeName, bool isGeneric)
     {
         foreach (var member in typeSymbol.GetMembers())
         {
@@ -100,6 +118,6 @@ public sealed partial class OptionsBindingGenerator : IIncrementalGenerator
             break;
         }
 
-        return new OptionsTypeInfo(typeName, fullTypeName, sectionName ?? string.Empty, ctx.TargetNode.GetLocation());
+        return new OptionsTypeInfo(typeName, fullTypeName, sectionName ?? string.Empty, ctx.TargetNode.GetLocation(), isGeneric);
     }
 }

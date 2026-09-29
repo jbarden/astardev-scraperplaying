@@ -138,6 +138,86 @@ public sealed class GivenAnOptionsBindingGenerator
     }
 
     [Fact]
+    public void when_a_generic_class_is_annotated_then_a_diagnostic_is_emitted_and_nothing_is_generated()
+    {
+        const string input = """
+                             using AStarDev.SourceGeneratorAttributes;
+                             namespace TestNamespace
+                             {
+                                 [AutoRegisterOptions("GenericSection")]
+                                 public partial class GenericOptions<TValue> { }
+                             }
+                             """;
+
+        var result = RunGenerator(input);
+
+        result.Diagnostics.ShouldContain(diagnostic => diagnostic.Id == "ASTAROPT002" && diagnostic.Severity == DiagnosticSeverity.Error);
+        GeneratorRunHelpers.GeneratedSources(result).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void when_a_generic_struct_is_annotated_then_a_diagnostic_is_emitted_and_nothing_is_generated()
+    {
+        const string input = """
+                             using AStarDev.SourceGeneratorAttributes;
+                             namespace TestNamespace
+                             {
+                                 [AutoRegisterOptions("GenericSection")]
+                                 public partial struct GenericOptions<TFirst, TSecond> { }
+                             }
+                             """;
+
+        var result = RunGenerator(input);
+
+        result.Diagnostics.ShouldContain(diagnostic => diagnostic.Id == "ASTAROPT002");
+        GeneratorRunHelpers.GeneratedSources(result).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void when_a_generic_class_is_annotated_next_to_a_valid_one_then_only_the_valid_one_is_registered()
+    {
+        const string input = """
+                             using AStarDev.SourceGeneratorAttributes;
+                             namespace TestNamespace
+                             {
+                                 [AutoRegisterOptions("GenericSection")]
+                                 public partial class GenericOptions<TValue> { }
+
+                                 [AutoRegisterOptions("PlainSection")]
+                                 public partial class PlainOptions { }
+                             }
+                             """;
+
+        var result = RunGenerator(input);
+
+        result.Diagnostics.ShouldContain(diagnostic => diagnostic.Id == "ASTAROPT002");
+        var generated = GeneratorRunHelpers.GeneratedSources(result).ShouldHaveSingleItem().SourceText.ToString();
+        generated.ShouldContain("TestNamespace.PlainOptions");
+        generated.ShouldNotContain("GenericOptions");
+    }
+
+    [Fact]
+    public void when_a_class_is_nested_in_a_generic_class_then_a_diagnostic_is_emitted()
+    {
+        const string input = """
+                             using AStarDev.SourceGeneratorAttributes;
+                             namespace TestNamespace
+                             {
+                                 public partial class Outer<TValue>
+                                 {
+                                     [AutoRegisterOptions("NestedSection")]
+                                     public partial class Inner { }
+                                 }
+                             }
+                             """;
+
+        var result = RunGenerator(input);
+
+        result.Diagnostics.ShouldContain(diagnostic => diagnostic.Id == "ASTAROPT002");
+        GeneratorRunHelpers.GeneratedSources(result).ShouldBeEmpty();
+    }
+
+    [Fact]
     public void when_multiple_types_are_annotated_then_registrations_are_generated_for_each()
     {
         const string input = """
