@@ -94,6 +94,25 @@ dotnet_diagnostic.CA2227.severity = warning
 dotnet_diagnostic.CA1849.severity = warning
 dotnet_diagnostic.CA2000.severity = warning
 
+# ── Code-analysis rules we opt out of (AnalysisLevel=latest-all, #286) ─────────────
+# Every other CA rule is on. Each opt-out below is deliberate.
+# CA2007: the app is an Avalonia UI app and must resume on the UI thread; ConfigureAwait(false) would break that
+dotnet_diagnostic.CA2007.severity = none
+# CA1515: the app assembly's types are public so tests, Avalonia bindings and DI can reach them
+dotnet_diagnostic.CA1515.severity = none
+# CA1034: false positive on C# 14 'extension' blocks, which the compiler emits as nested types
+dotnet_diagnostic.CA1034.severity = none
+# CA1033: ControlDbContext implements the IRepository interfaces explicitly on purpose
+dotnet_diagnostic.CA1033.severity = none
+# CA1724: 'Data' mirrors the Wallhaven API JSON shape
+dotnet_diagnostic.CA1724.severity = none
+# CA1812: false positive for types created by serializers and EF Core
+dotnet_diagnostic.CA1812.severity = none
+# CA1003: events carry domain payload records, not EventArgs subclasses
+dotnet_diagnostic.CA1003.severity = none
+# CA1040: IAggregateRoot is a marker interface
+dotnet_diagnostic.CA1040.severity = none
+
 # ── Tests use when_..._then_... snake_case names ─────────────────────────────
 [{**.TestsUnit/**.cs,**.TestsIntegration/**.cs}]
 dotnet_diagnostic.IDE1006.severity = none

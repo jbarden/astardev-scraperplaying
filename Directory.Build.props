@@ -54,11 +54,11 @@
          exception (e.g. a generated-code project). -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 
-    <!-- Enable .NET 10 analysis rules at the recommended level.
-         The '-recommended' suffix also sets AnalysisMode, so a per-project
-         <AnalysisMode> is ignored. To go stricter use 'latest-all' (~290 extra
-         warnings on the repo at the time of writing; see #251). -->
-    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <!-- Enable every .NET 10 analysis rule. The '-all' suffix also sets AnalysisMode,
+         so a per-project <AnalysisMode> is ignored. Rules we reject on purpose are
+         switched off, each with a reason, in the "Code-analysis rules we opt out of"
+         block of .editorconfig (see #286). -->
+    <AnalysisLevel>latest-all</AnalysisLevel>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
 
     <!-- Run IDE0xxx code-style rules from .editorconfig during build, not only in the IDE.
