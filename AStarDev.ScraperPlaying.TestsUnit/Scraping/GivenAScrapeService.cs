@@ -44,12 +44,25 @@ public sealed class GivenAScrapeService : IDisposable
         progress.Messages.ShouldContain("Fetching top wallpapers.");
         progress.Messages.ShouldContain(message => message.StartsWith("Search completed in:"));
         await pagesProcessor.Received(1).FetchAndProcessPagesAsync("top wallpapers", Option.None<string>(), Arg.Any<Func<int, Uri>>(), new WallhavenConnection("api-key", new Uri("https://example.test")), Arg.Is<IReadOnlyList<string>>(categories => categories.SequenceEqual(expectedPersonCategories)), progress, Arg.Any<CancellationToken>());
-        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category cat1", Option.Some("category one"), Arg.Any<Func<int, Uri>>(), new WallhavenConnection("api-key", new Uri("https://example.test")), Arg.Is<IReadOnlyList<string>>(categories => categories.SequenceEqual(expectedPersonCategories)), progress, Arg.Any<CancellationToken>());
-        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category cat2", Option.Some("category two"), Arg.Any<Func<int, Uri>>(), new WallhavenConnection("api-key", new Uri("https://example.test")), Arg.Is<IReadOnlyList<string>>(categories => categories.SequenceEqual(expectedPersonCategories)), progress, Arg.Any<CancellationToken>());
-        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category cat3", Option.Some("category three"), Arg.Any<Func<int, Uri>>(), new WallhavenConnection("api-key", new Uri("https://example.test")), Arg.Is<IReadOnlyList<string>>(categories => categories.SequenceEqual(expectedPersonCategories)), progress, Arg.Any<CancellationToken>());
-        await pagesProcessor.DidNotReceive().FetchAndProcessPagesAsync("search category cat4", Arg.Any<Option<string>>(), Arg.Any<Func<int, Uri>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
-        await pagesProcessor.DidNotReceive().FetchAndProcessPagesAsync("search category cat5", Arg.Any<Option<string>>(), Arg.Any<Func<int, Uri>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
+        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category category one", Option.Some("category one"), Arg.Any<Func<int, Uri>>(), new WallhavenConnection("api-key", new Uri("https://example.test")), Arg.Is<IReadOnlyList<string>>(categories => categories.SequenceEqual(expectedPersonCategories)), progress, Arg.Any<CancellationToken>());
+        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category category two", Option.Some("category two"), Arg.Any<Func<int, Uri>>(), new WallhavenConnection("api-key", new Uri("https://example.test")), Arg.Is<IReadOnlyList<string>>(categories => categories.SequenceEqual(expectedPersonCategories)), progress, Arg.Any<CancellationToken>());
+        await pagesProcessor.Received(1).FetchAndProcessPagesAsync("search category category three", Option.Some("category three"), Arg.Any<Func<int, Uri>>(), new WallhavenConnection("api-key", new Uri("https://example.test")), Arg.Is<IReadOnlyList<string>>(categories => categories.SequenceEqual(expectedPersonCategories)), progress, Arg.Any<CancellationToken>());
+        await pagesProcessor.DidNotReceive().FetchAndProcessPagesAsync("search category category four", Arg.Any<Option<string>>(), Arg.Any<Func<int, Uri>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
+        await pagesProcessor.DidNotReceive().FetchAndProcessPagesAsync("search category category five", Arg.Any<Option<string>>(), Arg.Any<Func<int, Uri>>(), Arg.Any<WallhavenConnection>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<IProgress<string>>(), Arg.Any<CancellationToken>());
         operationCoordinator.IsOperationRunning.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task when_categories_are_processed_then_each_is_labelled_with_its_name_and_not_its_id()
+    {
+        var recorder = new RecordingPagesProcessor();
+        var recordingScopeFactory = new ServiceCollection().AddSingleton(unitOfWork).AddSingleton<IPagesProcessor>(recorder).BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
+        var recordingService = new ScrapeService(operationCoordinator, recordingScopeFactory, fileSystem);
+        repository.TryGetFirstAsync().Returns((Exceptional<Option<ScrapeConfigurationEntity>>)(Option<ScrapeConfigurationEntity>)CreateConfiguration(categoryCount: 3));
+
+        await recordingService.RunScraperAsync(progress);
+
+        recorder.Labels.ShouldBe(["search category category one", "search category category two", "search category category three", "top wallpapers"]);
     }
 
     [Fact]
@@ -167,6 +180,18 @@ public sealed class GivenAScrapeService : IDisposable
         configuration.SearchConfiguration.PersonCategories.Add(new PersonCategoryEntity { SearchConfigurationId = searchConfigurationId, Name = "Models" });
 
         return configuration;
+    }
+
+    private sealed class RecordingPagesProcessor : IPagesProcessor
+    {
+        public List<string> Labels { get; } = [];
+
+        public Task FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Func<int, Uri> pageUrlFactory, WallhavenConnection connection, IReadOnlyList<string> personCategories, IProgress<string> progress, CancellationToken cancellationToken)
+        {
+            Labels.Add(logLabel);
+
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class CapturingProgress : IProgress<string>

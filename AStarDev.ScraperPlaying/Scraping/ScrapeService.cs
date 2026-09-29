@@ -74,7 +74,7 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
         progress.Report("Fetching categories.");
         foreach (var category in searchCategories.Take(3))
         {
-            await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Id}", Option.Some(category.Name), page => WallhavenUrlBuilder.BuildCategoryPageUrl(searchCategoriesUrl, searchCategoriesSuffix, category, page), connection, personCategories, progress, cancellationToken);
+            await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Name}", Option.Some(category.Name), page => WallhavenUrlBuilder.BuildCategoryPageUrl(searchCategoriesUrl, searchCategoriesSuffix, category, page), connection, personCategories, progress, cancellationToken);
         }
 
         progress.Report("Fetching top wallpapers.");
