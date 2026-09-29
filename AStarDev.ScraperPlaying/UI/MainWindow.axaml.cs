@@ -1,4 +1,6 @@
 using System.Text.Json;
+using AStarDev.ControlDb.ScrapeConfiguration;
+using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
@@ -20,6 +22,7 @@ public partial class MainWindow : Window, IDisposable
     private const int MaximumStatusMessages = 100;
     private readonly StatusMessageLog statusMessageLog = new(MaximumStatusMessages);
     private readonly IScrapeConfigurationFileService scrapeConfigurationFileService;
+    private readonly IScrapeConfigurationCatalogue scrapeConfigurationCatalogue;
     private readonly IScrapeService scrapeService;
     private readonly ILogger<MainWindow> logger;
     private readonly OperationCoordinator operationCoordinator;
@@ -27,24 +30,29 @@ public partial class MainWindow : Window, IDisposable
     private bool isRootDirectoryAvailable = true;
     private bool isImageDisplayEnabled = true;
 
-    public MainWindow(ILogger<MainWindow> logger, IScrapeConfigurationFileService scrapeConfigurationFileService, IScrapeService scrapeService, OperationCoordinator operationCoordinator, ImageDisplayCoordinator imageDisplayCoordinator)
+    public MainWindow(ILogger<MainWindow> logger, IScrapeConfigurationFileService scrapeConfigurationFileService, IScrapeConfigurationCatalogue scrapeConfigurationCatalogue, IScrapeService scrapeService, OperationCoordinator operationCoordinator, ImageDisplayCoordinator imageDisplayCoordinator)
     {
         InitializeComponent();
         this.scrapeConfigurationFileService = scrapeConfigurationFileService;
+        this.scrapeConfigurationCatalogue = scrapeConfigurationCatalogue;
         this.scrapeService = scrapeService;
         this.logger = logger;
         this.operationCoordinator = operationCoordinator;
         operationCoordinator.StateChanged += (_, _) => UpdateOperationControls();
         imageDisplayCoordinator.ImageReady += (_, preview) => Dispatcher.UIThread.Post(() => DisplayImage(preview));
         Closed += (_, _) => Dispose();
-        Loaded += async (_, _) => await CheckRootDirectoryAvailabilityAsync();
+        Loaded += async (_, _) =>
+        {
+            await CheckRootDirectoryAvailabilityAsync();
+            await RefreshConfigurationPickerAsync();
+        };
         UpdateOperationControls();
     }
 
     public static MainWindow CreateStartupError(Exception exception)
     {
         // operationCoordinator/imageDisplayCoordinator must be non-null: the constructor subscribes to their events
-        var window = new MainWindow(NullLogger<MainWindow>.Instance, null!, null!, new OperationCoordinator(), new ImageDisplayCoordinator(new ImageDownloadNotifier(), new DownloadedImageDecoder(new RealFileSystem())));
+        var window = new MainWindow(NullLogger<MainWindow>.Instance, null!, null!, null!, new OperationCoordinator(), new ImageDisplayCoordinator(new ImageDownloadNotifier(), new DownloadedImageDecoder(new RealFileSystem())));
         window.AppendStatusMessage($"Startup failed: {exception.GetType().Name}: {exception.Message}");
 
         return window;
@@ -60,6 +68,7 @@ public partial class MainWindow : Window, IDisposable
                 _ => "Scrape configuration imported.",
                 () => "Scrape configuration import could not be completed.");
             SetStatusText(message);
+            await RefreshConfigurationPickerAsync();
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -98,6 +107,36 @@ public partial class MainWindow : Window, IDisposable
         {
             operationCoordinator.Complete();
         }
+    }
+
+    public void ConfigurationSelected(object? sender, SelectionChangedEventArgs eventArgs) => UpdateOperationControls();
+
+    public async void EditConfiguration(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (ConfigurationPicker.SelectedItem is not ScrapeConfigurationSummary summary) return;
+
+        var found = await scrapeConfigurationCatalogue.FindAsync(summary.Id);
+        var configuration = found.Match(option => option, exception =>
+        {
+            LogError("Unable to load scrape configuration.", exception);
+
+            return Option.None<ScrapeConfigurationEntity>();
+        });
+
+        _ = await configuration.MatchAsync(
+            async entity =>
+            {
+                var saved = await new ConfigurationEditorWindow(entity).ShowDialog<bool>(this);
+                if (saved) await RefreshConfigurationPickerAsync();
+
+                return Unit.Instance;
+            },
+            () =>
+            {
+                AppendStatusMessage("The selected scrape configuration could not be found.");
+
+                return Task.FromResult(Unit.Instance);
+            });
     }
 
     public async void RunScraper(object? sender, RoutedEventArgs eventArgs)
@@ -157,8 +196,26 @@ public partial class MainWindow : Window, IDisposable
         var isOperationRunning = operationCoordinator.IsOperationRunning;
         ImportConfigurationMenuItem.IsEnabled = !isOperationRunning;
         ExportConfigurationMenuItem.IsEnabled = !isOperationRunning;
+        ConfigurationPicker.IsEnabled = !isOperationRunning;
+        EditConfigurationButton.IsEnabled = !isOperationRunning && ConfigurationPicker.SelectedItem is ScrapeConfigurationSummary;
         RunScraperButton.IsEnabled = !isOperationRunning && isRootDirectoryAvailable;
         CancelButton.IsEnabled = isOperationRunning;
+    }
+
+    private async Task RefreshConfigurationPickerAsync()
+    {
+        if (scrapeConfigurationCatalogue is null) return;
+
+        var selectedId = (ConfigurationPicker.SelectedItem as ScrapeConfigurationSummary)?.Id;
+        var summaries = (await scrapeConfigurationCatalogue.ListAsync()).Match(list => list, exception =>
+        {
+            LogError("Unable to list scrape configurations.", exception);
+
+            return [];
+        });
+        ConfigurationPicker.ItemsSource = summaries;
+        ConfigurationPicker.SelectedItem = summaries.FirstOrDefault(summary => summary.Id == selectedId) ?? (summaries.Count > 0 ? summaries[0] : null);
+        UpdateOperationControls();
     }
 
     private async Task CheckRootDirectoryAvailabilityAsync()
