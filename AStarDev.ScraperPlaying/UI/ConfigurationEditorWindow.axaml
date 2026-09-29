@@ -19,7 +19,9 @@
       <TabItem x:Name="UserTab" Header="User">
         <ui:UserSettingsEditor x:Name="UserTabContent" />
       </TabItem>
-      <TabItem x:Name="DirectoriesTab" Header="Directories" />
+      <TabItem x:Name="DirectoriesTab" Header="Directories">
+        <ui:DirectorySettingsEditor x:Name="DirectoriesTabContent" />
+      </TabItem>
       <TabItem x:Name="SearchTab" Header="Search" />
       <TabItem x:Name="SearchCategoriesTab" Header="Search categories" />
       <TabItem x:Name="PersonCategoriesTab" Header="Person categories" />
