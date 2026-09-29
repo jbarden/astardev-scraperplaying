@@ -19,6 +19,7 @@
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 		<PackageReleaseNotes>
+        v0.2.5 fix: report a diagnostic for generic options types (#249)
         v0.2.4 chore: promote IDE0290 to warning
         v0.2.3 chore: promote IDE0011 to warning
         v0.2.2 test: complete StrongType rename and fill SourceGenerators test gaps
