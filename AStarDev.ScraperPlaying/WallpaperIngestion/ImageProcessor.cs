@@ -7,13 +7,11 @@ using AStarDev.Utilities;
 namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 
 /// <inheritdoc/>
-public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, Func<TimeSpan> pacingDelay, IImageDownloadNotifier imageDownloadNotifier) : IImageProcessor
+public class ImageProcessor(Func<DateTimeOffset> clock, IFileSystem fileSystem, IImageDownloadNotifier imageDownloadNotifier) : IImageProcessor
 {
     /// <inheritdoc/>
     public async Task DownloadImageAsync(WallpaperFileRequest request, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
     {
-        await Task.Delay(pacingDelay(), cancellationToken);
-
         using var httpRequest = new HttpRequestMessage(HttpMethod.Get, request.Wallpaper.Path);
 
         using var response = await client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);

@@ -9,7 +9,7 @@ using AStarDev.Utilities;
 namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 
 /// <inheritdoc/>
-public class WallpaperIngestionService(IFilesQuery filesQuery, IImageProcessor imageProcessor, ITagsProcessor tagsProcessor, Func<TimeSpan> pacingDelay) : IWallpaperIngestionService
+public class WallpaperIngestionService(IFilesQuery filesQuery, IImageProcessor imageProcessor, ITagsProcessor tagsProcessor) : IWallpaperIngestionService
 {
     /// <inheritdoc/>
     public async Task IngestAsync(Data wallpaper, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
@@ -35,7 +35,6 @@ public class WallpaperIngestionService(IFilesQuery filesQuery, IImageProcessor i
 
                     await imageProcessor.DownloadImageAsync(fileRequest, progress, context.Client, cancellationToken);
                     progress.Report($"Downloaded image data for wallpaper {wallpaper.Id}");
-                    await Task.Delay(pacingDelay(), cancellationToken);
 
                     var fileEntity = (await imageProcessor.ProcessTheImageAsync(context.FileRepository, fileRequest, cancellationToken))
                         .Match(entity => entity, ex => throw ex);
@@ -73,8 +72,6 @@ public class WallpaperIngestionService(IFilesQuery filesQuery, IImageProcessor i
 
     private async Task<IReadOnlyList<Tag>> FetchTagsAsync(string wallpaperId, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
     {
-        await Task.Delay(pacingDelay(), cancellationToken);
-
         return (await tagsProcessor.FetchTagsAsync(wallpaperId, client, progress, cancellationToken))
             .Match(
                 tags => tags,

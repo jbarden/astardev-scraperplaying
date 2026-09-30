@@ -22,7 +22,7 @@ public sealed class GivenAPagesProcessor
     public GivenAPagesProcessor()
     {
         fileRepository = unitOfWork.Register<FileEntity, FileId>();
-        processor = new(httpClientFactory, unitOfWork, jsonResponseProcessor, new FakeSaveDirectoryResolver(), wallpaperIngestionService, () => TimeSpan.FromMilliseconds(1));
+        processor = new(httpClientFactory, unitOfWork, jsonResponseProcessor, new FakeSaveDirectoryResolver(), wallpaperIngestionService);
     }
 
     [Fact]

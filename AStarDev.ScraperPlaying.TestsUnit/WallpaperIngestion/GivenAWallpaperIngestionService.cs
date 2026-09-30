@@ -19,7 +19,7 @@ public sealed class GivenAWallpaperIngestionService
     private readonly WallpaperIngestionService service;
 
     public GivenAWallpaperIngestionService() =>
-        service = new(filesQuery, imageProcessor, tagsProcessor, () => TimeSpan.FromMilliseconds(1));
+        service = new(filesQuery, imageProcessor, tagsProcessor);
 
     [Fact]
     public async Task when_a_wallpaper_already_exists_then_it_is_skipped_and_not_downloaded()
