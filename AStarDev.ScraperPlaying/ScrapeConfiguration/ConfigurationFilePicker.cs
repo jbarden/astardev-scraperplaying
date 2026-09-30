@@ -12,7 +12,7 @@ public sealed class ConfigurationFilePicker : IConfigurationFilePicker
         {
             AllowMultiple = false,
             Title = "Import scrape configuration",
-            FileTypeFilter = [new FilePickerFileType("JSON configuration") { Patterns = ["*.json"] }]
+            FileTypeFilter = GetFilePickerFileTypes()
         });
 
         return files.Count == 0 ? Option.None<string>() : Option.Some(files[0].Path.LocalPath);
@@ -25,9 +25,11 @@ public sealed class ConfigurationFilePicker : IConfigurationFilePicker
             Title = "Export scrape configuration",
             SuggestedFileName = "scrape-configuration.json",
             DefaultExtension = "json",
-            FileTypeChoices = [new FilePickerFileType("JSON configuration") { Patterns = ["*.json"] }]
+            FileTypeChoices = GetFilePickerFileTypes()
         });
 
         return file is null ? Option.None<string>() : Option.Some(file.Path.LocalPath);
     }
+
+    private static IReadOnlyList<FilePickerFileType> GetFilePickerFileTypes() => [new FilePickerFileType("JSON configuration") { Patterns = ["*.json"] }];
 }
