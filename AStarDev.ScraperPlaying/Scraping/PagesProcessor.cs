@@ -8,12 +8,12 @@ using Microsoft.EntityFrameworkCore;
 namespace AStarDev.ScraperPlaying.Scraping;
 
 /// <inheritdoc/>
-public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork unitOfWork, IJsonResponseProcessor jsonResponseProcessor, ISaveDirectoryResolver saveDirectoryResolver, IWallpaperIngestionService wallpaperIngestionService) : IPagesProcessor
+public class PagesProcessor(IWallhavenClientFactory clientFactory, IWallhavenPageFetcher pageFetcher, IUnitOfWork unitOfWork, ISaveDirectoryResolver saveDirectoryResolver, IWallpaperIngestionService wallpaperIngestionService, ScrapeLimits limits) : IPagesProcessor
 {
     /// <inheritdoc/>
     public async Task FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Func<int, Uri> pageUrlFactory, WallhavenConnection connection, IReadOnlyList<string> personCategories, IProgress<string> progress, CancellationToken cancellationToken)
     {
-        var client = CreateHttpClient(connection);
+        var client = clientFactory.Create(connection);
         try
         {
             var page = 1;
@@ -24,13 +24,13 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
             SearchResponse pageResult;
             do
             {
-                pageResult = await FetchPageAsync(logLabel, pageUrlFactory, page, client, progress, cancellationToken);
+                pageResult = await pageFetcher.FetchPageAsync(logLabel, pageUrlFactory(page), page, client, progress, cancellationToken);
 
                 await wallpaperIngestionService.IngestPageAsync(pageResult.Data, ingestionContext, progress, cancellationToken);
 
                 _ = await unitOfWork.SaveChangesAsync(cancellationToken);
                 page++;
-            } while (page <= pageResult.Meta.LastPage && page <= 4);
+            } while (page <= pageResult.Meta.LastPage && page <= limits.MaximumPagesPerSearch);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -57,25 +57,4 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
             progress.Report($"Scrape cancelled - failed to save wallpapers downloaded so far this page: {ex.Message}");
         }
     }
-
-    private async Task<SearchResponse> FetchPageAsync(string logLabel, Func<int, Uri> pageUrlFactory, int page, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
-    {
-        progress.Report($"Fetching {logLabel} page {page}.");
-
-        return (await jsonResponseProcessor.GetFromJsonAsync<SearchResponse>(pageUrlFactory(page), client, cancellationToken))
-            .Match(
-                option => option.Match(value => value, () => throw new InvalidOperationException($"No response body received for {pageUrlFactory(page)}.")),
-                exception => throw exception);
-    }
-
-    private HttpClient CreateHttpClient(WallhavenConnection connection)
-    {
-        var httpClient = httpClientFactory.CreateClient(ApplicationConstants.WallhavenHttpClientName);
-        httpClient.BaseAddress = connection.BaseUrl;
-        httpClient.DefaultRequestHeaders.Add("X-API-Key", connection.ApiKey);
-        httpClient.DefaultRequestHeaders.Referrer = connection.BaseUrl;
-
-        return httpClient;
-    }
 }
-
