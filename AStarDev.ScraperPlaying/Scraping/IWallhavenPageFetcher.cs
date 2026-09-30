@@ -1,0 +1,17 @@
+using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
+
+namespace AStarDev.ScraperPlaying.Scraping;
+
+/// <summary>Fetches one page of Wallhaven search results.</summary>
+public interface IWallhavenPageFetcher
+{
+    /// <summary>Fetches a page of search results, reporting that it is doing so.</summary>
+    /// <param name="logLabel">A label describing the search, used in the progress message.</param>
+    /// <param name="pageUrl">The URL of the page.</param>
+    /// <param name="page">The page number, used in the progress message.</param>
+    /// <param name="client">The client to fetch with.</param>
+    /// <param name="progress">The progress reporter to report the fetch.</param>
+    /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
+    /// <exception cref="InvalidOperationException">The response had no body.</exception>
+    Task<SearchResponse> FetchPageAsync(string logLabel, Uri pageUrl, int page, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken);
+}

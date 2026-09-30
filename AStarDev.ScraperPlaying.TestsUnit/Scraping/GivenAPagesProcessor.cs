@@ -11,7 +11,6 @@ namespace AStarDev.ScraperPlaying.TestsUnit.Scraping;
 public sealed class GivenAPagesProcessor
 {
     private static readonly string[] personCategories = ["Celebrities"];
-    private readonly FakeHttpClientFactory httpClientFactory = new();
     private readonly FakeUnitOfWork unitOfWork = new();
     private readonly FakeRepository<FileEntity, FileId> fileRepository;
     private readonly FakeJsonResponseProcessor jsonResponseProcessor = new();
@@ -22,7 +21,7 @@ public sealed class GivenAPagesProcessor
     public GivenAPagesProcessor()
     {
         fileRepository = unitOfWork.Register<FileEntity, FileId>();
-        processor = new(httpClientFactory, unitOfWork, jsonResponseProcessor, new FakeSaveDirectoryResolver(), wallpaperIngestionService);
+        processor = new(new FakeClientFactory(), new FakePageFetcher(jsonResponseProcessor), unitOfWork, new FakeSaveDirectoryResolver(), wallpaperIngestionService, ScrapeLimits.Default);
     }
 
     [Fact]
@@ -111,6 +110,17 @@ public sealed class GivenAPagesProcessor
     }
 
     [Fact]
+    public async Task when_the_page_limit_is_lower_than_the_reported_last_page_then_paging_stops_at_the_limit()
+    {
+        SetUpPage(page: null, CreateSearchResponse(lastPage: 10));
+        var limitedProcessor = new PagesProcessor(new FakeClientFactory(), new FakePageFetcher(jsonResponseProcessor), unitOfWork, new FakeSaveDirectoryResolver(), wallpaperIngestionService, new ScrapeLimits(3, 2));
+
+        await limitedProcessor.FetchAndProcessPagesAsync("wallpapers", Option.None<string>(), page => new Uri($"https://example.test/page/{page}"), new WallhavenConnection("api-key", new Uri("https://example.test")), personCategories, progress, CancellationToken.None);
+
+        (unitOfWork.SaveCount, progress.Messages.Any(message => message.Contains("page 3", StringComparison.Ordinal))).ShouldBe((2, false));
+    }
+
+    [Fact]
     public async Task when_ingesting_a_wallpaper_is_cancelled_mid_page_then_the_partial_page_is_saved_before_the_cancellation_propagates()
     {
         var wallpaper = CreateWallpaper("wallpaper-cancelled");
@@ -194,9 +204,19 @@ public sealed class GivenAPagesProcessor
     private static Data CreateWallpaper(string id, string path = "")
         => new(id, 0, 0, 0, "", path);
 
-    private sealed class FakeHttpClientFactory : IHttpClientFactory
+    private sealed class FakeClientFactory : IWallhavenClientFactory
     {
-        public HttpClient CreateClient(string name) => new();
+        public HttpClient Create(WallhavenConnection connection) => new();
+    }
+
+    private sealed class FakePageFetcher(FakeJsonResponseProcessor jsonResponseProcessor) : IWallhavenPageFetcher
+    {
+        public Task<SearchResponse> FetchPageAsync(string logLabel, Uri pageUrl, int page, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
+        {
+            progress.Report($"Fetching {logLabel} page {page}.");
+
+            return Task.FromResult(jsonResponseProcessor.Fetch(pageUrl));
+        }
     }
 
     private sealed class FakeSaveDirectoryResolver : ISaveDirectoryResolver
@@ -215,6 +235,15 @@ public sealed class GivenAPagesProcessor
             Exceptional<Option<SearchResponse>> result = PageResponses.TryGetValue(url, out var page) ? (Option<SearchResponse>)page : Response;
 
             return Task.FromResult((Exceptional<Option<T>>)(object)result);
+        }
+
+        public SearchResponse Fetch(Uri url)
+        {
+            Exceptional<Option<SearchResponse>> result = PageResponses.TryGetValue(url, out var page) ? (Option<SearchResponse>)page : Response;
+
+            return result.Match(
+                option => option.Match(value => value, () => throw new InvalidOperationException($"No response body received for {url}.")),
+                exception => throw exception);
         }
     }
 
