@@ -1,5 +1,6 @@
 using System.IO.Abstractions;
-using AStarDev.ControlDb;
+using AStarDev.ControlDb.ScrapeConfiguration;
+using AStarDev.FunctionalParadigm;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
@@ -11,8 +12,11 @@ public sealed class RootDirectoryCheck(IServiceScopeFactory scopeFactory, IFileS
     public async Task<bool> ExistsAsync()
     {
         using var scope = scopeFactory.CreateScope();
-        var configuration = await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().LoadScrapeConfigurationAsync();
+        var rootDirectory = (await scope.ServiceProvider.GetRequiredService<IScrapeConfigurationLookup>().TryGetRootDirectoryAsync())
+            .Match(
+                option => option.Match(directory => directory, () => throw new InvalidOperationException("Scrape configuration not found")),
+                exception => throw exception);
 
-        return fileSystem.Directory.Exists(configuration.ScrapeDirectories.RootDirectory);
+        return fileSystem.Directory.Exists(rootDirectory);
     }
 }

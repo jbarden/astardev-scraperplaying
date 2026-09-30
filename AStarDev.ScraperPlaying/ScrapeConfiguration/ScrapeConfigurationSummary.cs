@@ -11,11 +11,16 @@ public sealed record ScrapeConfigurationSummary(ScrapeConfigurationId Id, string
     /// <param name="entity">The scrape configuration to summarise.</param>
     /// <returns>The summary, labelled with the site host and, when set, the search term.</returns>
     public static ScrapeConfigurationSummary From(ScrapeConfigurationEntity entity)
-    {
-        var site = entity.BaseUrl.IsAbsoluteUri ? entity.BaseUrl.Host : entity.BaseUrl.OriginalString;
-        var searchTerm = entity.SearchConfiguration.SearchTerm;
+        => From(new ScrapeConfigurationHeader(entity.Id, entity.BaseUrl, entity.SearchConfiguration.SearchTerm));
 
-        return new ScrapeConfigurationSummary(entity.Id, string.IsNullOrWhiteSpace(searchTerm) ? site : $"{site} - {searchTerm}");
+    /// <summary>Creates a summary for the specified scrape configuration header.</summary>
+    /// <param name="header">The header to summarise.</param>
+    /// <returns>The summary, labelled with the site host and, when set, the search term.</returns>
+    public static ScrapeConfigurationSummary From(ScrapeConfigurationHeader header)
+    {
+        var site = header.BaseUrl.IsAbsoluteUri ? header.BaseUrl.Host : header.BaseUrl.OriginalString;
+
+        return new ScrapeConfigurationSummary(header.Id, string.IsNullOrWhiteSpace(header.SearchTerm) ? site : $"{site} - {header.SearchTerm}");
     }
 
     /// <inheritdoc/>

@@ -10,6 +10,7 @@ namespace AStarDev.ScraperPlaying.TestsUnit.ScrapeConfiguration;
 public sealed class GivenAScrapeConfigurationCatalogue : IDisposable
 {
     private readonly FakeRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> repository;
+    private readonly FakeScrapeConfigurationLookup lookup = new();
     private readonly ServiceProvider serviceProvider;
     private readonly ScrapeConfigurationCatalogue catalogue;
 
@@ -17,28 +18,27 @@ public sealed class GivenAScrapeConfigurationCatalogue : IDisposable
     {
         var unitOfWork = new FakeUnitOfWork();
         repository = unitOfWork.Register<ScrapeConfigurationEntity, ScrapeConfigurationId>();
-        serviceProvider = new ServiceCollection().AddScoped<IUnitOfWork>(_ => unitOfWork).BuildServiceProvider();
+        serviceProvider = new ServiceCollection().AddScoped<IUnitOfWork>(_ => unitOfWork).AddScoped<IScrapeConfigurationLookup>(_ => lookup).BuildServiceProvider();
         catalogue = new ScrapeConfigurationCatalogue(serviceProvider.GetRequiredService<IServiceScopeFactory>());
     }
 
     [Fact]
     public async Task when_configurations_exist_then_a_summary_is_listed_for_each()
     {
-        var first = CreateEntity("cats");
-        var second = CreateEntity("dogs");
-        repository.All = Success<IEnumerable<ScrapeConfigurationEntity>>([first, second]);
+        var first = new ScrapeConfigurationHeader(new ScrapeConfigurationId(Guid.CreateVersion7()), new Uri("https://example.com"), "cats");
+        var second = new ScrapeConfigurationHeader(new ScrapeConfigurationId(Guid.CreateVersion7()), new Uri("https://example.com"), "dogs");
+        lookup.Headers = Exceptional.Success<IReadOnlyList<ScrapeConfigurationHeader>>([first, second]);
 
         var result = await catalogue.ListAsync();
 
         var summaries = result.Match(list => list, exception => throw exception);
-        summaries.Select(summary => summary.Id).ShouldBe([first.Id, second.Id]);
-        summaries.Select(summary => summary.Label).ShouldBe(["example.com - cats", "example.com - dogs"]);
+        (string.Join(",", summaries.Select(summary => summary.Id.Value)), string.Join(",", summaries.Select(summary => summary.Label))).ShouldBe(($"{first.Id.Value},{second.Id.Value}", "example.com - cats,example.com - dogs"));
     }
 
     [Fact]
     public async Task when_no_configurations_exist_then_the_list_is_empty()
     {
-        repository.All = Option<IEnumerable<ScrapeConfigurationEntity>>.None.Instance;
+        lookup.Headers = Exceptional.Success<IReadOnlyList<ScrapeConfigurationHeader>>([]);
 
         var result = await catalogue.ListAsync();
 
@@ -49,7 +49,7 @@ public sealed class GivenAScrapeConfigurationCatalogue : IDisposable
     public async Task when_listing_fails_then_the_failure_is_returned()
     {
         var failure = new InvalidOperationException("list failed");
-        repository.All = failure;
+        lookup.Headers = failure;
 
         var result = await catalogue.ListAsync();
 

@@ -17,6 +17,16 @@ public sealed class GivenAScrapeConfigurationSummary
     }
 
     [Fact]
+    public void when_a_header_is_summarised_then_the_label_is_host_and_term()
+    {
+        var header = new ScrapeConfigurationHeader(new ScrapeConfigurationId(Guid.CreateVersion7()), new Uri("https://wallhaven.cc"), "cats");
+
+        var summary = ScrapeConfigurationSummary.From(header);
+
+        (summary.Id, summary.Label).ShouldBe((header.Id, "wallhaven.cc - cats"));
+    }
+
+    [Fact]
     public void when_the_search_term_is_empty_then_the_label_is_the_host_only()
     {
         var summary = ScrapeConfigurationSummary.From(CreateEntity(new Uri("https://wallhaven.cc"), string.Empty));

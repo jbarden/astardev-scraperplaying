@@ -12,12 +12,12 @@ public sealed class ScrapeConfigurationCatalogue(IServiceScopeFactory scopeFacto
     public async Task<Exceptional<IReadOnlyList<ScrapeConfigurationSummary>>> ListAsync()
     {
         using var scope = scopeFactory.CreateScope();
-        var repository = scope.ServiceProvider.GetRequiredService<IUnitOfWork>().GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>();
+        var lookup = scope.ServiceProvider.GetRequiredService<IScrapeConfigurationLookup>();
 
-        var result = await repository.TryGetAllAsync();
+        var result = await lookup.ListHeadersAsync();
 
         return result.Match(
-            option => (Exceptional<IReadOnlyList<ScrapeConfigurationSummary>>)new Success<IReadOnlyList<ScrapeConfigurationSummary>>(Summarise(option)),
+            headers => (Exceptional<IReadOnlyList<ScrapeConfigurationSummary>>)new Success<IReadOnlyList<ScrapeConfigurationSummary>>([.. headers.Select(ScrapeConfigurationSummary.From)]),
             exception => exception);
     }
 
@@ -29,9 +29,4 @@ public sealed class ScrapeConfigurationCatalogue(IServiceScopeFactory scopeFacto
 
         return await repository.TryFindAsync(id);
     }
-
-    private static IReadOnlyList<ScrapeConfigurationSummary> Summarise(Option<IEnumerable<ScrapeConfigurationEntity>> option) =>
-        option.Match<IReadOnlyList<ScrapeConfigurationSummary>>(
-            entities => [.. entities.Select(ScrapeConfigurationSummary.From)],
-            () => []);
 }
