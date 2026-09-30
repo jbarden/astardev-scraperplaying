@@ -22,7 +22,7 @@ public sealed class GivenAnImageProcessor
     public GivenAnImageProcessor()
     {
         imageDownloadNotifier.ImageDownloaded += (_, details) => notifications.Add(details);
-        processor = new(() => now, fileSystem, () => TimeSpan.FromMilliseconds(1), imageDownloadNotifier);
+        processor = new(() => now, fileSystem, imageDownloadNotifier);
     }
 
     [Fact]

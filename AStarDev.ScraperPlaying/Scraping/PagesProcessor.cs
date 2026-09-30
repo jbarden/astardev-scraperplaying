@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AStarDev.ScraperPlaying.Scraping;
 
 /// <inheritdoc/>
-public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork unitOfWork, IJsonResponseProcessor jsonResponseProcessor, ISaveDirectoryResolver saveDirectoryResolver, IWallpaperIngestionService wallpaperIngestionService, Func<TimeSpan> pacingDelay) : IPagesProcessor
+public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork unitOfWork, IJsonResponseProcessor jsonResponseProcessor, ISaveDirectoryResolver saveDirectoryResolver, IWallpaperIngestionService wallpaperIngestionService) : IPagesProcessor
 {
     /// <inheritdoc/>
     public async Task FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Func<int, Uri> pageUrlFactory, WallhavenConnection connection, IReadOnlyList<string> personCategories, IProgress<string> progress, CancellationToken cancellationToken)
@@ -22,11 +22,9 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
             var categoryLabel = categoryName.Match(name => name, () => "Top Wallpapers");
             var ingestionContext = new WallpaperIngestionContext(directory, client, fileRepository, categoryLabel, personCategories);
             SearchResponse pageResult;
-            await Task.Delay(pacingDelay(), cancellationToken);
             do
             {
                 pageResult = await FetchPageAsync(logLabel, pageUrlFactory, page, client, progress, cancellationToken);
-                await Task.Delay(pacingDelay(), cancellationToken);
 
                 foreach (var wallpaper in pageResult.Data)
                 {
@@ -34,7 +32,6 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
                 }
 
                 _ = await unitOfWork.SaveChangesAsync(cancellationToken);
-                await Task.Delay(pacingDelay(), cancellationToken);
                 page++;
             } while (page <= pageResult.Meta.LastPage && page <= 4);
         }
