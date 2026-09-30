@@ -22,8 +22,8 @@ public sealed class GivenAWallpaperIngestionServiceWithPersonTags
 
     public GivenAWallpaperIngestionServiceWithPersonTags()
     {
-        var imageProcessor = new ImageProcessor(() => DateTimeOffset.UnixEpoch, fileSystem, new ImageDownloadNotifier());
-        service = new(filesQuery, imageProcessor, tagsProcessor);
+        var newWallpaperIngestor = new NewWallpaperIngestor(tagsProcessor, new ImageDownloader(fileSystem), new WallpaperFileRecorder(() => DateTimeOffset.UnixEpoch), new ImageDownloadNotifier());
+        service = new(filesQuery, newWallpaperIngestor);
     }
 
     [Fact]
