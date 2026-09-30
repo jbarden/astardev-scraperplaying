@@ -1,0 +1,86 @@
+using AStarDev.ControlDb.ScrapeConfiguration;
+using AStarDev.FunctionalParadigm;
+using AStarDev.ScraperPlaying.ScrapeConfiguration;
+using AStarDev.ScraperPlaying.UI;
+using Microsoft.Extensions.Logging.Abstractions;
+using Testably.Abstractions.Testing;
+
+namespace AStarDev.ScraperPlaying.TestsUnit.UI;
+
+public sealed class GivenAConfigurationBrowser
+{
+    private static readonly ScrapeConfigurationSummary Summary = new(new ScrapeConfigurationId(Guid.CreateVersion7()), "wallhaven.cc");
+    private readonly FakeCatalogue catalogue = new();
+    private readonly StatusReporter status = new(NullLogger<StatusReporter>.Instance);
+    private readonly ConfigurationBrowser browser;
+
+    public GivenAConfigurationBrowser() => browser = new(catalogue, new FakeUpdater(), new MockFileSystem(), status);
+
+    [Fact]
+    public async Task when_the_configurations_are_listed_then_the_summaries_are_returned_without_any_status()
+    {
+        catalogue.Summaries = Exceptional.Success<IReadOnlyList<ScrapeConfigurationSummary>>([Summary]);
+
+        var summaries = await browser.ListAsync();
+
+        (summaries.Single(), status.Text).ShouldBe((Summary, string.Empty));
+    }
+
+    [Fact]
+    public async Task when_listing_the_configurations_fails_then_none_are_returned_and_the_failure_is_reported()
+    {
+        catalogue.Summaries = new InvalidOperationException("list failed");
+
+        var summaries = await browser.ListAsync();
+
+        (summaries.Count, status.Text).ShouldBe((0, "Unable to list scrape configurations. list failed"));
+    }
+
+    [Fact]
+    public async Task when_a_configuration_is_found_then_it_is_returned_without_any_status()
+    {
+        var entity = new ScrapeConfigurationEntity(Summary.Id);
+        catalogue.Found = Exceptional.Success(Option.Some(entity));
+
+        var found = await browser.FindAsync(Summary);
+
+        (found is Option<ScrapeConfigurationEntity>.Some some && ReferenceEquals(some.Value, entity), status.Text).ShouldBe((true, string.Empty));
+    }
+
+    [Fact]
+    public async Task when_the_configuration_no_longer_exists_then_none_is_returned_and_the_user_is_told()
+    {
+        catalogue.Found = Exceptional.Success(Option.None<ScrapeConfigurationEntity>());
+
+        var found = await browser.FindAsync(Summary);
+
+        (found is Option<ScrapeConfigurationEntity>.None, status.Text).ShouldBe((true, "The selected scrape configuration could not be found."));
+    }
+
+    [Fact]
+    public async Task when_loading_the_configuration_fails_then_none_is_returned_and_the_failure_is_reported()
+    {
+        catalogue.Found = new InvalidOperationException("load failed");
+
+        var found = await browser.FindAsync(Summary);
+
+        (found is Option<ScrapeConfigurationEntity>.None, status.Text).ShouldBe((true, "Unable to load scrape configuration. load failed"));
+    }
+
+    private sealed class FakeUpdater : IScrapeConfigurationUpdater
+    {
+        public Task<Exceptional<Option<Unit>>> SaveAsync(ScrapeConfigurationId id, IReadOnlyList<IScrapeConfigurationSectionEdit> edits, CancellationToken cancellationToken)
+            => Task.FromResult(Exceptional.Success(Option.Some(Unit.Instance)));
+    }
+
+    private sealed class FakeCatalogue : IScrapeConfigurationCatalogue
+    {
+        public Exceptional<IReadOnlyList<ScrapeConfigurationSummary>> Summaries { get; set; } = Exceptional.Success<IReadOnlyList<ScrapeConfigurationSummary>>([]);
+
+        public Exceptional<Option<ScrapeConfigurationEntity>> Found { get; set; } = Exceptional.Success(Option.None<ScrapeConfigurationEntity>());
+
+        public Task<Exceptional<IReadOnlyList<ScrapeConfigurationSummary>>> ListAsync() => Task.FromResult(Summaries);
+
+        public Task<Exceptional<Option<ScrapeConfigurationEntity>>> FindAsync(ScrapeConfigurationId id) => Task.FromResult(Found);
+    }
+}

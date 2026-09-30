@@ -1,164 +1,68 @@
-using System.Diagnostics.CodeAnalysis;
-using System.IO.Abstractions;
-using System.Text.Json;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
-using AStarDev.ScraperPlaying.Scraping;
-using AStarDev.ScraperPlaying.Startup;
-using AStarDev.ScraperPlaying.WallpaperIngestion;
-using AStarDev.Utilities;
 using Avalonia.Controls;
-using Avalonia.Media.Imaging;
-using Avalonia.Threading;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using Testably.Abstractions;
-using AStarDev.LoggingExtensions;
+using Avalonia.Threading;
 
 namespace AStarDev.ScraperPlaying.UI;
 
-public partial class MainWindow : Window, IDisposable
+/// <summary>
+/// The application's main window. It only translates between controls and the collaborators that hold the logic: the status
+/// reporter, readiness, operation runner, configuration browser and scrape runner.
+/// </summary>
+public partial class MainWindow : Window
 {
-    private const int MaximumStatusMessages = 100;
-    private readonly StatusMessageLog statusMessageLog = new(MaximumStatusMessages);
     private readonly IScrapeConfigurationFileService scrapeConfigurationFileService;
-    private readonly IScrapeConfigurationCatalogue scrapeConfigurationCatalogue;
-    private readonly IScrapeConfigurationUpdater scrapeConfigurationUpdater;
-    private readonly IFileSystem fileSystem;
-    private readonly IScrapeService scrapeService;
-    private readonly ILogger<MainWindow> logger;
-    private readonly OperationCoordinator operationCoordinator;
-    private bool isDisposing;
-    private bool isDatabaseReady;
-    private bool isRootDirectoryAvailable = true;
-    private readonly ImageDisplayCoordinator imageDisplayCoordinator;
-    private readonly DatabaseInitialization databaseInitialization;
+    private readonly StatusReporter status;
+    private readonly ApplicationReadiness readiness;
+    private readonly UserOperationRunner operations;
+    private readonly ConfigurationBrowser configurationBrowser;
+    private readonly ScrapeRunner scrapeRunner;
 
-    public MainWindow(ILogger<MainWindow> logger, IScrapeConfigurationFileService scrapeConfigurationFileService, IScrapeConfigurationCatalogue scrapeConfigurationCatalogue, IScrapeConfigurationUpdater scrapeConfigurationUpdater, IFileSystem fileSystem, IScrapeService scrapeService, OperationCoordinator operationCoordinator, ImageDisplayCoordinator imageDisplayCoordinator, DatabaseInitialization databaseInitialization)
+    public MainWindow(StatusReporter status, ApplicationReadiness readiness, UserOperationRunner operations, ConfigurationBrowser configurationBrowser, ScrapeRunner scrapeRunner, IScrapeConfigurationFileService scrapeConfigurationFileService, ImageDisplayCoordinator imageDisplayCoordinator)
     {
         InitializeComponent();
+        this.status = status;
+        this.readiness = readiness;
+        this.operations = operations;
+        this.configurationBrowser = configurationBrowser;
+        this.scrapeRunner = scrapeRunner;
         this.scrapeConfigurationFileService = scrapeConfigurationFileService;
-        this.scrapeConfigurationCatalogue = scrapeConfigurationCatalogue;
-        this.scrapeConfigurationUpdater = scrapeConfigurationUpdater;
-        this.fileSystem = fileSystem;
-        this.scrapeService = scrapeService;
-        this.logger = logger;
-        this.operationCoordinator = operationCoordinator;
-        this.imageDisplayCoordinator = imageDisplayCoordinator;
-        this.databaseInitialization = databaseInitialization;
-        operationCoordinator.StateChanged += (_, _) => UpdateOperationControls();
-        imageDisplayCoordinator.ImageReady += (_, preview) => Dispatcher.UIThread.Post(() => DisplayImage(preview));
-        Closed += (_, _) => Dispose();
+        status.RefreshRequired += (_, _) => Dispatcher.UIThread.Post(RefreshStatusText);
+        readiness.Changed += (_, _) => Dispatcher.UIThread.Post(UpdateControls);
+        ImagePreview.Attach(imageDisplayCoordinator);
         Loaded += async (_, _) => await InitialiseAsync();
-        UpdateOperationControls();
+        UpdateControls();
     }
 
-    public static MainWindow CreateStartupError(Exception exception)
-    {
-        // operationCoordinator/imageDisplayCoordinator must be non-null: the constructor subscribes to their events
-        var window = new MainWindow(NullLogger<MainWindow>.Instance, null!, null!, null!, null!, null!, new OperationCoordinator(), new ImageDisplayCoordinator(new ImageDownloadNotifier(), new DownloadedImageDecoder(new RealFileSystem())), null!);
-        window.AppendStatusMessage($"Startup failed: {exception.GetType().Name}: {exception.Message}");
-
-        return window;
-    }
-
-    public async void ImportConfiguration(object? sender, RoutedEventArgs eventArgs)
-    {
-        if (!operationCoordinator.TryStart(out var cancellationToken)) return;
-
-        try
+    public async void ImportConfiguration(object? sender, RoutedEventArgs eventArgs) =>
+        await operations.RunAsync("Scrape configuration import cancelled.", "Unable to import scrape configuration.", async cancellationToken =>
         {
-            var message = (await scrapeConfigurationFileService.ImportViaPickerAsync(this, cancellationToken)).Match(
-                _ => "Scrape configuration imported.",
-                () => "Scrape configuration import could not be completed.");
-            SetStatusText(message);
+            status.Append(ConfigurationTransferMessages.ForImport(await scrapeConfigurationFileService.ImportViaPickerAsync(this, cancellationToken)));
             await RefreshConfigurationPickerAsync();
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            AppendStatusMessage("Scrape configuration import cancelled.");
-        }
-        catch (Exception exception) when (exception is IOException or JsonException or InvalidOperationException)
-        {
-            LogError("Unable to import scrape configuration.", exception);
-        }
-        finally
-        {
-            operationCoordinator.Complete();
-        }
-    }
+        });
 
-    public async void ExportConfiguration(object? sender, RoutedEventArgs eventArgs)
-    {
-        if (!operationCoordinator.TryStart(out var cancellationToken)) return;
+    public async void ExportConfiguration(object? sender, RoutedEventArgs eventArgs) =>
+        await operations.RunAsync("Scrape configuration export cancelled.", "Unable to export scrape configuration.", async cancellationToken =>
+            status.Append(ConfigurationTransferMessages.ForExport(await scrapeConfigurationFileService.ExportViaPickerAsync(this, cancellationToken))));
 
-        try
-        {
-            var message = (await scrapeConfigurationFileService.ExportViaPickerAsync(this, cancellationToken)).Match(
-                exported => exported ? "Scrape configuration exported." : "No scrape configuration was found to export.",
-                () => "Scrape configuration export could not be completed.");
-            SetStatusText(message);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            AppendStatusMessage("Scrape configuration export cancelled.");
-        }
-        catch (Exception exception) when (exception is IOException or InvalidOperationException)
-        {
-            LogError("Unable to export scrape configuration.", exception);
-        }
-        finally
-        {
-            operationCoordinator.Complete();
-        }
-    }
-
-    public void ConfigurationSelected(object? sender, SelectionChangedEventArgs eventArgs) => UpdateOperationControls();
+    public void ConfigurationSelected(object? sender, SelectionChangedEventArgs eventArgs) => UpdateControls();
 
     public async void EditConfiguration(object? sender, RoutedEventArgs eventArgs)
     {
         if (ConfigurationPicker.SelectedItem is not ScrapeConfigurationSummary summary) return;
 
-        var found = await scrapeConfigurationCatalogue.FindAsync(summary.Id);
-        var configuration = found.Match(option => option, exception =>
-        {
-            LogError("Unable to load scrape configuration.", exception);
+        if (await configurationBrowser.FindAsync(summary) is not Option<ScrapeConfigurationEntity>.Some found) return;
 
-            return Option.None<ScrapeConfigurationEntity>();
-        });
-
-        _ = await configuration.MatchAsync(
-            async entity =>
-            {
-                var saved = await new ConfigurationEditorWindow(entity, scrapeConfigurationUpdater, fileSystem).ShowDialog<bool>(this);
-                if (saved) await RefreshConfigurationPickerAsync();
-
-                return Unit.Instance;
-            },
-            () =>
-            {
-                AppendStatusMessage("The selected scrape configuration could not be found.");
-
-                return Task.FromResult(Unit.Instance);
-            });
+        var saved = await configurationBrowser.CreateEditor(found.Value).ShowDialog<bool>(this);
+        if (saved) await RefreshConfigurationPickerAsync();
     }
 
-    public async void RunScraper(object? sender, RoutedEventArgs eventArgs)
-    {
-        var progress = new Progress<string>(AppendStatusMessage);
-        await scrapeService.RunScraperAsync(progress);
-    }
+    public async void RunScraper(object? sender, RoutedEventArgs eventArgs) => await scrapeRunner.RunAsync();
 
-    public void CancelOperation(object? sender, RoutedEventArgs eventArgs) => operationCoordinator.Cancel();
-
-    public void ToggleImageDisplay(object? sender, RoutedEventArgs eventArgs)
-    {
-        imageDisplayCoordinator.IsEnabled = ImageDisplayToggle.IsChecked == true;
-        if (!imageDisplayCoordinator.IsEnabled) ClearDisplayedImage();
-    }
+    public void CancelOperation(object? sender, RoutedEventArgs eventArgs) => operations.Cancel();
 
     public void Exit(object? sender, RoutedEventArgs eventArgs) => Close();
 
@@ -174,140 +78,33 @@ public partial class MainWindow : Window, IDisposable
         base.OnKeyDown(e);
     }
 
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (isDisposing) return;
-
-        if (disposing)
-        {
-            // NAR at the current time
-        }
-
-        isDisposing = true;
-    }
-
-    private void LogError(string message, Exception exception)
-    {
-        LogMessage.Error(logger, message, exception);
-        AppendStatusMessage($"{message} {exception.Message}");
-    }
-
-    private void UpdateOperationControls()
-    {
-        var isOperationRunning = operationCoordinator.IsOperationRunning;
-        var canOperate = !isOperationRunning && isDatabaseReady;
-        ImportConfigurationMenuItem.IsEnabled = canOperate;
-        ExportConfigurationMenuItem.IsEnabled = canOperate;
-        ConfigurationPicker.IsEnabled = canOperate;
-        EditConfigurationButton.IsEnabled = canOperate && ConfigurationPicker.SelectedItem is ScrapeConfigurationSummary;
-        RunScraperButton.IsEnabled = canOperate && isRootDirectoryAvailable;
-        CancelButton.IsEnabled = isOperationRunning;
-    }
-
-    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "The migration task can fail with any database or IO exception; every failure must be reported in the status log and leave the controls disabled rather than crash the window.")]
     private async Task InitialiseAsync()
     {
-        if (databaseInitialization is null) return;
-
-        AppendStatusMessage("Preparing the database.");
-        try
-        {
-            await databaseInitialization.ReadyAsync();
-        }
-        catch (Exception exception)
-        {
-            LogError("Unable to prepare the database.", exception);
-
-            return;
-        }
-
-        isDatabaseReady = true;
-        AppendStatusMessage("Database ready.");
-        await CheckRootDirectoryAvailabilityAsync();
-        await RefreshConfigurationPickerAsync();
+        if (await readiness.InitialiseAsync()) await RefreshConfigurationPickerAsync();
     }
 
     private async Task RefreshConfigurationPickerAsync()
     {
-        if (scrapeConfigurationCatalogue is null) return;
-
         var selectedId = (ConfigurationPicker.SelectedItem as ScrapeConfigurationSummary)?.Id;
-        var summaries = (await scrapeConfigurationCatalogue.ListAsync()).Match(list => list, exception =>
-        {
-            LogError("Unable to list scrape configurations.", exception);
-
-            return [];
-        });
+        var summaries = await configurationBrowser.ListAsync();
         ConfigurationPicker.ItemsSource = summaries;
         ConfigurationPicker.SelectedItem = summaries.FirstOrDefault(summary => summary.Id == selectedId) ?? (summaries.Count > 0 ? summaries[0] : null);
-        UpdateOperationControls();
+        UpdateControls();
     }
 
-    private async Task CheckRootDirectoryAvailabilityAsync()
+    private void UpdateControls()
     {
-        if (scrapeService is null) return;
-
-        isRootDirectoryAvailable = await scrapeService.RootDirectoryExistsAsync();
-        if (!isRootDirectoryAvailable)
-        {
-            AppendStatusMessage("Root directory could not be found.");
-        }
-
-        UpdateOperationControls();
-    }
-
-    private void DisplayImage(WallpaperPreviewImage preview)
-    {
-        if (!imageDisplayCoordinator.IsEnabled)
-        {
-            preview.PngStream.Dispose();
-
-            return;
-        }
-
-        var previousImage = DownloadedImage.Source;
-        using (preview.PngStream)
-        {
-            DownloadedImage.Source = new Bitmap(preview.PngStream);
-        }
-
-        (previousImage as IDisposable)?.Dispose();
-
-        ImageNameText.Text = preview.Name;
-        ImageCategoryText.Text = $"Category: {preview.CategoryLabel}";
-        ImageSizeText.Text = $"Size: {preview.FileSizeBytes.ToFileSizeString()}";
-        ImageDimensionsText.Text = $"Dimensions: {preview.Width} x {preview.Height}";
-        ImageDetailsPanel.IsVisible = true;
-    }
-
-    private void ClearDisplayedImage()
-    {
-        (DownloadedImage.Source as IDisposable)?.Dispose();
-        DownloadedImage.Source = null;
-        ImageDetailsPanel.IsVisible = false;
-        ImageNameText.Text = string.Empty;
-        ImageCategoryText.Text = string.Empty;
-        ImageSizeText.Text = string.Empty;
-        ImageDimensionsText.Text = string.Empty;
-    }
-
-    private void SetStatusText(string message) => Dispatcher.UIThread.Post(() => StatusTextBlock.Text = message);
-
-    private void AppendStatusMessage(string message)
-    {
-        if (statusMessageLog.Append(message)) Dispatcher.UIThread.Post(RefreshStatusText);
+        ImportConfigurationMenuItem.IsEnabled = readiness.CanOperate;
+        ExportConfigurationMenuItem.IsEnabled = readiness.CanOperate;
+        ConfigurationPicker.IsEnabled = readiness.CanOperate;
+        EditConfigurationButton.IsEnabled = readiness.CanOperate && ConfigurationPicker.SelectedItem is ScrapeConfigurationSummary;
+        RunScraperButton.IsEnabled = readiness.CanRunScraper;
+        CancelButton.IsEnabled = readiness.IsOperationRunning;
     }
 
     private void RefreshStatusText()
     {
-        StatusTextBlock.Text = statusMessageLog.Text;
+        StatusTextBlock.Text = status.Text;
         StatusScrollViewer.ScrollToEnd();
     }
 }
-
