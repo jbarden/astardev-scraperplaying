@@ -1,4 +1,3 @@
-using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
@@ -10,16 +9,14 @@ namespace AStarDev.ScraperPlaying.TestsUnit.ScrapeConfiguration;
 
 public sealed class GivenARootDirectoryCheck : IDisposable
 {
-    private readonly FakeUnitOfWork unitOfWork = new();
-    private readonly FakeRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> repository;
+    private readonly FakeScrapeConfigurationLookup lookup = new();
     private readonly MockFileSystem fileSystem = new();
     private readonly ServiceProvider serviceProvider;
     private readonly RootDirectoryCheck check;
 
     public GivenARootDirectoryCheck()
     {
-        repository = unitOfWork.Register<ScrapeConfigurationEntity, ScrapeConfigurationId>();
-        serviceProvider = new ServiceCollection().AddSingleton<IUnitOfWork>(unitOfWork).BuildServiceProvider();
+        serviceProvider = new ServiceCollection().AddScoped<IScrapeConfigurationLookup>(_ => lookup).BuildServiceProvider();
         check = new(serviceProvider.GetRequiredService<IServiceScopeFactory>(), fileSystem);
     }
 
@@ -29,7 +26,7 @@ public sealed class GivenARootDirectoryCheck : IDisposable
     public async Task when_the_root_directory_exists_on_disk_then_it_exists()
     {
         fileSystem.Directory.CreateDirectory("/scrapes/root");
-        repository.First = (Option<ScrapeConfigurationEntity>)ScrapeConfigurationTestData.CreateConfiguration(rootDirectory: "/scrapes/root");
+        lookup.RootDirectory = Exceptional.Success(Option.Some("/scrapes/root"));
 
         var exists = await check.ExistsAsync();
 
@@ -39,7 +36,7 @@ public sealed class GivenARootDirectoryCheck : IDisposable
     [Fact]
     public async Task when_the_root_directory_does_not_exist_on_disk_then_it_does_not_exist()
     {
-        repository.First = (Option<ScrapeConfigurationEntity>)ScrapeConfigurationTestData.CreateConfiguration(rootDirectory: "/scrapes/missing");
+        lookup.RootDirectory = Exceptional.Success(Option.Some("/scrapes/missing"));
 
         var exists = await check.ExistsAsync();
 
@@ -49,8 +46,21 @@ public sealed class GivenARootDirectoryCheck : IDisposable
     [Fact]
     public async Task when_no_configuration_exists_then_it_throws()
     {
-        repository.First = Option<ScrapeConfigurationEntity>.None.Instance;
+        lookup.RootDirectory = Exceptional.Success(Option.None<string>());
 
-        _ = await Should.ThrowAsync<InvalidOperationException>(() => check.ExistsAsync());
+        var thrown = await Should.ThrowAsync<InvalidOperationException>(() => check.ExistsAsync());
+
+        thrown.Message.ShouldBe("Scrape configuration not found");
+    }
+
+    [Fact]
+    public async Task when_the_lookup_fails_then_the_failure_is_rethrown()
+    {
+        var failure = new InvalidOperationException("query failed");
+        lookup.RootDirectory = failure;
+
+        var thrown = await Should.ThrowAsync<InvalidOperationException>(() => check.ExistsAsync());
+
+        thrown.ShouldBeSameAs(failure);
     }
 }

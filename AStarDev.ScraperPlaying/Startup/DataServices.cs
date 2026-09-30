@@ -24,6 +24,7 @@ public static class DataServices
         _ = services.AddScoped<IQuery<ScrapeConfigurationEntity>, ScrapeConfigurationQuery>()
             .AddScoped<IQuery<FileEntity>, FileQuery>()
             .AddScoped<IUnitOfWork, ControlDbContext>()
+            .AddScoped<IScrapeConfigurationLookup, ScrapeConfigurationLookup>()
             .AddScoped<IFilesQuery, FilesQuery>()
             .AddScoped<ITagsQuery, TagsQuery>()
             .AddScoped<IFileTagRepository, FileTagRepository>()
