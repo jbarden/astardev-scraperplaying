@@ -10,11 +10,24 @@ namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 public sealed class NewWallpaperIngestor(ITagsProcessor tagsProcessor, IImageDownloader imageDownloader, IWallpaperFileRecorder fileRecorder, IImageDownloadNotifier imageDownloadNotifier) : INewWallpaperIngestor
 {
     /// <inheritdoc/>
-    public async Task IngestAsync(Data wallpaper, string extension, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<Tag>> FetchTagsAsync(Data wallpaper, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
     {
         progress.Report($"No existing data found for wallpaper {wallpaper.Id}.");
 
-        await Try.RunAsync(() => IngestStepsAsync(wallpaper, extension, context, progress, cancellationToken))
+        return (await tagsProcessor.FetchTagsAsync(wallpaper.Id, context.Client, progress, cancellationToken))
+            .Match(
+                tags => tags,
+                exception =>
+                {
+                    progress.Report($"Failed to fetch tags for wallpaper {wallpaper.Id}: {exception.Message}");
+
+                    return [];
+                });
+    }
+
+    /// <inheritdoc/>
+    public async Task IngestAsync(Data wallpaper, string extension, IReadOnlyList<Tag> tags, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+        => await Try.RunAsync(() => IngestStepsAsync(wallpaper, extension, tags, context, progress, cancellationToken))
             .MatchAsync(
                 _ => Task.CompletedTask,
                 exception =>
@@ -23,11 +36,9 @@ public sealed class NewWallpaperIngestor(ITagsProcessor tagsProcessor, IImageDow
 
                     return Unit.Instance;
                 });
-    }
 
-    private async Task<Unit> IngestStepsAsync(Data wallpaper, string extension, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+    private async Task<Unit> IngestStepsAsync(Data wallpaper, string extension, IReadOnlyList<Tag> tags, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
     {
-        var tags = await FetchTagsAsync(wallpaper.Id, context.Client, progress, cancellationToken);
         var request = new WallpaperFileRequest(wallpaper, context.Directory, WallpaperFileNamer.Create(wallpaper.Id, extension, tags, context.PersonCategories), context.CategoryLabel);
 
         await DownloadAsync(request, context.Client, progress, cancellationToken);
@@ -36,17 +47,6 @@ public sealed class NewWallpaperIngestor(ITagsProcessor tagsProcessor, IImageDow
 
         return Unit.Instance;
     }
-
-    private async Task<IReadOnlyList<Tag>> FetchTagsAsync(string wallpaperId, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
-        => (await tagsProcessor.FetchTagsAsync(wallpaperId, client, progress, cancellationToken))
-            .Match(
-                tags => tags,
-                exception =>
-                {
-                    progress.Report($"Failed to fetch tags for wallpaper {wallpaperId}: {exception.Message}");
-
-                    return [];
-                });
 
     private async Task DownloadAsync(WallpaperFileRequest request, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
     {
