@@ -1,5 +1,6 @@
+using AStarDev.ScraperPlaying.Operations;
 using System.Diagnostics.CodeAnalysis;
-using AStarDev.ScraperPlaying.Scraping;
+using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using AStarDev.ScraperPlaying.Startup;
 
 namespace AStarDev.ScraperPlaying.UI;
@@ -11,19 +12,19 @@ namespace AStarDev.ScraperPlaying.UI;
 public sealed class ApplicationReadiness
 {
     private readonly IDatabaseInitialization databaseInitialization;
-    private readonly IScrapeService scrapeService;
+    private readonly IRootDirectoryCheck rootDirectoryCheck;
     private readonly OperationCoordinator operationCoordinator;
     private readonly StatusReporter status;
 
     /// <summary>Initializes a new instance of the <see cref="ApplicationReadiness"/> class.</summary>
     /// <param name="databaseInitialization">The background database preparation to wait for.</param>
-    /// <param name="scrapeService">The service used to check that the root directory exists.</param>
+    /// <param name="rootDirectoryCheck">The check that the root directory exists.</param>
     /// <param name="operationCoordinator">Tracks whether an operation is running.</param>
     /// <param name="status">Where progress and problems are reported.</param>
-    public ApplicationReadiness(IDatabaseInitialization databaseInitialization, IScrapeService scrapeService, OperationCoordinator operationCoordinator, StatusReporter status)
+    public ApplicationReadiness(IDatabaseInitialization databaseInitialization, IRootDirectoryCheck rootDirectoryCheck, OperationCoordinator operationCoordinator, StatusReporter status)
     {
         this.databaseInitialization = databaseInitialization;
-        this.scrapeService = scrapeService;
+        this.rootDirectoryCheck = rootDirectoryCheck;
         this.operationCoordinator = operationCoordinator;
         this.status = status;
         operationCoordinator.StateChanged += (_, _) => Changed?.Invoke(this, EventArgs.Empty);
@@ -76,7 +77,7 @@ public sealed class ApplicationReadiness
     {
         try
         {
-            IsRootDirectoryAvailable = await scrapeService.RootDirectoryExistsAsync();
+            IsRootDirectoryAvailable = await rootDirectoryCheck.ExistsAsync();
             if (!IsRootDirectoryAvailable) status.Append("Root directory could not be found.");
         }
         catch (Exception exception) when (exception is IOException or InvalidOperationException)

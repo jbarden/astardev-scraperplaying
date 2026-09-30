@@ -1,74 +1,58 @@
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
+using AStarDev.ScraperPlaying.Operations;
 using AStarDev.ScraperPlaying.Scraping;
-using AStarDev.ScraperPlaying.UI;
+using AStarDev.ScraperPlaying.TestsUnit.Fakes;
 using Microsoft.Extensions.DependencyInjection;
-using Testably.Abstractions.Testing;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.Scraping;
 
 public sealed class GivenAScrapeService : IDisposable
 {
-    private static readonly string[] expectedPersonCategories = ["Celebrities", "Models"];
-    private static readonly WallhavenConnection ExpectedConnection = new("api-key", new Uri("https://example.test"));
     private readonly OperationCoordinator operationCoordinator = new();
-    private readonly FakeRepository repository = new();
-    private readonly FakePagesProcessor pagesProcessor = new();
-    private readonly MockFileSystem fileSystem = new();
+    private readonly FakeUnitOfWork unitOfWork = new();
+    private readonly FakeRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> repository;
+    private readonly FakeSearchOrchestrator searchOrchestrator = new();
     private readonly CapturingProgress progress = new();
     private readonly ServiceProvider serviceProvider;
     private readonly ScrapeService service;
 
     public GivenAScrapeService()
     {
+        repository = unitOfWork.Register<ScrapeConfigurationEntity, ScrapeConfigurationId>();
         serviceProvider = new ServiceCollection()
-            .AddSingleton<IUnitOfWork>(new FakeUnitOfWork(repository))
-            .AddSingleton<IPagesProcessor>(pagesProcessor)
+            .AddSingleton<IUnitOfWork>(unitOfWork)
+            .AddSingleton<ISearchOrchestrator>(searchOrchestrator)
             .BuildServiceProvider();
 
-        service = new(operationCoordinator, serviceProvider.GetRequiredService<IServiceScopeFactory>(), fileSystem);
+        service = new(operationCoordinator, serviceProvider.GetRequiredService<IServiceScopeFactory>());
     }
 
     [Fact]
-    public async Task when_a_configuration_exists_then_up_to_three_categories_then_top_wallpapers_are_processed_and_completion_is_reported()
+    public async Task when_a_configuration_exists_then_it_is_searched_with_the_progress_and_completion_is_reported()
     {
-        repository.First = Found(CreateConfiguration(categoryCount: 5));
+        var configuration = ScrapeConfigurationTestData.CreateConfiguration();
+        repository.First = (Option<ScrapeConfigurationEntity>)configuration;
 
         await Run();
 
         progress.Messages.ShouldContain("Starting scrape operation.");
-        progress.Messages.ShouldContain("Fetching top wallpapers.");
         progress.Messages.ShouldContain(message => message.StartsWith("Search completed in:"));
-        pagesProcessor.Calls.Select(call => (call.LogLabel, call.CategoryName)).ShouldBe([
-            ("search category category one", Option.Some("category one")),
-            ("search category category two", Option.Some("category two")),
-            ("search category category three", Option.Some("category three")),
-            ("top wallpapers", Option.None<string>())
-        ]);
+        searchOrchestrator.Calls.ShouldBe([(configuration, (IProgress<string>)progress)]);
         operationCoordinator.IsOperationRunning.ShouldBeFalse();
     }
 
     [Fact]
-    public async Task when_pages_are_processed_then_every_call_uses_the_configured_connection_person_categories_and_progress()
+    public async Task when_the_search_is_running_then_the_operation_is_marked_as_running()
     {
-        repository.First = Found(CreateConfiguration(categoryCount: 2));
+        repository.First = (Option<ScrapeConfigurationEntity>)ScrapeConfigurationTestData.CreateConfiguration();
+        var wasRunning = false;
+        searchOrchestrator.OnSearch = () => wasRunning = operationCoordinator.IsOperationRunning;
 
         await Run();
 
-        pagesProcessor.Calls.ShouldAllBe(call => call.Connection == ExpectedConnection);
-        pagesProcessor.Calls.ShouldAllBe(call => call.PersonCategories.SequenceEqual(expectedPersonCategories));
-        pagesProcessor.Calls.ShouldAllBe(call => ReferenceEquals(call.Progress, progress));
-    }
-
-    [Fact]
-    public async Task when_categories_are_processed_then_each_is_labelled_with_its_name_and_not_its_id()
-    {
-        repository.First = Found(CreateConfiguration(categoryCount: 3));
-
-        await Run();
-
-        pagesProcessor.Calls.Select(call => call.LogLabel).ShouldBe(["search category category one", "search category category two", "search category category three", "top wallpapers"]);
+        wasRunning.ShouldBeTrue();
     }
 
     [Fact]
@@ -79,7 +63,7 @@ public sealed class GivenAScrapeService : IDisposable
         await Should.ThrowAsync<InvalidOperationException>(Run);
 
         progress.Messages.ShouldContain("Starting scrape operation.");
-        progress.Messages.ShouldNotContain(message => message.Contains("Fetching top wallpapers"));
+        searchOrchestrator.Calls.ShouldBeEmpty();
         operationCoordinator.IsOperationRunning.ShouldBeFalse();
     }
 
@@ -97,10 +81,10 @@ public sealed class GivenAScrapeService : IDisposable
     }
 
     [Fact]
-    public async Task when_fetching_pages_raises_a_request_error_then_it_is_reported_not_thrown()
+    public async Task when_searching_raises_a_request_error_then_it_is_reported_not_thrown()
     {
-        repository.First = Found(CreateConfiguration());
-        pagesProcessor.OnFetch = () => throw new HttpRequestException("boom");
+        repository.First = (Option<ScrapeConfigurationEntity>)ScrapeConfigurationTestData.CreateConfiguration();
+        searchOrchestrator.OnSearch = () => throw new HttpRequestException("boom");
 
         await Run();
 
@@ -109,10 +93,10 @@ public sealed class GivenAScrapeService : IDisposable
     }
 
     [Fact]
-    public async Task when_the_operation_is_cancelled_while_fetching_pages_then_cancellation_is_reported_not_thrown()
+    public async Task when_the_operation_is_cancelled_while_searching_then_cancellation_is_reported_not_thrown()
     {
-        repository.First = Found(CreateConfiguration());
-        pagesProcessor.OnFetch = () =>
+        repository.First = (Option<ScrapeConfigurationEntity>)ScrapeConfigurationTestData.CreateConfiguration();
+        searchOrchestrator.OnSearch = () =>
         {
             operationCoordinator.Cancel();
 
@@ -128,34 +112,13 @@ public sealed class GivenAScrapeService : IDisposable
     [Fact]
     public async Task when_an_operation_is_already_running_then_a_second_call_is_a_no_op()
     {
-        operationCoordinator.TryStart(out _);
+        _ = operationCoordinator.TryStart(out _);
 
         await Run();
 
         progress.Messages.ShouldBeEmpty();
-        pagesProcessor.Calls.ShouldBeEmpty();
+        searchOrchestrator.Calls.ShouldBeEmpty();
         operationCoordinator.IsOperationRunning.ShouldBeTrue();
-    }
-
-    [Fact]
-    public async Task when_the_root_directory_exists_on_disk_then_root_directory_exists_async_returns_true()
-    {
-        fileSystem.Directory.CreateDirectory("/scrapes/root");
-        repository.First = Found(CreateConfiguration(rootDirectory: "/scrapes/root"));
-
-        var exists = await service.RootDirectoryExistsAsync();
-
-        exists.ShouldBeTrue();
-    }
-
-    [Fact]
-    public async Task when_the_root_directory_does_not_exist_on_disk_then_root_directory_exists_async_returns_false()
-    {
-        repository.First = Found(CreateConfiguration(rootDirectory: "/scrapes/missing"));
-
-        var exists = await service.RootDirectoryExistsAsync();
-
-        exists.ShouldBeFalse();
     }
 
     public void Dispose()
@@ -164,73 +127,21 @@ public sealed class GivenAScrapeService : IDisposable
         operationCoordinator.Dispose();
     }
 
-    private static Exceptional<Option<ScrapeConfigurationEntity>> Found(ScrapeConfigurationEntity configuration) => (Option<ScrapeConfigurationEntity>)configuration;
-
     private Task Run() => service.RunScraperAsync(progress);
 
-    private static ScrapeConfigurationEntity CreateConfiguration(int categoryCount = 1, string rootDirectory = "/scrapes/root")
+    private sealed class FakeSearchOrchestrator : ISearchOrchestrator
     {
-        var scrapeConfigurationId = new ScrapeConfigurationId(Guid.CreateVersion7());
-        var searchConfigurationId = new SearchConfigurationId(Guid.CreateVersion7());
-        var categoryNames = new[] { "category one", "category two", "category three", "category four", "category five" };
-        var categories = Enumerable.Range(1, categoryCount)
-            .Select(i => new SearchCategoryEntity { SearchConfigurationId = searchConfigurationId, Id = $"cat{i}", Name = categoryNames[i - 1] })
-            .ToList();
+        public List<(ScrapeConfigurationEntity Configuration, IProgress<string> Progress)> Calls { get; } = [];
 
-        var configuration = new ScrapeConfigurationEntity(scrapeConfigurationId)
+        public Action OnSearch { get; set; } = () => { };
+
+        public Task RunSearchesAsync(ScrapeConfigurationEntity configuration, IProgress<string> progress, CancellationToken cancellationToken)
         {
-            BaseUrl = new Uri("https://example.test"),
-            TopWallpapers = "top/",
-            SearchStringPrefix = "search/%7Bid%7D/",
-            UserConfiguration = new UserConfigurationEntity(new UserConfigurationId(Guid.CreateVersion7()), scrapeConfigurationId, "user@example.test", "user", "secret", "api-key"),
-            SearchConfiguration = new SearchConfigurationEntity(searchConfigurationId, scrapeConfigurationId, "cats", 10, categories),
-            ScrapeDirectories = new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.CreateVersion7()), scrapeConfigurationId, rootDirectory, "famous", "sub")
-        };
-        configuration.SearchConfiguration.PersonCategories.Add(new PersonCategoryEntity { SearchConfigurationId = searchConfigurationId, Name = "Celebrities" });
-        configuration.SearchConfiguration.PersonCategories.Add(new PersonCategoryEntity { SearchConfigurationId = searchConfigurationId, Name = "Models" });
-
-        return configuration;
-    }
-
-    private sealed record PagesCall(string LogLabel, Option<string> CategoryName, WallhavenConnection Connection, IReadOnlyList<string> PersonCategories, IProgress<string> Progress);
-
-    private sealed class FakePagesProcessor : IPagesProcessor
-    {
-        public List<PagesCall> Calls { get; } = [];
-
-        public Action OnFetch { get; set; } = () => { };
-
-        public Task FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Func<int, Uri> pageUrlFactory, WallhavenConnection connection, IReadOnlyList<string> personCategories, IProgress<string> progress, CancellationToken cancellationToken)
-        {
-            Calls.Add(new PagesCall(logLabel, categoryName, connection, personCategories, progress));
-            OnFetch();
+            Calls.Add((configuration, progress));
+            OnSearch();
 
             return Task.CompletedTask;
         }
-    }
-
-    private sealed class FakeRepository : IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>
-    {
-        public Exceptional<Option<ScrapeConfigurationEntity>> First { get; set; } = Option<ScrapeConfigurationEntity>.None.Instance;
-
-        public Task<Exceptional<Option<ScrapeConfigurationEntity>>> TryGetFirstAsync() => Task.FromResult(First);
-
-        public Task<Exceptional<Option<ScrapeConfigurationEntity>>> TryFindAsync(ScrapeConfigurationId key) => Task.FromResult(First);
-
-        public Task<Exceptional<Option<IEnumerable<ScrapeConfigurationEntity>>>> TryGetAllAsync() =>
-            Task.FromResult<Exceptional<Option<IEnumerable<ScrapeConfigurationEntity>>>>(Option<IEnumerable<ScrapeConfigurationEntity>>.None.Instance);
-
-        public Exceptional<ScrapeConfigurationEntity> Add(ScrapeConfigurationEntity aggregate) => aggregate;
-
-        public Exceptional<Unit> Delete(ScrapeConfigurationEntity aggregate) => Unit.Instance;
-    }
-
-    private sealed class FakeUnitOfWork(FakeRepository repository) : IUnitOfWork
-    {
-        public IRepository<TAggregate, TKey> GetRepository<TAggregate, TKey>() where TAggregate : IAggregateRoot =>
-            (IRepository<TAggregate, TKey>)(object)repository;
-
-        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) => Task.FromResult(0);
     }
 
     private sealed class CapturingProgress : IProgress<string>

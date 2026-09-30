@@ -1,6 +1,6 @@
 using System.IO.Abstractions;
 using AStarDev.ControlDb;
-using AStarDev.ControlDb.ScrapeConfiguration;
+using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.Utilities;
 
@@ -28,11 +28,7 @@ public class SaveDirectoryResolver(IFileSystem fileSystem, IUnitOfWork unitOfWor
     {
         if (rootDirectory is Option<string>.Some cached) return cached.Value;
 
-        var configuration = (await unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().TryGetFirstAsync())
-            .Match(
-                option => option.Match(scrapeConfig => scrapeConfig, () => throw new InvalidOperationException("Scrape configuration not found")),
-                exception => throw exception
-            );
+        var configuration = await unitOfWork.LoadScrapeConfigurationAsync();
 
         rootDirectory = Option.Some(configuration.ScrapeDirectories.RootDirectory);
 

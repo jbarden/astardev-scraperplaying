@@ -46,7 +46,5 @@ public sealed class GivenAScrapeRunner
 
             return Task.CompletedTask;
         }
-
-        public Task<bool> RootDirectoryExistsAsync() => Task.FromResult(true);
     }
 }

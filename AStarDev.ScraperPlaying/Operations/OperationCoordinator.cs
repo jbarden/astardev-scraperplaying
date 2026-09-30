@@ -1,4 +1,4 @@
-namespace AStarDev.ScraperPlaying.UI;
+namespace AStarDev.ScraperPlaying.Operations;
 
 public sealed class OperationCoordinator : IDisposable
 {
