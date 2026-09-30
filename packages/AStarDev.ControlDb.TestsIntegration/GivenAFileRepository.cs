@@ -42,6 +42,21 @@ public sealed class GivenAFileRepository : IDisposable
     }
 
     [Fact]
+    public async Task when_a_file_is_saved_then_its_last_updated_time_is_persisted()
+    {
+        var lastUpdated = new DateTimeOffset(2026, 9, 30, 8, 30, 15, TimeSpan.Zero);
+        var fileEntity = FileEntityFactory.CreateFileEntity();
+        fileEntity.LastUpdated = lastUpdated;
+        _ = context.GetRepository<FileEntity, FileId>().Add(fileEntity).Match(entity => entity, exception => throw exception);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        using var untrackedContext = new ControlDbContext(new DbContextOptionsBuilder<ControlDbContext>().UseSqlite($"Data Source={databasePath}").Options);
+        var reloaded = (await untrackedContext.GetRepository<FileEntity, FileId>().TryFindAsync(fileEntity.Id)).Match(option => option, exception => throw exception).Match(entity => entity, () => null!);
+
+        reloaded.LastUpdated.ShouldBe(lastUpdated);
+    }
+
+    [Fact]
     public async Task when_finding_by_a_key_that_does_not_exist_then_none_is_returned()
     {
         var repository = context.GetRepository<FileEntity, FileId>();

@@ -59,6 +59,27 @@ public sealed class GivenTheDatabaseMigrator : IDisposable
         configuration.SearchConfiguration.PersonCategories.Count.ShouldBe(5);
     }
 
+    [Fact]
+    public async Task when_files_exist_before_the_last_updated_column_is_added_then_it_is_back_filled_from_the_access_detail_and_zero_when_there_is_none()
+    {
+        const string withDetail = "11111111-1111-1111-1111-111111111111";
+        const string withoutDetail = "22222222-2222-2222-2222-222222222222";
+        const long detailsLastUpdatedTicks = 639000000000000000;
+        var factory = serviceProvider.GetRequiredService<IDbContextFactory<ControlDbContext>>();
+        await using (var older = await factory.CreateDbContextAsync(TestContext.Current.CancellationToken))
+        {
+            await older.GetService<IMigrator>().MigrateAsync("20260929214238_LoginUrlIsFreeText", TestContext.Current.CancellationToken);
+            await older.Database.ExecuteSqlRawAsync($"INSERT INTO FileDetail (Id, FileHandle, FileSize, IsImage, DirectoryName, FileName, FileType) VALUES ('{withDetail}', 'handle-1', 1, 1, 'dir', 'one.jpg', 'image/jpeg'), ('{withoutDetail}', 'handle-2', 1, 1, 'dir', 'two.jpg', 'image/jpeg')", TestContext.Current.CancellationToken);
+            await older.Database.ExecuteSqlRawAsync($"INSERT INTO FileAccessDetail (Id, FileId, DetailsLastUpdated_Ticks, MoveRequired) VALUES ('33333333-3333-3333-3333-333333333333', '{withDetail}', {detailsLastUpdatedTicks}, 0)", TestContext.Current.CancellationToken);
+        }
+
+        await DatabaseMigrator.MigrateAsync(factory, NullLogger.Instance);
+
+        await using var context = await factory.CreateDbContextAsync(TestContext.Current.CancellationToken);
+        var backFilled = await context.Database.SqlQueryRaw<long>("SELECT LastUpdated_Ticks AS Value FROM FileDetail ORDER BY FileHandle").ToListAsync(TestContext.Current.CancellationToken);
+        string.Join(",", backFilled).ShouldBe($"{detailsLastUpdatedTicks},0");
+    }
+
     public void Dispose()
     {
         if (disposed) return;
