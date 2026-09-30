@@ -1,9 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 using System.Text.Json;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using AStarDev.ScraperPlaying.Scraping;
+using AStarDev.ScraperPlaying.Startup;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
 using AStarDev.Utilities;
 using Avalonia.Controls;
@@ -30,10 +32,12 @@ public partial class MainWindow : Window, IDisposable
     private readonly ILogger<MainWindow> logger;
     private readonly OperationCoordinator operationCoordinator;
     private bool isDisposing;
+    private bool isDatabaseReady;
     private bool isRootDirectoryAvailable = true;
     private readonly ImageDisplayCoordinator imageDisplayCoordinator;
+    private readonly DatabaseInitialization databaseInitialization;
 
-    public MainWindow(ILogger<MainWindow> logger, IScrapeConfigurationFileService scrapeConfigurationFileService, IScrapeConfigurationCatalogue scrapeConfigurationCatalogue, IScrapeConfigurationUpdater scrapeConfigurationUpdater, IFileSystem fileSystem, IScrapeService scrapeService, OperationCoordinator operationCoordinator, ImageDisplayCoordinator imageDisplayCoordinator)
+    public MainWindow(ILogger<MainWindow> logger, IScrapeConfigurationFileService scrapeConfigurationFileService, IScrapeConfigurationCatalogue scrapeConfigurationCatalogue, IScrapeConfigurationUpdater scrapeConfigurationUpdater, IFileSystem fileSystem, IScrapeService scrapeService, OperationCoordinator operationCoordinator, ImageDisplayCoordinator imageDisplayCoordinator, DatabaseInitialization databaseInitialization)
     {
         InitializeComponent();
         this.scrapeConfigurationFileService = scrapeConfigurationFileService;
@@ -44,21 +48,18 @@ public partial class MainWindow : Window, IDisposable
         this.logger = logger;
         this.operationCoordinator = operationCoordinator;
         this.imageDisplayCoordinator = imageDisplayCoordinator;
+        this.databaseInitialization = databaseInitialization;
         operationCoordinator.StateChanged += (_, _) => UpdateOperationControls();
         imageDisplayCoordinator.ImageReady += (_, preview) => Dispatcher.UIThread.Post(() => DisplayImage(preview));
         Closed += (_, _) => Dispose();
-        Loaded += async (_, _) =>
-        {
-            await CheckRootDirectoryAvailabilityAsync();
-            await RefreshConfigurationPickerAsync();
-        };
+        Loaded += async (_, _) => await InitialiseAsync();
         UpdateOperationControls();
     }
 
     public static MainWindow CreateStartupError(Exception exception)
     {
         // operationCoordinator/imageDisplayCoordinator must be non-null: the constructor subscribes to their events
-        var window = new MainWindow(NullLogger<MainWindow>.Instance, null!, null!, null!, null!, null!, new OperationCoordinator(), new ImageDisplayCoordinator(new ImageDownloadNotifier(), new DownloadedImageDecoder(new RealFileSystem())));
+        var window = new MainWindow(NullLogger<MainWindow>.Instance, null!, null!, null!, null!, null!, new OperationCoordinator(), new ImageDisplayCoordinator(new ImageDownloadNotifier(), new DownloadedImageDecoder(new RealFileSystem())), null!);
         window.AppendStatusMessage($"Startup failed: {exception.GetType().Name}: {exception.Message}");
 
         return window;
@@ -200,12 +201,36 @@ public partial class MainWindow : Window, IDisposable
     private void UpdateOperationControls()
     {
         var isOperationRunning = operationCoordinator.IsOperationRunning;
-        ImportConfigurationMenuItem.IsEnabled = !isOperationRunning;
-        ExportConfigurationMenuItem.IsEnabled = !isOperationRunning;
-        ConfigurationPicker.IsEnabled = !isOperationRunning;
-        EditConfigurationButton.IsEnabled = !isOperationRunning && ConfigurationPicker.SelectedItem is ScrapeConfigurationSummary;
-        RunScraperButton.IsEnabled = !isOperationRunning && isRootDirectoryAvailable;
+        var canOperate = !isOperationRunning && isDatabaseReady;
+        ImportConfigurationMenuItem.IsEnabled = canOperate;
+        ExportConfigurationMenuItem.IsEnabled = canOperate;
+        ConfigurationPicker.IsEnabled = canOperate;
+        EditConfigurationButton.IsEnabled = canOperate && ConfigurationPicker.SelectedItem is ScrapeConfigurationSummary;
+        RunScraperButton.IsEnabled = canOperate && isRootDirectoryAvailable;
         CancelButton.IsEnabled = isOperationRunning;
+    }
+
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "The migration task can fail with any database or IO exception; every failure must be reported in the status log and leave the controls disabled rather than crash the window.")]
+    private async Task InitialiseAsync()
+    {
+        if (databaseInitialization is null) return;
+
+        AppendStatusMessage("Preparing the database.");
+        try
+        {
+            await databaseInitialization.ReadyAsync();
+        }
+        catch (Exception exception)
+        {
+            LogError("Unable to prepare the database.", exception);
+
+            return;
+        }
+
+        isDatabaseReady = true;
+        AppendStatusMessage("Database ready.");
+        await CheckRootDirectoryAvailabilityAsync();
+        await RefreshConfigurationPickerAsync();
     }
 
     private async Task RefreshConfigurationPickerAsync()
@@ -274,11 +299,15 @@ public partial class MainWindow : Window, IDisposable
 
     private void SetStatusText(string message) => Dispatcher.UIThread.Post(() => StatusTextBlock.Text = message);
 
-    private void AppendStatusMessage(string message) => Dispatcher.UIThread.Post(() =>
-                                                             {
-                                                                 statusMessageLog.Append(message);
-                                                                 StatusTextBlock.Text = statusMessageLog.Text;
-                                                                 StatusScrollViewer.ScrollToEnd();
-                                                             });
+    private void AppendStatusMessage(string message)
+    {
+        if (statusMessageLog.Append(message)) Dispatcher.UIThread.Post(RefreshStatusText);
+    }
+
+    private void RefreshStatusText()
+    {
+        StatusTextBlock.Text = statusMessageLog.Text;
+        StatusScrollViewer.ScrollToEnd();
+    }
 }
 
