@@ -1,5 +1,6 @@
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
+using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 using AStarDev.ScraperPlaying.TestsUnit.Fakes;
@@ -58,9 +59,10 @@ public sealed class GivenAPagesProcessor
         var wallpaper = CreateWallpaper("wallpaper-category");
         SetUpPage(1, CreateSearchResponse(lastPage: 1, wallpaper));
 
-        await processor.FetchAndProcessPagesAsync(
+        _ = await processor.FetchAndProcessPagesAsync(
             "search category Cars",
             Option.Some("Cars"),
+            Option.None<SearchCategoryProgress>(),
             page => new Uri($"https://example.test/page/{page}"),
             new WallhavenConnection("api-key", new Uri("https://example.test")),
             personCategories,
@@ -115,9 +117,66 @@ public sealed class GivenAPagesProcessor
         SetUpPage(page: null, CreateSearchResponse(lastPage: 10));
         var limitedProcessor = new PagesProcessor(new FakeClientFactory(), new FakePageFetcher(jsonResponseProcessor), unitOfWork, new FakeSaveDirectoryResolver(), wallpaperIngestionService, new ScrapeLimits(3, 2));
 
-        await limitedProcessor.FetchAndProcessPagesAsync("wallpapers", Option.None<string>(), page => new Uri($"https://example.test/page/{page}"), new WallhavenConnection("api-key", new Uri("https://example.test")), personCategories, progress, CancellationToken.None);
+        _ = await limitedProcessor.FetchAndProcessPagesAsync("wallpapers", Option.None<string>(), Option.None<SearchCategoryProgress>(), page => new Uri($"https://example.test/page/{page}"), new WallhavenConnection("api-key", new Uri("https://example.test")), personCategories, progress, CancellationToken.None);
 
         (unitOfWork.SaveCount, progress.Messages.Any(message => message.Contains("page 3", StringComparison.Ordinal))).ShouldBe((2, false));
+    }
+
+    [Fact]
+    public async Task when_every_page_is_processed_then_the_observed_progress_is_returned()
+    {
+        SetUpPage(page: null, CreateSearchResponse(lastPage: 2, total: 50));
+
+        var result = await Fetch(Option.None<SearchCategoryProgress>(), CancellationToken.None);
+
+        result.ShouldBe(Option.Some(new SearchCategoryProgress(50, 2, 2)));
+    }
+
+    [Fact]
+    public async Task when_paging_stops_at_the_limit_then_the_returned_last_page_visited_is_the_limit()
+    {
+        SetUpPage(page: null, CreateSearchResponse(lastPage: 10, total: 100));
+
+        var result = await Fetch(Option.None<SearchCategoryProgress>(), CancellationToken.None);
+
+        result.ShouldBe(Option.Some(new SearchCategoryProgress(100, 4, 10)));
+    }
+
+    [Fact]
+    public async Task when_the_count_and_total_pages_match_the_previous_scrape_then_nothing_is_ingested_and_no_progress_is_returned()
+    {
+        SetUpPage(page: null, CreateSearchResponse(lastPage: 2, total: 50, CreateWallpaper("wallpaper-1")));
+
+        var result = await Fetch(Option.Some(new SearchCategoryProgress(50, 2, 2)), CancellationToken.None);
+
+        (result, unitOfWork.SaveCount).ShouldBe((Option.None<SearchCategoryProgress>(), 0));
+        wallpaperIngestionService.PageSizes.ShouldBeEmpty();
+        progress.Messages.ShouldContain("Skipping wallpapers - nothing has changed since the last scrape.");
+    }
+
+    [Theory]
+    [InlineData(49, 2, 2)]
+    [InlineData(50, 2, 3)]
+    [InlineData(50, 1, 2)]
+    [InlineData(0, 0, 0)]
+    public async Task when_the_previous_scrape_differs_then_the_pages_are_ingested(int previousCount, int previousPageVisited, int previousTotalPages)
+    {
+        SetUpPage(page: null, CreateSearchResponse(lastPage: 2, total: 50, CreateWallpaper("wallpaper-1")));
+
+        var result = await Fetch(Option.Some(new SearchCategoryProgress(previousCount, previousPageVisited, previousTotalPages)), CancellationToken.None);
+
+        result.ShouldBe(Option.Some(new SearchCategoryProgress(50, 2, 2)));
+        wallpaperIngestionService.PageSizes.ShouldBe([1, 1]);
+    }
+
+    [Fact]
+    public async Task when_the_previous_scrape_visited_every_page_up_to_the_limit_then_the_category_is_skipped()
+    {
+        SetUpPage(page: null, CreateSearchResponse(lastPage: 10, total: 100));
+
+        var result = await Fetch(Option.Some(new SearchCategoryProgress(100, 4, 10)), CancellationToken.None);
+
+        result.ShouldBe(Option.None<SearchCategoryProgress>());
     }
 
     [Fact]
@@ -185,9 +244,13 @@ public sealed class GivenAPagesProcessor
     }
 
     private Task FetchWithCancellation(CancellationToken cancellationToken)
+        => Fetch(Option.None<SearchCategoryProgress>(), cancellationToken);
+
+    private Task<Option<SearchCategoryProgress>> Fetch(Option<SearchCategoryProgress> previousProgress, CancellationToken cancellationToken)
         => processor.FetchAndProcessPagesAsync(
             "wallpapers",
             Option.None<string>(),
+            previousProgress,
             page => new Uri($"https://example.test/page/{page}"),
             new WallhavenConnection("api-key", new Uri("https://example.test")),
             personCategories,
@@ -211,6 +274,9 @@ public sealed class GivenAPagesProcessor
 
     private static SearchResponse CreateSearchResponse(int lastPage, params Data[] wallpapers)
         => new(wallpapers, new Meta(lastPage));
+
+    private static SearchResponse CreateSearchResponse(int lastPage, int total, params Data[] wallpapers)
+        => new(wallpapers, new Meta(lastPage, total));
 
     private static Data CreateWallpaper(string id, string path = "")
         => new(id, 0, 0, 0, "", path);

@@ -1,6 +1,7 @@
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
+using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
 using AStarDev.Utilities;
@@ -12,7 +13,7 @@ namespace AStarDev.ScraperPlaying.Scraping;
 public class PagesProcessor(IWallhavenClientFactory clientFactory, IWallhavenPageFetcher pageFetcher, IUnitOfWork unitOfWork, ISaveDirectoryResolver saveDirectoryResolver, IWallpaperIngestionService wallpaperIngestionService, ScrapeLimits limits) : IPagesProcessor
 {
     /// <inheritdoc/>
-    public async Task FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Func<int, Uri> pageUrlFactory, WallhavenConnection connection, IReadOnlyList<string> personCategories, IProgress<string> progress, CancellationToken cancellationToken)
+    public async Task<Option<SearchCategoryProgress>> FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Option<SearchCategoryProgress> previousProgress, Func<int, Uri> pageUrlFactory, WallhavenConnection connection, IReadOnlyList<string> personCategories, IProgress<string> progress, CancellationToken cancellationToken)
     {
         var client = clientFactory.Create(connection);
         try
@@ -26,12 +27,20 @@ public class PagesProcessor(IWallhavenClientFactory clientFactory, IWallhavenPag
             do
             {
                 pageResult = await pageFetcher.FetchPageAsync(logLabel, pageUrlFactory(page), page, client, progress, cancellationToken);
+                if (page == 1 && IsUnchangedSincePreviousScrape(previousProgress, pageResult.Meta))
+                {
+                    progress.Report($"Skipping {logLabel} - nothing has changed since the last scrape.");
+
+                    return Option.None<SearchCategoryProgress>();
+                }
 
                 await wallpaperIngestionService.IngestPageAsync(pageResult.Data, ingestionContext, progress, cancellationToken);
 
                 _ = await unitOfWork.SaveChangesAsync(cancellationToken);
                 page++;
             } while (page <= pageResult.Meta.LastPage && page <= limits.MaximumPagesPerSearch);
+
+            return Option.Some(new SearchCategoryProgress(pageResult.Meta.Total, page - 1, pageResult.Meta.LastPage));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -45,6 +54,11 @@ public class PagesProcessor(IWallhavenClientFactory clientFactory, IWallhavenPag
             throw;
         }
     }
+
+    private bool IsUnchangedSincePreviousScrape(Option<SearchCategoryProgress> previousProgress, Meta meta)
+        => previousProgress.Match(
+            previous => previous.LastKnownImageCount == meta.Total && previous.TotalPages == meta.LastPage && previous.LastPageVisited >= Math.Min(meta.LastPage, limits.MaximumPagesPerSearch),
+            () => false);
 
     private async Task SavePartiallyIngestedPageAsync(IProgress<string> progress)
     {

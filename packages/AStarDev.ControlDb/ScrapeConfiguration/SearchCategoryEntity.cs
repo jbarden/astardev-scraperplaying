@@ -32,4 +32,11 @@ public sealed class SearchCategoryEntity : AuditableEntity
 
     /// <summary>Whether this category defines the internet classification. This flag can be used to determine if the category is relevant for internet-based searches or operations.</summary>
     public bool IsInternet { get; set; }
+
+    /// <summary>Records the outcome of a completed scrape of this category, so an unchanged category can be skipped next time.</summary>
+    /// <param name="lastKnownImageCount">The number of images observed for this category.</param>
+    /// <param name="lastPageVisited">The last page visited.</param>
+    /// <param name="totalPages">The total number of pages available.</param>
+    public void RecordScrapeProgress(int lastKnownImageCount, int lastPageVisited, int totalPages)
+        => (LastKnownImageCount, LastPageVisited, TotalPages) = (lastKnownImageCount, lastPageVisited, totalPages);
 }
