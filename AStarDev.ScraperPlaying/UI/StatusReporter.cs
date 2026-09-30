@@ -1,4 +1,5 @@
 using AStarDev.LoggingExtensions;
+using AStarDev.Utilities;
 using Microsoft.Extensions.Logging;
 
 namespace AStarDev.ScraperPlaying.UI;
@@ -32,6 +33,6 @@ public sealed class StatusReporter(ILogger<StatusReporter> logger)
     public void Error(string message, Exception exception)
     {
         LogMessage.Error(logger, message, exception);
-        Append($"{message} {exception.Message}");
+        Append($"{message} {exception.ToMessageChain()}");
     }
 }

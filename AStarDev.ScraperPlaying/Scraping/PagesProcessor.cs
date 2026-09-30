@@ -3,6 +3,7 @@ using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
+using AStarDev.Utilities;
 using Microsoft.EntityFrameworkCore;
 
 namespace AStarDev.ScraperPlaying.Scraping;
@@ -40,7 +41,7 @@ public class PagesProcessor(IWallhavenClientFactory clientFactory, IWallhavenPag
         }
         catch (Exception ex)
         {
-            progress.Report($"An error occurred during the fetching and processing of pages: {ex.Message}");
+            progress.Report($"An error occurred during the fetching and processing of pages: {ex.ToMessageChain()}");
             throw;
         }
     }
@@ -54,7 +55,7 @@ public class PagesProcessor(IWallhavenClientFactory clientFactory, IWallhavenPag
         }
         catch (DbUpdateException ex)
         {
-            progress.Report($"Scrape cancelled - failed to save wallpapers downloaded so far this page: {ex.Message}");
+            progress.Report($"Scrape cancelled - failed to save wallpapers downloaded so far this page: {ex.ToMessageChain()}");
         }
     }
 }
