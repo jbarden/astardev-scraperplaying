@@ -95,7 +95,7 @@ public sealed class GivenAControlDbContext : IDisposable
         var explicitId = new ScrapeConfigurationId(Guid.CreateVersion7());
         var scrapeConfigurationEntity = new ScrapeConfigurationEntity(explicitId)
         {
-            UserConfiguration = new UserConfigurationEntity(new UserConfigurationId(Guid.CreateVersion7()), explicitId, "user@example.com", "username", "password", "apiKey"),
+            UserConfiguration = new UserConfigurationEntity(new UserConfigurationId(Guid.CreateVersion7()), explicitId, "user@example.com", "username", "apiKey"),
             SearchConfiguration = new SearchConfigurationEntity(new SearchConfigurationId(Guid.CreateVersion7()), explicitId, "search-config", 10, []),
             ScrapeDirectories = new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.CreateVersion7()), explicitId, "root-save-directory", "root-directory-famous", "sub-directory-name")
         };

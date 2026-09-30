@@ -14,7 +14,6 @@ public partial class UserSettingsEditor : UserControl
     {
         EmailAddressBox.Text = input.EmailAddress;
         UsernameBox.Text = input.Username;
-        PasswordBox.Text = input.Password;
         ApiKeyBox.Text = input.ApiKey;
     }
 
@@ -22,6 +21,5 @@ public partial class UserSettingsEditor : UserControl
     public UserSettingsInput ReadInput() => new(
         EmailAddressBox.Text ?? string.Empty,
         UsernameBox.Text ?? string.Empty,
-        PasswordBox.Text ?? string.Empty,
         ApiKeyBox.Text ?? string.Empty);
 }

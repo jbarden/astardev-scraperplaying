@@ -17,8 +17,7 @@ internal static class ScrapeSettingsImportMapper
             {
                 Id = Guid.CreateVersion7(),
                 EmailAddress = userConfiguration.LoginEmailAddress,
-                Username = userConfiguration.Username,
-                Password = userConfiguration.Password
+                Username = userConfiguration.Username
             },
             SearchConfiguration = new SearchConfigurationImportDocument
             {

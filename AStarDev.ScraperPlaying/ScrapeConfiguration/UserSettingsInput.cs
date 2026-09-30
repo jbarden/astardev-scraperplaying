@@ -7,9 +7,8 @@ namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 /// <summary>The unvalidated user settings as entered in the configuration editor.</summary>
 /// <param name="EmailAddress">The entered email address.</param>
 /// <param name="Username">The entered username.</param>
-/// <param name="Password">The entered password.</param>
 /// <param name="ApiKey">The entered API key.</param>
-public sealed record UserSettingsInput(string EmailAddress, string Username, string Password, string ApiKey)
+public sealed record UserSettingsInput(string EmailAddress, string Username, string ApiKey)
 {
     /// <summary>Creates the editor input from the specified scrape configuration.</summary>
     /// <param name="entity">The scrape configuration to read.</param>
@@ -17,7 +16,7 @@ public sealed record UserSettingsInput(string EmailAddress, string Username, str
     {
         var settings = UserSettings.From(entity);
 
-        return new UserSettingsInput(settings.EmailAddress, settings.Username, settings.Password, settings.ApiKey);
+        return new UserSettingsInput(settings.EmailAddress, settings.Username, settings.ApiKey);
     }
 
     /// <summary>Validates the input: the email address may be blank, otherwise it must be a single well-formed address.</summary>
@@ -27,7 +26,7 @@ public sealed record UserSettingsInput(string EmailAddress, string Username, str
         var emailAddress = EmailAddress.Trim();
 
         return emailAddress.Length == 0 || IsWellFormed(emailAddress)
-            ? Validation.Valid(new UserSettings(emailAddress, Username, Password, ApiKey))
+            ? Validation.Valid(new UserSettings(emailAddress, Username, ApiKey))
             : Validation.Invalid<UserSettings>(ValidationErrorFactory.Create(nameof(EmailAddress), "Must be a well-formed email address."));
     }
 

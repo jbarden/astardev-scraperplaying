@@ -47,7 +47,7 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
                 44,
                 true,
                 Option.Some(125f)),
-            new UserSettings("edited@example.test", "edited-user", "edited-secret", "edited-user-key"),
+            new UserSettings("edited@example.test", "edited-user", "edited-user-key"),
             new DirectorySettings("/edited/root", "/edited/famous", "edited-sub"),
             new SearchSettings("edited term", Option.Some(77)),
             new SearchCategoriesSettings([
@@ -82,8 +82,8 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
         (imported.TopWallpapersStartingPageNumber, imported.TopWallpapersTotalPages).ShouldBe((4, 44));
         imported.UseHeadless.ShouldBeTrue();
         imported.SlowMotionDelay.ShouldBe(125f);
-        (imported.UserConfiguration.EmailAddress, imported.UserConfiguration.Username, imported.UserConfiguration.Password, imported.UserConfiguration.ApiKey)
-            .ShouldBe(("edited@example.test", "edited-user", "edited-secret", "edited-user-key"));
+        (imported.UserConfiguration.EmailAddress, imported.UserConfiguration.Username, imported.UserConfiguration.ApiKey)
+            .ShouldBe(("edited@example.test", "edited-user", "edited-user-key"));
         (imported.ScrapeDirectories.RootDirectory, imported.ScrapeDirectories.RootDirectoryFamous, imported.ScrapeDirectories.SubDirectoryName)
             .ShouldBe(("/edited/root", "/edited/famous", "edited-sub"));
         imported.SearchConfiguration.SearchTerm.ShouldBe("edited term");

@@ -16,7 +16,6 @@ public static class ScrapeConfigurationExportMapper
                 Id = entity.UserConfiguration.Id.Value,
                 EmailAddress = entity.UserConfiguration.EmailAddress,
                 Username = entity.UserConfiguration.Username,
-                Password = entity.UserConfiguration.Password,
                 ApiKey = entity.UserConfiguration.ApiKey
             },
             SearchConfiguration = new SearchConfigurationImportDocument
