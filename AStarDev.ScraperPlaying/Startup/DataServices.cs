@@ -21,8 +21,7 @@ public static class DataServices
     {
         string dbPath = databasePath ?? BuildDbPath();
 
-        _ = services.AddScoped<IScrapeConfigurationImporter, ScrapeConfigurationImporter>()
-            .AddScoped<IQuery<ScrapeConfigurationEntity>, ScrapeConfigurationQuery>()
+        _ = services.AddScoped<IQuery<ScrapeConfigurationEntity>, ScrapeConfigurationQuery>()
             .AddScoped<IQuery<FileEntity>, FileQuery>()
             .AddScoped<IUnitOfWork, ControlDbContext>()
             .AddScoped<IFilesQuery, FilesQuery>()

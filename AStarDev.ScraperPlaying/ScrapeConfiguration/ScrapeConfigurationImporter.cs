@@ -2,16 +2,19 @@
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 /// <summary>Represents a repository for scrape configuration settings repository.</summary>
 /// <param name="dbContextFactory">The factory for creating instances of the ControlDbContext.</param>
-public sealed class ScrapeConfigurationImporter(IUnitOfWork unitOfWork) : IScrapeConfigurationImporter
+public sealed class ScrapeConfigurationImporter(IServiceScopeFactory scopeFactory) : IScrapeConfigurationImporter
 {
     /// <inheritdoc/>
     public async Task<Exceptional<Unit>> ImportScrapeConfigurationAsync(ScrapeConfigurationImportDocument document)
     {
+        using var scope = scopeFactory.CreateScope();
+        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
         var dbContext = unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>();
 
         return await Try.RunAsync(async () =>

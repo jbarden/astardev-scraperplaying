@@ -27,6 +27,21 @@ public sealed class GivenTheApplicationServices : IDisposable
     }
 
     [Fact]
+    public void when_the_real_registrations_are_validated_then_no_service_captures_a_shorter_lived_dependency()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        using var validated = new ServiceCollection()
+            .AddConfigurationServices(configuration)
+            .AddDataServices(databasePath)
+            .AddInfrastructureServices()
+            .AddApplicationServices(configuration)
+            .AddLogging()
+            .BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
+
+        validated.ShouldNotBeNull();
+    }
+
+    [Fact]
     public void when_the_main_window_collaborators_are_resolved_then_each_is_a_single_shared_instance()
     {
         var resolved = new object[]

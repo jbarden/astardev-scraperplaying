@@ -1,12 +1,16 @@
+using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
+using Microsoft.Extensions.DependencyInjection;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using AStarDev.ScraperPlaying.TestsUnit.Fakes;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.ScrapeConfiguration;
 
-public sealed class GivenAScrapeConfigurationImporter
+public sealed class GivenAScrapeConfigurationImporter : IDisposable
 {
+    private readonly ServiceProvider serviceProvider;
+    private int unitOfWorkResolutions;
     private readonly FakeUnitOfWork unitOfWork = new();
     private readonly FakeRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> repository;
     private readonly ScrapeConfigurationImporter importer;
@@ -14,7 +18,24 @@ public sealed class GivenAScrapeConfigurationImporter
     public GivenAScrapeConfigurationImporter()
     {
         repository = unitOfWork.Register<ScrapeConfigurationEntity, ScrapeConfigurationId>();
-        importer = new ScrapeConfigurationImporter(unitOfWork);
+        serviceProvider = new ServiceCollection().AddScoped<IUnitOfWork>(_ =>
+        {
+            unitOfWorkResolutions++;
+
+            return unitOfWork;
+        }).BuildServiceProvider();
+        importer = new ScrapeConfigurationImporter(serviceProvider.GetRequiredService<IServiceScopeFactory>());
+    }
+
+    public void Dispose() => serviceProvider.Dispose();
+
+    [Fact]
+    public async Task when_several_imports_run_then_each_resolves_its_own_unit_of_work()
+    {
+        _ = await importer.ImportScrapeConfigurationAsync(CreateDocument("first"));
+        _ = await importer.ImportScrapeConfigurationAsync(CreateDocument("second"));
+
+        unitOfWorkResolutions.ShouldBe(2);
     }
 
     [Fact]
