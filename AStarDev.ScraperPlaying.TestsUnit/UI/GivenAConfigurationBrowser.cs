@@ -1,7 +1,9 @@
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
+using AStarDev.ScraperPlaying.TestsUnit.Fakes;
 using AStarDev.ScraperPlaying.UI;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Testably.Abstractions.Testing;
 
@@ -12,9 +14,10 @@ public sealed class GivenAConfigurationBrowser
     private static readonly ScrapeConfigurationSummary Summary = new(new ScrapeConfigurationId(Guid.CreateVersion7()), "wallhaven.cc");
     private readonly FakeCatalogue catalogue = new();
     private readonly StatusReporter status = new(NullLogger<StatusReporter>.Instance);
+    private readonly CapturingLogger<ConfigurationBrowser> logger = new();
     private readonly ConfigurationBrowser browser;
 
-    public GivenAConfigurationBrowser() => browser = new(catalogue, new ConfigurationEditSaver(new FakeUpdater()), new MockFileSystem(), status);
+    public GivenAConfigurationBrowser() => browser = new(catalogue, new ConfigurationEditSaver(new FakeUpdater()), new MockFileSystem(), status, logger);
 
     [Fact]
     public async Task when_the_configurations_are_listed_then_the_summaries_are_returned_without_any_status()
@@ -34,6 +37,26 @@ public sealed class GivenAConfigurationBrowser
         var summaries = await browser.ListAsync();
 
         (summaries.Count, status.Text).ShouldBe((0, "Unable to list scrape configurations. list failed"));
+    }
+
+    [Fact]
+    public async Task when_a_configuration_is_found_to_edit_then_the_visit_is_logged_without_any_details()
+    {
+        catalogue.Found = Exceptional.Success((Option<ScrapeConfigurationEntity>)ScrapeConfigurationTestData.CreateConfiguration());
+
+        _ = await browser.FindAsync(Summary);
+
+        logger.Entries.ShouldBe([(LogLevel.Information, "Page `Scrape configuration editor` viewed.")]);
+    }
+
+    [Fact]
+    public async Task when_the_configuration_to_edit_is_not_found_then_no_visit_is_logged()
+    {
+        catalogue.Found = Exceptional.Success(Option.None<ScrapeConfigurationEntity>());
+
+        _ = await browser.FindAsync(Summary);
+
+        logger.Entries.ShouldBeEmpty();
     }
 
     [Fact]

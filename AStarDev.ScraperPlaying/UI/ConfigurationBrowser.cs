@@ -1,7 +1,9 @@
 using System.IO.Abstractions;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
+using AStarDev.LoggingExtensions;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
+using Microsoft.Extensions.Logging;
 
 namespace AStarDev.ScraperPlaying.UI;
 
@@ -10,7 +12,8 @@ namespace AStarDev.ScraperPlaying.UI;
 /// <param name="saver">The service the editor validates and saves through.</param>
 /// <param name="fileSystem">The file system the editor uses to check the scrape directories.</param>
 /// <param name="status">Where problems are reported.</param>
-public sealed class ConfigurationBrowser(IScrapeConfigurationCatalogue catalogue, ConfigurationEditSaver saver, IFileSystem fileSystem, StatusReporter status)
+/// <param name="logger">The logger the visit to the editor is written to.</param>
+public sealed class ConfigurationBrowser(IScrapeConfigurationCatalogue catalogue, ConfigurationEditSaver saver, IFileSystem fileSystem, StatusReporter status, ILogger<ConfigurationBrowser> logger)
 {
     /// <summary>Lists the available configurations; an empty list, with the failure reported, if they could not be listed.</summary>
     public async Task<IReadOnlyList<ScrapeConfigurationSummary>> ListAsync() =>
@@ -21,7 +24,7 @@ public sealed class ConfigurationBrowser(IScrapeConfigurationCatalogue catalogue
             return [];
         });
 
-    /// <summary>Loads the configuration behind <paramref name="summary"/>; none, with the reason reported, if it could not be loaded or no longer exists.</summary>
+    /// <summary>Loads the configuration behind <paramref name="summary"/> so it can be edited, logging the visit to the editor (never what is changed); none, with the reason reported, if it could not be loaded or no longer exists.</summary>
     /// <param name="summary">The configuration to load.</param>
     public async Task<Option<ScrapeConfigurationEntity>> FindAsync(ScrapeConfigurationSummary summary) =>
         (await catalogue.FindAsync(summary.Id)).Match(ReportIfMissing, exception =>
@@ -38,6 +41,7 @@ public sealed class ConfigurationBrowser(IScrapeConfigurationCatalogue catalogue
     private Option<ScrapeConfigurationEntity> ReportIfMissing(Option<ScrapeConfigurationEntity> found)
     {
         if (found is Option<ScrapeConfigurationEntity>.None) status.Append("The selected scrape configuration could not be found.");
+        else LogMessage.PageView(logger, "Scrape configuration editor");
 
         return found;
     }

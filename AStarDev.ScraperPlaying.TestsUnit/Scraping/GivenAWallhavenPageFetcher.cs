@@ -1,6 +1,8 @@
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
+using AStarDev.ScraperPlaying.TestsUnit.Fakes;
+using Microsoft.Extensions.Logging;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.Scraping;
 
@@ -9,9 +11,10 @@ public sealed class GivenAWallhavenPageFetcher
     private static readonly Uri PageUrl = new("https://example.test/page/2");
     private readonly FakeJsonResponseProcessor jsonResponseProcessor = new();
     private readonly CapturingProgress progress = new();
+    private readonly CapturingLogger<WallhavenPageFetcher> logger = new();
     private readonly WallhavenPageFetcher fetcher;
 
-    public GivenAWallhavenPageFetcher() => fetcher = new(jsonResponseProcessor);
+    public GivenAWallhavenPageFetcher() => fetcher = new(jsonResponseProcessor, logger);
 
     [Fact]
     public async Task when_a_page_is_fetched_then_the_response_is_returned_and_the_fetch_is_reported()
@@ -22,6 +25,16 @@ public sealed class GivenAWallhavenPageFetcher
         var fetched = await Fetch();
 
         (fetched, jsonResponseProcessor.RequestedUrls.Single(), progress.Messages.Single()).ShouldBe((response, PageUrl, "Fetching top wallpapers page 2."));
+    }
+
+    [Fact]
+    public async Task when_a_page_is_fetched_then_the_page_visit_is_logged()
+    {
+        jsonResponseProcessor.Response = (Option<SearchResponse>)new SearchResponse([], new Meta(5));
+
+        _ = await Fetch();
+
+        logger.Entries.ShouldBe([(LogLevel.Information, "Page `top wallpapers page 2` viewed.")]);
     }
 
     [Fact]

@@ -4,6 +4,7 @@ using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Operations;
 using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.TestsUnit.Fakes;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.Scraping;
@@ -15,6 +16,7 @@ public sealed class GivenAScrapeService : IDisposable
     private readonly FakeRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> repository;
     private readonly FakeSearchOrchestrator searchOrchestrator = new();
     private readonly CapturingProgress progress = new();
+    private readonly CapturingLogger<ScrapeService> logger = new();
     private readonly ServiceProvider serviceProvider;
     private readonly ScrapeService service;
 
@@ -26,7 +28,7 @@ public sealed class GivenAScrapeService : IDisposable
             .AddSingleton<ISearchOrchestrator>(searchOrchestrator)
             .BuildServiceProvider();
 
-        service = new(operationCoordinator, serviceProvider.GetRequiredService<IServiceScopeFactory>());
+        service = new(operationCoordinator, serviceProvider.GetRequiredService<IServiceScopeFactory>(), logger);
     }
 
     [Fact]
@@ -107,6 +109,43 @@ public sealed class GivenAScrapeService : IDisposable
 
         progress.Messages.ShouldContain("Search cancelled.");
         operationCoordinator.IsOperationRunning.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task when_a_scrape_completes_then_its_start_and_end_are_logged()
+    {
+        repository.First = (Option<ScrapeConfigurationEntity>)ScrapeConfigurationTestData.CreateConfiguration();
+
+        await Run();
+
+        (logger.Entries.Count, logger.Entries[0], logger.Entries[1].Level, logger.Entries[1].Message.StartsWith("Scrape completed in ", StringComparison.Ordinal)).ShouldBe((2, (LogLevel.Information, "Scrape started."), LogLevel.Information, true));
+    }
+
+    [Fact]
+    public async Task when_a_scrape_is_cancelled_then_the_cancellation_is_logged()
+    {
+        repository.First = (Option<ScrapeConfigurationEntity>)ScrapeConfigurationTestData.CreateConfiguration();
+        searchOrchestrator.OnSearch = () =>
+        {
+            operationCoordinator.Cancel();
+
+            throw new OperationCanceledException();
+        };
+
+        await Run();
+
+        logger.Entries.ShouldBe([(LogLevel.Information, "Scrape started."), (LogLevel.Information, "Scrape cancelled.")]);
+    }
+
+    [Fact]
+    public async Task when_a_scrape_fails_with_a_request_error_then_the_failure_is_logged_as_an_error()
+    {
+        repository.First = (Option<ScrapeConfigurationEntity>)ScrapeConfigurationTestData.CreateConfiguration();
+        searchOrchestrator.OnSearch = () => throw new HttpRequestException("boom");
+
+        await Run();
+
+        logger.Entries.ShouldBe([(LogLevel.Information, "Scrape started."), (LogLevel.Error, "Error occurred : `Scrape failed with a request error`")]);
     }
 
     [Fact]

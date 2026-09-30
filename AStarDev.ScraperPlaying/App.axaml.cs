@@ -1,4 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using AStarDev.LoggingExtensions;
+using AStarDev.LoggingOTel;
 using AStarDev.ScraperPlaying.Startup;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -45,7 +47,7 @@ public partial class App : Application, IDisposable
             .AddDataServices()
             .AddInfrastructureServices()
             .AddApplicationServices(configuration)
-            .AddLogging()
+            .AddLogging(builder => builder.ConfigureOTelLogging(configuration).AddFileLogging(ApplicationDirectories.LogsDirectory, ApplicationMetadata.ApplicationNameHyphenated))
             .BuildServiceProvider();
 
         var applicationDirectories = serviceProvider.GetRequiredService<IApplicationDirectories>();
