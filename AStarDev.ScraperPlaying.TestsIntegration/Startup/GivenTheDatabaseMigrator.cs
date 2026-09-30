@@ -1,5 +1,6 @@
 using AStarDev.ControlDb;
 using AStarDev.ScraperPlaying.Startup;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
@@ -45,7 +46,9 @@ public sealed class GivenTheDatabaseMigrator : IDisposable
         var factory = serviceProvider.GetRequiredService<IDbContextFactory<ControlDbContext>>();
         await using (var older = await factory.CreateDbContextAsync(TestContext.Current.CancellationToken))
         {
-            await older.GetService<IMigrator>().MigrateAsync("20260929073110_AddPersonCategories", TestContext.Current.CancellationToken);
+            await MigrateWithoutSeedingAsync(older, "20260929073110_AddPersonCategories", TestContext.Current.CancellationToken);
+            await older.Database.ExecuteSqlRawAsync("ALTER TABLE UserConfigurations DROP COLUMN Password", TestContext.Current.CancellationToken);
+            await older.Database.ExecuteSqlRawAsync("ALTER TABLE UserConfigurations ADD COLUMN Password TEXT NOT NULL DEFAULT 'old-secret'", TestContext.Current.CancellationToken);
             await Seeder.SeedAsync(older, TestContext.Current.CancellationToken);
             await older.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
@@ -68,7 +71,7 @@ public sealed class GivenTheDatabaseMigrator : IDisposable
         var factory = serviceProvider.GetRequiredService<IDbContextFactory<ControlDbContext>>();
         await using (var older = await factory.CreateDbContextAsync(TestContext.Current.CancellationToken))
         {
-            await older.GetService<IMigrator>().MigrateAsync("20260929214238_LoginUrlIsFreeText", TestContext.Current.CancellationToken);
+            await MigrateWithoutSeedingAsync(older, "20260929214238_LoginUrlIsFreeText", TestContext.Current.CancellationToken);
             await older.Database.ExecuteSqlRawAsync($"INSERT INTO FileDetail (Id, FileHandle, FileSize, IsImage, DirectoryName, FileName, FileType) VALUES ('{withDetail}', 'handle-1', 1, 1, 'dir', 'one.jpg', 'image/jpeg'), ('{withoutDetail}', 'handle-2', 1, 1, 'dir', 'two.jpg', 'image/jpeg')", TestContext.Current.CancellationToken);
             await older.Database.ExecuteSqlRawAsync($"INSERT INTO FileAccessDetail (Id, FileId, DetailsLastUpdated_Ticks, MoveRequired) VALUES ('33333333-3333-3333-3333-333333333333', '{withDetail}', {detailsLastUpdatedTicks}, 0)", TestContext.Current.CancellationToken);
         }
@@ -78,6 +81,38 @@ public sealed class GivenTheDatabaseMigrator : IDisposable
         await using var context = await factory.CreateDbContextAsync(TestContext.Current.CancellationToken);
         var backFilled = await context.Database.SqlQueryRaw<long>("SELECT LastUpdated_Ticks AS Value FROM FileDetail ORDER BY FileHandle").ToListAsync(TestContext.Current.CancellationToken);
         string.Join(",", backFilled).ShouldBe($"{detailsLastUpdatedTicks},0");
+    }
+
+    [Fact]
+    public async Task when_a_database_with_a_stored_password_is_migrated_then_the_password_column_is_gone_and_the_rest_of_the_user_configuration_is_kept()
+    {
+        var factory = serviceProvider.GetRequiredService<IDbContextFactory<ControlDbContext>>();
+        await using (var older = await factory.CreateDbContextAsync(TestContext.Current.CancellationToken))
+        {
+            await MigrateWithoutSeedingAsync(older, "20260930085048_AddFileLastUpdated", TestContext.Current.CancellationToken);
+            await older.Database.ExecuteSqlRawAsync("ALTER TABLE UserConfigurations DROP COLUMN Password", TestContext.Current.CancellationToken);
+            await older.Database.ExecuteSqlRawAsync("ALTER TABLE UserConfigurations ADD COLUMN Password TEXT NOT NULL DEFAULT 'stored-secret'", TestContext.Current.CancellationToken);
+            await Seeder.SeedAsync(older, TestContext.Current.CancellationToken);
+        }
+
+        await DatabaseMigrator.MigrateAsync(factory, NullLogger.Instance);
+
+        await using var context = await factory.CreateDbContextAsync(TestContext.Current.CancellationToken);
+        var passwordColumns = await context.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM pragma_table_info('UserConfigurations') WHERE name = 'Password'").SingleAsync(TestContext.Current.CancellationToken);
+        var user = (await context.ScrapeConfigurations.Include(configuration => configuration.UserConfiguration).SingleAsync(TestContext.Current.CancellationToken)).UserConfiguration;
+        (passwordColumns, user.EmailAddress, user.Username).ShouldBe((0, "user@example.com", "user"));
+    }
+
+    [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "The text is the migrator's own generated script for a fixed migration name; no user input.")]
+    private static async Task MigrateWithoutSeedingAsync(ControlDbContext context, string targetMigration, CancellationToken cancellationToken)
+    {
+        // IMigrator.MigrateAsync also runs the (current-model) seeder, which cannot insert into an older schema; apply the generated script instead.
+        var script = context.GetService<IMigrator>().GenerateScript(toMigration: targetMigration);
+        var connection = context.Database.GetDbConnection();
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = script;
+        _ = await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
     public void Dispose()

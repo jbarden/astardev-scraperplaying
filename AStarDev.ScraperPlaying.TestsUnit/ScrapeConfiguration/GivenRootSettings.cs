@@ -88,7 +88,7 @@ public sealed class GivenRootSettings
 
         return new ScrapeConfigurationEntity(id)
         {
-            UserConfiguration = new UserConfigurationEntity(new UserConfigurationId(Guid.CreateVersion7()), id, "user@example.test", "user", "secret", "user-key"),
+            UserConfiguration = new UserConfigurationEntity(new UserConfigurationId(Guid.CreateVersion7()), id, "user@example.test", "user", "user-key"),
             SearchConfiguration = new SearchConfigurationEntity(new SearchConfigurationId(Guid.CreateVersion7()), id, "term", 10, []),
             ScrapeDirectories = new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.CreateVersion7()), id, "root", "famous", "sub"),
             BaseUrl = new Uri("https://wallhaven.cc/api/v1"),

@@ -47,7 +47,7 @@ public sealed class GivenAScrapeConfigurationExporter : IDisposable
         var searchConfigurationId = new SearchConfigurationId(Guid.CreateVersion7());
         var existing = new ScrapeConfigurationEntity(scrapeConfigurationId)
         {
-            UserConfiguration = new UserConfigurationEntity(new UserConfigurationId(Guid.CreateVersion7()), scrapeConfigurationId, "user@example.test", "user", "secret", "api-key"),
+            UserConfiguration = new UserConfigurationEntity(new UserConfigurationId(Guid.CreateVersion7()), scrapeConfigurationId, "user@example.test", "user", "api-key"),
             SearchConfiguration = new SearchConfigurationEntity(searchConfigurationId, scrapeConfigurationId, "cats", 10, [
                 new SearchCategoryEntity { SearchConfigurationId = searchConfigurationId, Id = "1", Name = "General" }
             ]),

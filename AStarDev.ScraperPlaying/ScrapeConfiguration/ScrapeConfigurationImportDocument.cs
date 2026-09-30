@@ -35,7 +35,6 @@ public sealed class UserConfigurationImportDocument
     public Guid Id { get; init; }
     public string EmailAddress { get; init; } = string.Empty;
     public string Username { get; init; } = string.Empty;
-    public string Password { get; init; } = string.Empty;
     public string ApiKey { get; init; } = string.Empty;
 }
 

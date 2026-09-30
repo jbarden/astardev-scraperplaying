@@ -41,7 +41,6 @@ public static class ScrapeConfigurationImportMapper
                 new ScrapeConfigurationId(document.Id),
                 document.UserConfiguration.EmailAddress,
                 document.UserConfiguration.Username,
-                document.UserConfiguration.Password,
                 document.UserConfiguration.ApiKey),
             SearchConfiguration = searchEntity,
             ScrapeDirectories = new ScrapeDirectoriesEntity(

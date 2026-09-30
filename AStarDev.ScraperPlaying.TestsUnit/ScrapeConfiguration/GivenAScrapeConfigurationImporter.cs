@@ -115,7 +115,7 @@ public sealed class GivenAScrapeConfigurationImporter : IDisposable
 
     private static ScrapeConfigurationImportDocument CreateDocument(string username) => new()
     {
-        UserConfiguration = new() { Username = username, Password = "secret" },
+        UserConfiguration = new() { Username = username },
         SearchConfiguration = new() { SearchTerm = "cats", SearchCategories = [] },
         ScrapeDirectories = new() { RootDirectory = "/tmp" }
     };

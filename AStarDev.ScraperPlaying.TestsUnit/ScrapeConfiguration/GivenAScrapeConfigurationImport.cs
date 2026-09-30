@@ -146,7 +146,7 @@ public sealed class GivenAScrapeConfigurationImport
         var document = new ScrapeConfigurationImportDocument
         {
             Id = Guid.CreateVersion7(),
-            UserConfiguration = new() { Username = "user", Password = "secret" },
+            UserConfiguration = new() { Username = "user" },
             SearchConfiguration = new() { SearchTerm = "cats", SearchCategories = [new() { Id = "1", Name = "General" }], PersonCategories = ["Drivers", "Models"] },
             ScrapeDirectories = new() { RootDirectory = "/tmp" }
         };
@@ -190,6 +190,30 @@ public sealed class GivenAScrapeConfigurationImport
             var document = await new ScrapeConfigurationFileReader().ReadAsync(path, TestContext.Current.CancellationToken);
 
             document.SearchConfiguration.PersonCategories.ShouldBeEmpty();
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task when_an_older_file_still_contains_a_password_then_it_is_ignored_and_the_rest_is_imported()
+    {
+        var document = await ReadJsonAsync("""{ "userConfiguration": { "emailAddress": "user@example.test", "username": "user", "password": "old-secret" }, "searchConfiguration": {}, "scrapeDirectories": {}, "baseUrl": "https://example.test", "loginUrl": "login" }""");
+
+        (document.UserConfiguration.EmailAddress, document.UserConfiguration.Username).ShouldBe(("user@example.test", "user"));
+    }
+
+    [Fact]
+    public async Task when_a_document_is_written_then_the_file_contains_no_password()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            await new ScrapeConfigurationFileWriter().WriteAsync(new ScrapeConfigurationImportDocument { UserConfiguration = new UserConfigurationImportDocument { Username = "user" } }, path, TestContext.Current.CancellationToken);
+
+            (await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken)).Contains("password", StringComparison.OrdinalIgnoreCase).ShouldBeFalse();
         }
         finally
         {

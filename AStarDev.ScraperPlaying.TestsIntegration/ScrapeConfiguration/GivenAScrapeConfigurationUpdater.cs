@@ -56,13 +56,12 @@ public sealed class GivenAScrapeConfigurationUpdater : IDisposable
     {
         var id = await SeedAsync();
 
-        var result = await updater.SaveAsync(id, [new UserSettings("new@example.test", "new-user", "new-secret", "new-key")], TestContext.Current.CancellationToken);
+        var result = await updater.SaveAsync(id, [new UserSettings("new@example.test", "new-user", "new-key")], TestContext.Current.CancellationToken);
 
         result.Match(option => option, exception => throw exception).Match(_ => true, () => false).ShouldBeTrue();
         var reloaded = await ReadAsync(id);
         reloaded.UserConfiguration.EmailAddress.ShouldBe("new@example.test");
         reloaded.UserConfiguration.Username.ShouldBe("new-user");
-        reloaded.UserConfiguration.Password.ShouldBe("new-secret");
         reloaded.UserConfiguration.ApiKey.ShouldBe("new-key");
         reloaded.BaseUrl.ShouldBe(new Uri("https://example.com/scrape"));
         reloaded.SearchConfiguration.SearchTerm.ShouldBe("search-config");
@@ -242,7 +241,7 @@ public sealed class GivenAScrapeConfigurationUpdater : IDisposable
         var rootId = new ScrapeConfigurationId(Guid.Empty);
         var entity = new ScrapeConfigurationEntity(rootId)
         {
-            UserConfiguration = new UserConfigurationEntity(new UserConfigurationId(Guid.Empty), rootId, "user@example.com", "username", "password", "apiKey"),
+            UserConfiguration = new UserConfigurationEntity(new UserConfigurationId(Guid.Empty), rootId, "user@example.com", "username", "apiKey"),
             SearchConfiguration = new SearchConfigurationEntity(new SearchConfigurationId(Guid.Empty), rootId, "search-config", 10, [.. categories]),
             ScrapeDirectories = new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.Empty), rootId, "root-save-directory", "root-directory-famous", "sub-directory-name"),
             BaseUrl = new Uri("https://example.com/scrape"),

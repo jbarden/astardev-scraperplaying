@@ -10,11 +10,10 @@ public sealed class GivenUserSettings
         var entity = GivenAUserSettingsInput.CreateEntity();
         var userConfigurationId = entity.UserConfiguration.Id;
 
-        new UserSettings("new@example.test", "new-user", "new-secret", "new-key").ApplyTo(entity);
+        new UserSettings("new@example.test", "new-user", "new-key").ApplyTo(entity);
 
         entity.UserConfiguration.EmailAddress.ShouldBe("new@example.test");
         entity.UserConfiguration.Username.ShouldBe("new-user");
-        entity.UserConfiguration.Password.ShouldBe("new-secret");
         entity.UserConfiguration.ApiKey.ShouldBe("new-key");
         entity.UserConfiguration.Id.ShouldBe(userConfigurationId);
         entity.UserConfiguration.ScrapeConfigurationEntityId.ShouldBe(entity.Id);
@@ -24,5 +23,5 @@ public sealed class GivenUserSettings
 
     [Fact]
     public void when_created_from_an_entity_then_the_values_are_copied() =>
-        UserSettings.From(GivenAUserSettingsInput.CreateEntity()).ShouldBe(new UserSettings("user@example.test", "user", "secret", "api-key"));
+        UserSettings.From(GivenAUserSettingsInput.CreateEntity()).ShouldBe(new UserSettings("user@example.test", "user", "api-key"));
 }

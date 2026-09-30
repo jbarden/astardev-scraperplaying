@@ -29,13 +29,13 @@ public sealed class GivenASeeder : IDisposable
         => Should.Throw<ArgumentNullException>(() => Seeder.SeedAsync(null!, TestContext.Current.CancellationToken)).ParamName.ShouldBe("context");
 
     [Fact]
-    public async Task when_the_database_is_seeded_then_the_user_details_are_neutral_placeholders_with_no_default_password()
+    public async Task when_the_database_is_seeded_then_the_user_details_are_neutral_placeholders()
     {
         await Seeder.SeedAsync(context, TestContext.Current.CancellationToken);
 
         var user = (await context.Set<ScrapeConfigurationEntity>().Include(configuration => configuration.UserConfiguration).SingleAsync(TestContext.Current.CancellationToken)).UserConfiguration;
 
-        (user.EmailAddress, user.Username, user.Password).ShouldBe(("user@example.com", "user", string.Empty));
+        (user.EmailAddress, user.Username).ShouldBe(("user@example.com", "user"));
     }
 
     [Fact]

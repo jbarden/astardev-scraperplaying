@@ -17,7 +17,6 @@ internal sealed class ScrapeSettingsUserConfiguration
 {
     public string LoginEmailAddress { get; init; } = string.Empty;
     public string Username { get; init; } = string.Empty;
-    public string Password { get; init; } = string.Empty;
 }
 
 internal sealed class ScrapeSettingsSearchConfiguration

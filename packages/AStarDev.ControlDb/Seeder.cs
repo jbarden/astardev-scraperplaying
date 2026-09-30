@@ -47,7 +47,7 @@ public static class Seeder
 
         _ = context.Set<ScrapeConfigurationEntity>().Add(new ScrapeConfigurationEntity(Guid.Empty)
         {
-            UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, "user@example.com", "user", string.Empty, "n/a"),
+            UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, "user@example.com", "user", "n/a"),
             SearchConfiguration = searchConfiguration,
             ScrapeDirectories = new ScrapeDirectoriesEntity(Guid.Empty, Guid.Empty, DefaultRootDirectory(), Path.Combine(DefaultRootDirectory(), "Famous"), "subdirectory"),
             BaseUrl = new Uri("https://wallhaven.cc/"),
