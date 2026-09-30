@@ -153,12 +153,23 @@ public sealed class GivenAPagesProcessor
         };
         unitOfWork.OnSave = token =>
         {
-            if (token == CancellationToken.None) throw new DbUpdateException("save failed");
+            if (token == CancellationToken.None) throw new DbUpdateException("save failed", new InvalidOperationException("UNIQUE constraint failed: FileDetail.FileHandle"));
         };
 
         await Should.ThrowAsync<OperationCanceledException>(() => FetchWithCancellation(cancellationTokenSource.Token));
 
-        progress.Messages.ShouldContain("Scrape cancelled - failed to save wallpapers downloaded so far this page: save failed");
+        progress.Messages.ShouldContain("Scrape cancelled - failed to save wallpapers downloaded so far this page: save failed Caused by: UNIQUE constraint failed: FileDetail.FileHandle");
+    }
+
+    [Fact]
+    public async Task when_saving_a_page_fails_with_a_database_update_error_then_the_inner_cause_is_reported_and_the_failure_rethrown()
+    {
+        SetUpPage(1, CreateSearchResponse(lastPage: 1, CreateWallpaper("wallpaper-duplicate")));
+        unitOfWork.OnSave = _ => throw new DbUpdateException("An error occurred while saving the entity changes. See the inner exception for details.", new InvalidOperationException("UNIQUE constraint failed: FileDetail.FileHandle"));
+
+        _ = await Should.ThrowAsync<DbUpdateException>(Run);
+
+        progress.Messages.ShouldContain("An error occurred during the fetching and processing of pages: An error occurred while saving the entity changes. See the inner exception for details. Caused by: UNIQUE constraint failed: FileDetail.FileHandle");
     }
 
     [Fact]

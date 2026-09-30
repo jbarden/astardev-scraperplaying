@@ -81,6 +81,16 @@
             <returns>The parsed value as the matching enum value</returns>
             <exception cref="T:System.ArgumentException">Thrown when the string is not a valid enum value</exception>
         </member>
+        <member name="T:AStarDev.Utilities.ExceptionExtensions">
+            <summary>Provides extension methods for describing exceptions.</summary>
+        </member>
+        <member name="M:AStarDev.Utilities.ExceptionExtensions.ToMessageChain(System.Exception)">
+            <inheritdoc cref="M:AStarDev.Utilities.ExceptionExtensions.&lt;G&gt;$6A188C7A03CB85FC44DF3FD030EA0664.ToMessageChain"/>
+        </member>
+        <member name="M:AStarDev.Utilities.ExceptionExtensions.&lt;G&gt;$6A188C7A03CB85FC44DF3FD030EA0664.ToMessageChain">
+            <summary>Describes the exception and every exception nested inside it, outermost first, so the real cause is not hidden behind messages such as "See the inner exception for details".</summary>
+            <returns>The messages joined with "Caused by:". Repeated and blank inner messages are skipped.</returns>
+        </member>
         <member name="T:AStarDev.Utilities.IntParser">
              <summary>
             

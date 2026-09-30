@@ -49,4 +49,12 @@ public sealed class GivenAStatusReporter
 
         reporter.Text.ShouldBe("Unable to do the thing. it broke");
     }
+
+    [Fact]
+    public void when_an_error_has_an_inner_exception_then_its_message_is_appended_too()
+    {
+        reporter.Error("Unable to save.", new InvalidOperationException("An error occurred while saving the entity changes.", new IOException("UNIQUE constraint failed: FileDetail.FileHandle")));
+
+        reporter.Text.ShouldBe("Unable to save. An error occurred while saving the entity changes. Caused by: UNIQUE constraint failed: FileDetail.FileHandle");
+    }
 }
