@@ -7,10 +7,10 @@ namespace AStarDev.ScraperPlaying.UI;
 
 /// <summary>Lists and loads scrape configurations for the main window, reporting problems to the user instead of throwing, and creates the editor for a loaded configuration.</summary>
 /// <param name="catalogue">The source of the configurations.</param>
-/// <param name="updater">The service the editor saves through.</param>
+/// <param name="saver">The service the editor validates and saves through.</param>
 /// <param name="fileSystem">The file system the editor uses to check the scrape directories.</param>
 /// <param name="status">Where problems are reported.</param>
-public sealed class ConfigurationBrowser(IScrapeConfigurationCatalogue catalogue, IScrapeConfigurationUpdater updater, IFileSystem fileSystem, StatusReporter status)
+public sealed class ConfigurationBrowser(IScrapeConfigurationCatalogue catalogue, ConfigurationEditSaver saver, IFileSystem fileSystem, StatusReporter status)
 {
     /// <summary>Lists the available configurations; an empty list, with the failure reported, if they could not be listed.</summary>
     public async Task<IReadOnlyList<ScrapeConfigurationSummary>> ListAsync() =>
@@ -33,7 +33,7 @@ public sealed class ConfigurationBrowser(IScrapeConfigurationCatalogue catalogue
 
     /// <summary>Creates the editor window for <paramref name="configuration"/>.</summary>
     /// <param name="configuration">The configuration to edit.</param>
-    public ConfigurationEditorWindow CreateEditor(ScrapeConfigurationEntity configuration) => new(configuration, updater, fileSystem);
+    public ConfigurationEditorWindow CreateEditor(ScrapeConfigurationEntity configuration) => new(configuration, saver, fileSystem);
 
     private Option<ScrapeConfigurationEntity> ReportIfMissing(Option<ScrapeConfigurationEntity> found)
     {

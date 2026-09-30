@@ -32,6 +32,7 @@ public static class ApplicationServices
             .AddSingleton<IScrapeConfigurationFileService, ScrapeConfigurationFileService>()
             .AddSingleton<IScrapeConfigurationCatalogue, ScrapeConfigurationCatalogue>()
             .AddSingleton<IScrapeConfigurationUpdater, ScrapeConfigurationUpdater>()
+            .AddSingleton<ConfigurationEditSaver>()
             .AddSingleton<IImageDownloadNotifier, ImageDownloadNotifier>()
             .AddSingleton<IDownloadedImageDecoder, DownloadedImageDecoder>()
             .AddSingleton<ImageDisplayCoordinator>()

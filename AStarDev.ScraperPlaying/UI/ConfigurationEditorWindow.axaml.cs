@@ -11,20 +11,20 @@ namespace AStarDev.ScraperPlaying.UI;
 public partial class ConfigurationEditorWindow : Window
 {
     private readonly ScrapeConfigurationId configurationId;
-    private readonly IScrapeConfigurationUpdater updater = null!;
+    private readonly ConfigurationEditSaver saver = null!;
 
     /// <summary>Initializes the window for the design-time previewer.</summary>
     public ConfigurationEditorWindow() => InitializeComponent();
 
     /// <summary>Initializes a new instance of the <see cref="ConfigurationEditorWindow"/> class for the specified configuration.</summary>
     /// <param name="configuration">The scrape configuration to edit.</param>
-    /// <param name="updater">The service used to save the edits.</param>
+    /// <param name="saver">The service that validates and saves the edits.</param>
     /// <param name="fileSystem">The file system used to check that the scrape directories exist.</param>
-    public ConfigurationEditorWindow(ScrapeConfigurationEntity configuration, IScrapeConfigurationUpdater updater, IFileSystem fileSystem)
+    public ConfigurationEditorWindow(ScrapeConfigurationEntity configuration, ConfigurationEditSaver saver, IFileSystem fileSystem)
     {
         InitializeComponent();
         configurationId = configuration.Id;
-        this.updater = updater;
+        this.saver = saver;
         ConfigurationLabelText.Text = ScrapeConfigurationSummary.From(configuration).Label;
         RootSettingsTabContent.Load(RootSettingsInput.From(configuration));
         UserTabContent.Load(UserSettingsInput.From(configuration));
@@ -36,26 +36,9 @@ public partial class ConfigurationEditorWindow : Window
 
     public async void Save(object? sender, RoutedEventArgs eventArgs)
     {
-        var rootSettings = RootSettingsTabContent.ReadInput().Validate();
-        var userSettings = UserTabContent.ReadInput().Validate();
-        var directorySettings = DirectoriesTabContent.ReadInput().Validate();
-        var searchSettings = SearchTabContent.ReadInput().Validate();
-        var searchCategories = SearchCategoriesTabContent.ReadInput().Validate();
-        var personCategories = PersonCategoriesTabContent.ReadInput().Validate();
-        var errors = CollectErrors(rootSettings).Concat(CollectErrors(userSettings)).Concat(CollectErrors(directorySettings)).Concat(CollectErrors(searchSettings)).Concat(CollectErrors(searchCategories)).Concat(CollectErrors(personCategories)).ToList();
-        if (errors.Count > 0)
-        {
-            ShowError(string.Join(Environment.NewLine, errors.Select(error => $"{error.Property}: {error.Message}")));
-
-            return;
-        }
-
         ShowError(string.Empty);
         SetSaving(true);
-        var result = await updater.SaveAsync(configurationId, [((Valid<RootSettings>)rootSettings).Value, ((Valid<UserSettings>)userSettings).Value, ((Valid<DirectorySettings>)directorySettings).Value, ((Valid<SearchSettings>)searchSettings).Value, ((Valid<SearchCategoriesSettings>)searchCategories).Value, ((Valid<PersonCategoriesSettings>)personCategories).Value], CancellationToken.None);
-        var failure = result.Match(
-            saved => saved.Match(_ => Option.None<string>(), () => Option.Some("The scrape configuration no longer exists.")),
-            exception => Option.Some($"Unable to save the scrape configuration. {exception.Message}"));
+        var failure = await saver.SaveAsync(configurationId, ReadInputs(), CancellationToken.None);
         SetSaving(false);
         if (failure is Option<string>.Some some) ShowError(some.Value);
         else Close(true);
@@ -63,8 +46,13 @@ public partial class ConfigurationEditorWindow : Window
 
     public void Cancel(object? sender, RoutedEventArgs eventArgs) => Close(false);
 
-    private static IReadOnlyList<ValidationError> CollectErrors<T>(Validation<T> validation) =>
-        validation is Invalid<T> invalid ? invalid.Errors : [];
+    private ConfigurationEditInputs ReadInputs() => new(
+        RootSettingsTabContent.ReadInput(),
+        UserTabContent.ReadInput(),
+        DirectoriesTabContent.ReadInput(),
+        SearchTabContent.ReadInput(),
+        SearchCategoriesTabContent.ReadInput(),
+        PersonCategoriesTabContent.ReadInput());
 
     private void SetSaving(bool isSaving)
     {
