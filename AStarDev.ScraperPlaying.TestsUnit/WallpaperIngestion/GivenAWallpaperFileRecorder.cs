@@ -3,6 +3,7 @@ using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 using AStarDev.ScraperPlaying.TestsUnit.Fakes;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
+using Microsoft.Extensions.Time.Testing;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.WallpaperIngestion;
 
@@ -10,7 +11,7 @@ public sealed class GivenAWallpaperFileRecorder
 {
     private static readonly DateTimeOffset now = new(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
     private readonly FakeRepository<FileEntity, FileId> fileRepository = new();
-    private readonly WallpaperFileRecorder recorder = new(() => now);
+    private readonly WallpaperFileRecorder recorder = new(new FakeTimeProvider(now));
 
     [Fact]
     public void when_recording_a_wallpaper_then_a_matching_file_entity_is_added_and_returned()

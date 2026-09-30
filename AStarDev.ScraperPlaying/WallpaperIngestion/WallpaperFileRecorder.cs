@@ -6,12 +6,13 @@ using AStarDev.Utilities;
 namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 
 /// <inheritdoc/>
-public sealed class WallpaperFileRecorder(Func<DateTimeOffset> clock) : IWallpaperFileRecorder
+public sealed class WallpaperFileRecorder(TimeProvider timeProvider) : IWallpaperFileRecorder
 {
     /// <inheritdoc/>
     public Exceptional<FileEntity> Record(IRepository<FileEntity, FileId> fileRepository, WallpaperFileRequest request)
     {
         var wallpaper = request.Wallpaper;
+        var now = timeProvider.GetUtcNow();
         var fileEntity = new FileEntity
         {
             Id = FileId.Empty,
@@ -19,11 +20,11 @@ public sealed class WallpaperFileRecorder(Func<DateTimeOffset> clock) : IWallpap
             DirectoryName = DirectoryName.Create(request.Directory),
             FileAccessDetail = new FileAccessDetailEntity
             {
-                DetailsLastUpdated = clock().UtcDateTime,
+                DetailsLastUpdated = now.UtcDateTime,
                 Id = FileAccessDetailId.Empty,
                 FileId = FileId.Empty
             },
-            LastUpdated = clock(),
+            LastUpdated = now,
             FileSize = wallpaper.FileSize,
             FileHandle = FileHandle.Create(wallpaper.Id),
             FileType = wallpaper.FileType,

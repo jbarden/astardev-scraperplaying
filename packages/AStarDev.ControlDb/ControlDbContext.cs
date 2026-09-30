@@ -148,15 +148,7 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
         }
 
         _ = optionsBuilder
-            .UseAsyncSeeding(async (context, _, cancellationToken) =>
-            {
-                await Seeder.SeedAsync(context, cancellationToken).ConfigureAwait(false);
-                Console.WriteLine("Async Seeding ControlDbContext completed successfully...");
-            })
-            .UseSeeding((context, _) =>
-            {
-                Seeder.Seed(context);
-                Console.WriteLine("Sync Seeding ControlDbContext completed successfully...");
-            });
+            .UseAsyncSeeding(async (context, _, cancellationToken) => await Seeder.SeedAsync(context, cancellationToken).ConfigureAwait(false))
+            .UseSeeding((context, _) => Seeder.Seed(context));
     }
 }

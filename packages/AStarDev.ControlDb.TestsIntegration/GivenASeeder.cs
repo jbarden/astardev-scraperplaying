@@ -29,6 +29,26 @@ public sealed class GivenASeeder : IDisposable
         => Should.Throw<ArgumentNullException>(() => Seeder.SeedAsync(null!, TestContext.Current.CancellationToken)).ParamName.ShouldBe("context");
 
     [Fact]
+    public async Task when_the_database_is_seeded_then_the_user_details_are_neutral_placeholders_with_no_default_password()
+    {
+        await Seeder.SeedAsync(context, TestContext.Current.CancellationToken);
+
+        var user = (await context.Set<ScrapeConfigurationEntity>().Include(configuration => configuration.UserConfiguration).SingleAsync(TestContext.Current.CancellationToken)).UserConfiguration;
+
+        (user.EmailAddress, user.Username, user.Password).ShouldBe(("user@example.com", "user", string.Empty));
+    }
+
+    [Fact]
+    public async Task when_the_database_is_seeded_then_the_root_directory_is_a_wallhaven_folder_under_the_users_pictures_not_a_developer_specific_path()
+    {
+        await Seeder.SeedAsync(context, TestContext.Current.CancellationToken);
+
+        var directories = (await context.Set<ScrapeConfigurationEntity>().Include(configuration => configuration.ScrapeDirectories).SingleAsync(TestContext.Current.CancellationToken)).ScrapeDirectories;
+
+        (Path.GetFileName(directories.RootDirectory), Path.IsPathRooted(directories.RootDirectory), directories.RootDirectory.Contains("Tbdrive", StringComparison.Ordinal), Path.GetFileName(directories.RootDirectoryFamous)).ShouldBe(("WallHaven", true, false, "Famous"));
+    }
+
+    [Fact]
     public async Task when_the_database_is_empty_then_seeding_adds_a_scrape_configuration()
     {
         await Seeder.SeedAsync(context, TestContext.Current.CancellationToken);

@@ -7,6 +7,7 @@ using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 using AStarDev.ScraperPlaying.TestsUnit.Fakes;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
+using Microsoft.Extensions.Time.Testing;
 using Testably.Abstractions.Testing;
 using Tag = AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse.Tag;
 
@@ -22,7 +23,7 @@ public sealed class GivenAWallpaperIngestionServiceWithPersonTags
 
     public GivenAWallpaperIngestionServiceWithPersonTags()
     {
-        var newWallpaperIngestor = new NewWallpaperIngestor(tagsProcessor, new ImageDownloader(fileSystem), new WallpaperFileRecorder(() => DateTimeOffset.UnixEpoch), new ImageDownloadNotifier());
+        var newWallpaperIngestor = new NewWallpaperIngestor(tagsProcessor, new ImageDownloader(fileSystem), new WallpaperFileRecorder(new FakeTimeProvider(DateTimeOffset.UnixEpoch)), new ImageDownloadNotifier());
         service = new(filesQuery, newWallpaperIngestor);
     }
 

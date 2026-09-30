@@ -5,6 +5,9 @@ namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 /// <inheritdoc/>
 public sealed class ImageDownloader(IFileSystem fileSystem) : IImageDownloader
 {
+    private const string PartialFileExtension = ".part";
+
+
     /// <inheritdoc/>
     public async Task<string> DownloadAsync(WallpaperFileRequest request, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
     {
@@ -17,9 +20,20 @@ public sealed class ImageDownloader(IFileSystem fileSystem) : IImageDownloader
 
         _ = fileSystem.Directory.CreateDirectory(request.Directory);
         var savedPath = fileSystem.Path.Combine(request.Directory, request.FileName.Value);
-        using (var fileStream = fileSystem.FileStream.New(savedPath, FileMode.Create, FileAccess.Write, FileShare.None))
+        var partialPath = $"{savedPath}{PartialFileExtension}";
+        try
         {
-            await downloadStream.CopyToAsync(fileStream, cancellationToken);
+            using (var fileStream = fileSystem.FileStream.New(partialPath, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                await downloadStream.CopyToAsync(fileStream, cancellationToken);
+            }
+
+            fileSystem.File.Move(partialPath, savedPath, overwrite: true);
+        }
+        finally
+        {
+            // Only reached with the partial file still present when the download failed or was cancelled: never leave a truncated image in the folder.
+            if (fileSystem.File.Exists(partialPath)) fileSystem.File.Delete(partialPath);
         }
 
         return savedPath;
