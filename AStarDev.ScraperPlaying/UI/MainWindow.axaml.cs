@@ -54,10 +54,13 @@ public partial class MainWindow : Window
     {
         if (ConfigurationPicker.SelectedItem is not ScrapeConfigurationSummary summary) return;
 
-        if (await configurationBrowser.FindAsync(summary) is not Option<ScrapeConfigurationEntity>.Some found) return;
+        await operations.ReportFailuresAsync("Unable to edit scrape configuration.", async () =>
+        {
+            if (await configurationBrowser.FindAsync(summary) is not Option<ScrapeConfigurationEntity>.Some found) return;
 
-        var saved = await configurationBrowser.CreateEditor(found.Value).ShowDialog<bool>(this);
-        if (saved) await RefreshConfigurationPickerAsync();
+            var saved = await configurationBrowser.CreateEditor(found.Value).ShowDialog<bool>(this);
+            if (saved) await RefreshConfigurationPickerAsync();
+        });
     }
 
     public async void RunScraper(object? sender, RoutedEventArgs eventArgs) => await scrapeRunner.RunAsync();
