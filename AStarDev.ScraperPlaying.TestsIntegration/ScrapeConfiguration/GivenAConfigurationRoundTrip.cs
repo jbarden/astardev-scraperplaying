@@ -176,8 +176,7 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
 
         public async Task<bool> ExportAsync(string path)
         {
-            using var scope = serviceProvider.CreateScope();
-            var exporter = new ScrapeConfigurationExporter(scope.ServiceProvider.GetRequiredService<IUnitOfWork>());
+            var exporter = new ScrapeConfigurationExporter(serviceProvider.GetRequiredService<IServiceScopeFactory>());
 
             return await new ScrapeConfigurationExportService(exporter, new ScrapeConfigurationFileWriter()).ExportAsync(path, TestContext.Current.CancellationToken);
         }
@@ -186,7 +185,7 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
         {
             using var scope = serviceProvider.CreateScope();
             await scope.ServiceProvider.GetRequiredService<ControlDbContext>().Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
-            var importer = new ScrapeConfigurationImporter(scope.ServiceProvider.GetRequiredService<IUnitOfWork>());
+            var importer = new ScrapeConfigurationImporter(serviceProvider.GetRequiredService<IServiceScopeFactory>());
 
             await new ScrapeConfigurationImportService(importer, new ScrapeConfigurationFileReader()).ImportAsync(path, TestContext.Current.CancellationToken);
         }
