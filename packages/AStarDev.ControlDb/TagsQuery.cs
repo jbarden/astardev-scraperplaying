@@ -1,18 +1,22 @@
 using AStarDev.ControlDb.TagDetail;
 using AStarDev.FunctionalParadigm;
+using Microsoft.EntityFrameworkCore;
 
 namespace AStarDev.ControlDb;
 
 public interface ITagsQuery
 {
-    Task<Exceptional<Option<TagEntity>>> TryFindByWallhavenIdAsync(int wallhavenTagId, CancellationToken cancellationToken = default);
+    /// <summary>Finds, in a single query, the tags whose Wallhaven id is one of <paramref name="wallhavenTagIds"/>. Ids with no stored tag are simply absent from the result.</summary>
+    /// <param name="wallhavenTagIds">The Wallhaven tag ids to look up.</param>
+    /// <param name="cancellationToken">A cancellation token for the asynchronous operation.</param>
+    Task<Exceptional<IReadOnlyList<TagEntity>>> FindByWallhavenIdsAsync(IReadOnlyCollection<int> wallhavenTagIds, CancellationToken cancellationToken = default);
 }
 
 public class TagsQuery(ControlDbContext context) : ITagsQuery
 {
-    public async Task<Exceptional<Option<TagEntity>>> TryFindByWallhavenIdAsync(int wallhavenTagId, CancellationToken cancellationToken = default)
-            => await context.Tags
-                            .AsAsyncEnumerable()
-                            .FirstOrNoneAsync(tag => tag.WallhavenTagId == wallhavenTagId, cancellationToken)
-                            .ConfigureAwait(false);
+    public Task<Exceptional<IReadOnlyList<TagEntity>>> FindByWallhavenIdsAsync(IReadOnlyCollection<int> wallhavenTagIds, CancellationToken cancellationToken = default)
+            => Try.RunAsync<IReadOnlyList<TagEntity>>(async () => await context.Tags
+                            .Where(tag => wallhavenTagIds.Contains(tag.WallhavenTagId))
+                            .ToListAsync(cancellationToken)
+                            .ConfigureAwait(false));
 }

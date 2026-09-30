@@ -26,6 +26,16 @@ public sealed class GivenAPagesProcessor
     }
 
     [Fact]
+    public async Task when_a_page_is_fetched_then_all_of_its_wallpapers_are_ingested_in_a_single_call()
+    {
+        SetUpPage(1, CreateSearchResponse(lastPage: 1, CreateWallpaper("wallpaper-1"), CreateWallpaper("wallpaper-2"), CreateWallpaper("wallpaper-3")));
+
+        await Run();
+
+        wallpaperIngestionService.PageSizes.ShouldBe([3]);
+    }
+
+    [Fact]
     public async Task when_a_page_is_fetched_then_each_wallpaper_on_it_is_ingested_into_the_resolved_directory()
     {
         var wallpaper = CreateWallpaper("wallpaper-1");
@@ -216,9 +226,12 @@ public sealed class GivenAPagesProcessor
 
         public Action OnIngest { get; set; } = () => { };
 
-        public Task IngestAsync(Data wallpaper, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+        public List<int> PageSizes { get; } = [];
+
+        public Task IngestPageAsync(IReadOnlyList<Data> wallpapers, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
         {
-            Calls.Add(new IngestCall(wallpaper, context, progress));
+            PageSizes.Add(wallpapers.Count);
+            Calls.AddRange(wallpapers.Select(wallpaper => new IngestCall(wallpaper, context, progress)));
             OnIngest();
 
             return Task.CompletedTask;

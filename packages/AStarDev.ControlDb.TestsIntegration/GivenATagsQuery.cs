@@ -22,31 +22,25 @@ public sealed class GivenATagsQuery : IDisposable
     }
 
     [Fact]
-    public async Task when_a_tag_with_a_matching_wallhaven_id_exists_then_it_is_returned()
+    public async Task when_some_of_the_wallhaven_ids_exist_then_find_by_wallhaven_ids_returns_only_the_stored_tags()
     {
-        var tagEntity = TagEntityFactory.CreateTagEntity(wallhavenTagId: 99);
-        await context.Tags.AddAsync(tagEntity, TestContext.Current.CancellationToken);
+        await context.Tags.AddRangeAsync([TagEntityFactory.CreateTagEntity(wallhavenTagId: 1, name: "one"), TagEntityFactory.CreateTagEntity(wallhavenTagId: 2, name: "two"), TagEntityFactory.CreateTagEntity(wallhavenTagId: 3, name: "three")], TestContext.Current.CancellationToken);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var query = new TagsQuery(context);
 
-        var result = await query.TryFindByWallhavenIdAsync(99, TestContext.Current.CancellationToken);
+        var result = await query.FindByWallhavenIdsAsync([1, 3, 999], TestContext.Current.CancellationToken);
 
-        var found = result.Match(option => option, exception => throw exception).Match(entity => entity, () => null!);
-
-        found.ShouldNotBeNull();
-        found.Name.ShouldBe(tagEntity.Name);
+        result.Match(tags => tags.Select(tag => tag.Name).Order().ToList(), exception => throw exception).ShouldBe(["one", "three"]);
     }
 
     [Fact]
-    public async Task when_no_tag_with_a_matching_wallhaven_id_exists_then_none_is_returned()
+    public async Task when_no_wallhaven_ids_are_supplied_then_find_by_wallhaven_ids_returns_an_empty_list()
     {
         var query = new TagsQuery(context);
 
-        var result = await query.TryFindByWallhavenIdAsync(999, TestContext.Current.CancellationToken);
+        var result = await query.FindByWallhavenIdsAsync([], TestContext.Current.CancellationToken);
 
-        var found = result.Match(option => option, exception => throw exception).Match(_ => true, () => false);
-
-        found.ShouldBeFalse();
+        result.Match(tags => tags.Count, exception => throw exception).ShouldBe(0);
     }
 
     public void Dispose()

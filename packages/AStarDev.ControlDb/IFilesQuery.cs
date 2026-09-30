@@ -17,4 +17,10 @@ public interface IFilesQuery
     /// <param name="cancellationToken">A cancellation token for the asynchronous operation.</param>
     /// <returns>An exceptional result containing a boolean indicating whether the file exists.</returns>
     Task<Exceptional<bool>> CheckExistsByNameAsync(FileName name, CancellationToken cancellationToken = default);
+
+    /// <summary>Gets, in a single query, the stored names that match any of the supplied names. Names are matched using the database collation, so the returned names may differ in case from those supplied.</summary>
+    /// <param name="names">The names of the files to search for.</param>
+    /// <param name="cancellationToken">A cancellation token for the asynchronous operation.</param>
+    /// <returns>An exceptional result containing the stored names of the files that exist.</returns>
+    Task<Exceptional<IReadOnlyList<FileName>>> GetExistingNamesAsync(IReadOnlyCollection<FileName> names, CancellationToken cancellationToken = default);
 }

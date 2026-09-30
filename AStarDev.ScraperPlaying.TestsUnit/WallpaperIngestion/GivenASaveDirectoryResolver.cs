@@ -38,6 +38,29 @@ public sealed class GivenASaveDirectoryResolver
     }
 
     [Fact]
+    public async Task when_the_directory_is_resolved_again_then_the_scrape_configuration_is_not_reloaded()
+    {
+        _ = await resolver.ResolveSaveDirectoryAsync(Option.None<string>(), CancellationToken.None);
+        scrapeConfigurationRepository.First = (Option<ScrapeConfigurationEntity>)CreateConfiguration("changed-root-directory");
+
+        var directory = await resolver.ResolveSaveDirectoryAsync(Option.Some("My Category"), CancellationToken.None);
+
+        directory.ShouldBe(fileSystem.Path.Combine("root-directory", "my-category"));
+    }
+
+    [Fact]
+    public async Task when_loading_the_root_directory_failed_then_the_next_resolve_loads_it_again()
+    {
+        scrapeConfigurationRepository.First = Option<ScrapeConfigurationEntity>.None.Instance;
+        _ = await Should.ThrowAsync<InvalidOperationException>(() => resolver.ResolveSaveDirectoryAsync(Option.None<string>(), CancellationToken.None));
+        scrapeConfigurationRepository.First = (Option<ScrapeConfigurationEntity>)CreateConfiguration("recovered-root-directory");
+
+        var directory = await resolver.ResolveSaveDirectoryAsync(Option.None<string>(), CancellationToken.None);
+
+        directory.ShouldBe(fileSystem.Path.Combine("recovered-root-directory", "top-wallpapers"));
+    }
+
+    [Fact]
     public async Task when_no_scrape_configuration_exists_then_it_throws()
     {
         scrapeConfigurationRepository.First = Option<ScrapeConfigurationEntity>.None.Instance;

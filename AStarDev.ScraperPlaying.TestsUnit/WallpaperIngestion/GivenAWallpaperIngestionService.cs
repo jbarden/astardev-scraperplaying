@@ -36,6 +36,41 @@ public sealed class GivenAWallpaperIngestionService
     }
 
     [Fact]
+    public async Task when_a_page_has_several_wallpapers_then_existence_is_checked_with_a_single_query_and_only_the_new_ones_are_downloaded()
+    {
+        var existing = CreateWallpaper("existing-wallpaper", path: "https://example.test/full/existing-wallpaper.jpg");
+        var fresh = CreateWallpaper("fresh-wallpaper", path: "https://example.test/full/fresh-wallpaper.jpg");
+        var another = CreateWallpaper("another-wallpaper", path: "https://example.test/full/another-wallpaper.jpg");
+        filesQuery.ExistingNames.Add(NameFor(existing, ".jpg"));
+        using var client = new HttpClient();
+
+        await service.IngestPageAsync([existing, fresh, another], new WallpaperIngestionContext("some-directory", client, fileRepository, "resolved-category", []), progress, CancellationToken.None);
+
+        (filesQuery.ExistingNamesQueryCount, string.Join(",", imageProcessor.Downloads.Select(request => request.Wallpaper.Id))).ShouldBe((1, "fresh-wallpaper,another-wallpaper"));
+    }
+
+    [Fact]
+    public async Task when_the_stored_name_differs_only_by_case_then_the_wallpaper_is_still_treated_as_existing()
+    {
+        var wallpaper = CreateWallpaper("Mixed-Case", path: "https://example.test/full/Mixed-Case.jpg");
+        filesQuery.ExistingNames.Add(new FileName("mixed-case.jpg"));
+
+        await Ingest(wallpaper);
+
+        imageProcessor.Downloads.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task when_a_page_has_no_wallpapers_then_no_query_is_made()
+    {
+        using var client = new HttpClient();
+
+        await service.IngestPageAsync([], new WallpaperIngestionContext("some-directory", client, fileRepository, "resolved-category", []), progress, CancellationToken.None);
+
+        filesQuery.ExistingNamesQueryCount.ShouldBe(0);
+    }
+
+    [Fact]
     public async Task when_a_wallpaper_is_new_then_it_is_downloaded_and_processed()
     {
         var wallpaper = CreateWallpaper("new-wallpaper");
@@ -110,7 +145,7 @@ public sealed class GivenAWallpaperIngestionService
 
         await Ingest(wallpaper);
 
-        progress.Messages.ShouldContain("Failed to check whether the file details already exist for wallpaper check-fails: query failed");
+        progress.Messages.ShouldContain("Failed to check whether the file details already exist for this page of wallpapers: query failed");
         imageProcessor.Downloads.ShouldBeEmpty();
         tagsProcessor.Linked.ShouldBeEmpty();
     }
@@ -133,7 +168,7 @@ public sealed class GivenAWallpaperIngestionService
     {
         using var client = new HttpClient();
 
-        await service.IngestAsync(wallpaper, new WallpaperIngestionContext(directory, client, fileRepository, "resolved-category", []), progress, CancellationToken.None);
+        await service.IngestPageAsync([wallpaper], new WallpaperIngestionContext(directory, client, fileRepository, "resolved-category", []), progress, CancellationToken.None);
     }
 
     private static FileName NameFor(Data wallpaper, string extension) => new($"{wallpaper.Id}{extension}");
