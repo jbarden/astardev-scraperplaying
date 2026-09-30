@@ -1,4 +1,5 @@
 using AStarDev.ScraperPlaying.WallpaperIngestion;
+using SkiaSharp;
 using Testably.Abstractions.Testing;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.WallpaperIngestion;
@@ -20,7 +21,7 @@ public sealed class GivenADownloadedImageDecoder
         fileSystem.Directory.CreateDirectory("/images");
         fileSystem.File.WriteAllBytes("/images/wallpaper-1.png", OnePixelPng);
 
-        using var result = decoder.DecodeToPng("/images/wallpaper-1.png");
+        using var result = decoder.DecodeToPng("/images/wallpaper-1.png", 1280);
 
         var signature = new byte[8];
         result.ReadExactly(signature);
@@ -33,6 +34,45 @@ public sealed class GivenADownloadedImageDecoder
         fileSystem.Directory.CreateDirectory("/images");
         fileSystem.File.WriteAllBytes("/images/not-an-image.txt", "this is not an image"u8.ToArray());
 
-        Should.Throw<InvalidOperationException>(() => decoder.DecodeToPng("/images/not-an-image.txt"));
+        Should.Throw<InvalidOperationException>(() => decoder.DecodeToPng("/images/not-an-image.txt", 1280));
+    }
+
+    [Theory]
+    [InlineData(4000, 2000, 100, 50)]
+    [InlineData(2000, 4000, 50, 100)]
+    [InlineData(300, 300, 100, 100)]
+    public void when_the_image_is_larger_than_the_maximum_dimension_then_it_is_downscaled_preserving_its_aspect_ratio(int width, int height, int expectedWidth, int expectedHeight)
+    {
+        WriteImage("/images/large.png", width, height);
+
+        using var result = decoder.DecodeToPng("/images/large.png", 100);
+
+        DimensionsOf(result).ShouldBe((expectedWidth, expectedHeight));
+    }
+
+    [Fact]
+    public void when_the_image_is_smaller_than_the_maximum_dimension_then_it_is_not_upscaled()
+    {
+        WriteImage("/images/small.png", 60, 40);
+
+        using var result = decoder.DecodeToPng("/images/small.png", 100);
+
+        DimensionsOf(result).ShouldBe((60, 40));
+    }
+
+    private void WriteImage(string path, int width, int height)
+    {
+        using var bitmap = new SKBitmap(width, height);
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        fileSystem.Directory.CreateDirectory("/images");
+        fileSystem.File.WriteAllBytes(path, data.ToArray());
+    }
+
+    private static (int Width, int Height) DimensionsOf(Stream png)
+    {
+        using var bitmap = SKBitmap.Decode(png);
+
+        return (bitmap.Width, bitmap.Height);
     }
 }
