@@ -29,7 +29,7 @@ public partial class App : Application, IDisposable
             }
             catch (Exception exception)
             {
-                desktop.MainWindow = UI.MainWindow.CreateStartupError(exception);
+                desktop.MainWindow = new UI.StartupErrorWindow(exception);
             }
         }
 
@@ -59,7 +59,7 @@ public partial class App : Application, IDisposable
 
     // The migration runs in the background so the window appears immediately; MainWindow awaits the same task before touching the database and reports any failure.
     private static void StartDatabaseInitialization(ServiceProvider serviceProvider) =>
-        _ = serviceProvider.GetRequiredService<DatabaseInitialization>().ReadyAsync();
+        _ = serviceProvider.GetRequiredService<IDatabaseInitialization>().ReadyAsync();
 
     /// <summary>Releases the resources held by the application's dependency injection container.</summary>
     /// <param name="disposing">Whether managed resources should be released.</param>
