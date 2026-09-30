@@ -102,37 +102,39 @@ public sealed class GivenAFilesQuery : IDisposable
     }
 
     [Fact]
-    public async Task when_some_of_the_names_exist_then_get_existing_names_returns_only_the_stored_ones()
+    public async Task when_some_of_the_handles_exist_then_get_existing_handles_returns_only_the_stored_ones()
     {
         await context.Files.AddRangeAsync([FileEntityFactory.CreateFileEntity(FileName.Create("stored-1.jpg")), FileEntityFactory.CreateFileEntity(FileName.Create("stored-2.jpg"))], TestContext.Current.CancellationToken);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var query = new FilesQuery(context);
 
-        var result = await query.GetExistingNamesAsync([FileName.Create("stored-1.jpg"), FileName.Create("missing.jpg"), FileName.Create("stored-2.jpg")], TestContext.Current.CancellationToken);
+        var result = await query.GetExistingHandlesAsync([FileHandle.Create("handle-stored-1.jpg"), FileHandle.Create("missing"), FileHandle.Create("handle-stored-2.jpg")], TestContext.Current.CancellationToken);
 
-        result.Match(names => names.Select(name => name.Value).Order().ToList(), exception => throw exception).ShouldBe(["stored-1.jpg", "stored-2.jpg"]);
+        result.Match(handles => handles.Select(handle => handle.Value).Order().ToList(), exception => throw exception).ShouldBe(["handle-stored-1.jpg", "handle-stored-2.jpg"]);
     }
 
     [Fact]
-    public async Task when_no_names_are_supplied_then_get_existing_names_returns_an_empty_list()
+    public async Task when_the_stored_file_name_has_a_person_prefix_then_the_file_is_still_found_by_its_handle()
     {
-        var query = new FilesQuery(context);
-
-        var result = await query.GetExistingNamesAsync([], TestContext.Current.CancellationToken);
-
-        result.Match(names => names.Count, exception => throw exception).ShouldBe(0);
-    }
-
-    [Fact]
-    public async Task when_a_name_differs_only_by_case_then_get_existing_names_still_returns_the_stored_name_because_the_database_collation_ignores_case()
-    {
-        await context.Files.AddAsync(FileEntityFactory.CreateFileEntity(FileName.Create("stored.jpg")), TestContext.Current.CancellationToken);
+        var file = FileEntityFactory.CreateFileEntity(FileName.Create("Max_Verstappen_vqyxgm.jpg"));
+        file.FileHandle = FileHandle.Create("vqyxgm");
+        await context.Files.AddAsync(file, TestContext.Current.CancellationToken);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var query = new FilesQuery(context);
 
-        var result = await query.GetExistingNamesAsync([FileName.Create("STORED.JPG")], TestContext.Current.CancellationToken);
+        var result = await query.GetExistingHandlesAsync([FileHandle.Create("vqyxgm")], TestContext.Current.CancellationToken);
 
-        result.Match(names => names.Select(name => name.Value).ToList(), exception => throw exception).ShouldBe(["stored.jpg"]);
+        result.Match(handles => handles.Select(handle => handle.Value).ToList(), exception => throw exception).ShouldBe(["vqyxgm"]);
+    }
+
+    [Fact]
+    public async Task when_no_handles_are_supplied_then_get_existing_handles_returns_an_empty_list()
+    {
+        var query = new FilesQuery(context);
+
+        var result = await query.GetExistingHandlesAsync([], TestContext.Current.CancellationToken);
+
+        result.Match(handles => handles.Count, exception => throw exception).ShouldBe(0);
     }
 
     [Fact]

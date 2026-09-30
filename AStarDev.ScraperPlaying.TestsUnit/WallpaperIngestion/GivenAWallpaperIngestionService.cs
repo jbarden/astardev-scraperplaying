@@ -45,37 +45,43 @@ public sealed class GivenAWallpaperIngestionService
         var existing = CreateWallpaper("existing-wallpaper", path: "https://example.test/full/existing-wallpaper.jpg");
         var fresh = CreateWallpaper("fresh-wallpaper", path: "https://example.test/full/fresh-wallpaper.jpg");
         var another = CreateWallpaper("another-wallpaper", path: "https://example.test/full/another-wallpaper.jpg");
-        filesQuery.ExistingNames.Add(new FileName("existing-wallpaper.jpg"));
+        filesQuery.ExistingHandles.Add(new FileHandle("existing-wallpaper"));
 
         await Ingest(existing, fresh, another);
 
-        (filesQuery.ExistingNamesQueryCount, string.Join(",", newWallpaperIngestor.Ingested.Select(call => call.Wallpaper.Id))).ShouldBe((1, "fresh-wallpaper,another-wallpaper"));
+        (filesQuery.ExistingHandlesQueryCount, string.Join(",", newWallpaperIngestor.Ingested.Select(call => call.Wallpaper.Id))).ShouldBe((1, "fresh-wallpaper,another-wallpaper"));
     }
 
     [Fact]
-    public async Task when_a_wallpaper_has_a_non_jpg_extension_then_the_real_extension_is_used_for_the_existence_check_and_ingestion()
+    public async Task when_a_wallpaper_is_looked_up_then_its_id_is_the_handle_checked_regardless_of_its_extension()
     {
-        var wallpaper = CreateWallpaper("png-wallpaper", path: "https://example.test/full/png-wallpaper.png");
+        await Ingest(CreateWallpaper("png-wallpaper", path: "https://example.test/full/png-wallpaper.png"), CreateWallpaper("extensionless-wallpaper", path: "https://example.test/full/extensionless-wallpaper"));
 
-        await Ingest(wallpaper);
-
-        (string.Join(",", filesQuery.CheckedNames.Select(name => name.Value)), newWallpaperIngestor.Ingested.Single().Extension).ShouldBe(("png-wallpaper.png", ".png"));
+        string.Join(",", filesQuery.CheckedHandles.Select(handle => handle.Value)).ShouldBe("png-wallpaper,extensionless-wallpaper");
     }
 
     [Fact]
-    public async Task when_a_wallpaper_source_path_has_no_extension_then_the_jpg_fallback_is_used_for_the_existence_check_and_ingestion()
+    public async Task when_a_wallpaper_is_new_then_the_real_extension_or_the_jpg_fallback_is_passed_on_for_the_file_name()
     {
-        var wallpaper = CreateWallpaper("extensionless-wallpaper", path: "https://example.test/full/extensionless-wallpaper");
+        await Ingest(CreateWallpaper("png-wallpaper", path: "https://example.test/full/png-wallpaper.png"), CreateWallpaper("extensionless-wallpaper", path: "https://example.test/full/extensionless-wallpaper"));
 
-        await Ingest(wallpaper);
+        string.Join(",", newWallpaperIngestor.Ingested.Select(call => call.Extension)).ShouldBe(".png,.jpg");
+    }
 
-        (string.Join(",", filesQuery.CheckedNames.Select(name => name.Value)), newWallpaperIngestor.Ingested.Single().Extension).ShouldBe(("extensionless-wallpaper.jpg", ".jpg"));
+    [Fact]
+    public async Task when_a_stored_file_has_a_person_prefixed_name_then_the_wallpaper_is_still_recognised_by_its_handle_and_not_ingested_again()
+    {
+        filesQuery.ExistingHandles.Add(new FileHandle("vqyxgm"));
+
+        await Ingest(CreateWallpaper("vqyxgm", path: "https://example.test/full/vqyxgm.jpg"));
+
+        (newWallpaperIngestor.Ingested.Count, progress.Messages.Single()).ShouldBe((0, "The file details already exist for wallpaper vqyxgm - no need to fetch again."));
     }
 
     [Fact]
     public async Task when_the_stored_name_differs_only_by_case_then_the_wallpaper_is_still_treated_as_existing()
     {
-        filesQuery.ExistingNames.Add(new FileName("mixed-case.jpg"));
+        filesQuery.ExistingHandles.Add(new FileHandle("mixed-case"));
 
         await Ingest(CreateWallpaper("Mixed-Case", path: "https://example.test/full/Mixed-Case.jpg"));
 
@@ -87,7 +93,7 @@ public sealed class GivenAWallpaperIngestionService
     {
         await Ingest();
 
-        filesQuery.ExistingNamesQueryCount.ShouldBe(0);
+        filesQuery.ExistingHandlesQueryCount.ShouldBe(0);
     }
 
     [Fact]

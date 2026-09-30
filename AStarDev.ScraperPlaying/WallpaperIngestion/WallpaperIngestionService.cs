@@ -15,16 +15,16 @@ public class WallpaperIngestionService(IFilesQuery filesQuery, INewWallpaperInge
         if (wallpapers.Count == 0) return;
 
         IReadOnlyList<(Data Wallpaper, string Extension)> candidates = [.. wallpapers.Select(wallpaper => (wallpaper, wallpaper.Path.ToFileExtension()))];
-        var names = candidates.Select(candidate => new FileName($"{candidate.Wallpaper.Id}{candidate.Extension}")).ToList();
+        var handles = candidates.Select(candidate => FileHandle.Create(candidate.Wallpaper.Id)).ToList();
 
-        await (await filesQuery.GetExistingNamesAsync(names, cancellationToken))
+        await (await filesQuery.GetExistingHandlesAsync(handles, cancellationToken))
         .Match(
-            async existingNames =>
+            async existingHandles =>
             {
-                var existing = existingNames.Select(name => name.Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var existing = existingHandles.Select(handle => handle.Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
                 foreach (var (wallpaper, extension) in candidates)
                 {
-                    if (existing.Contains($"{wallpaper.Id}{extension}"))
+                    if (existing.Contains(wallpaper.Id))
                     {
                         progress.Report($"The file details already exist for wallpaper {wallpaper.Id} - no need to fetch again.");
 
