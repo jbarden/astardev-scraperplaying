@@ -3,6 +3,7 @@ using System.Net;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
+using Microsoft.Extensions.Time.Testing;
 using Testably.Abstractions.Testing;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.WallpaperIngestion;
@@ -12,7 +13,7 @@ public sealed class GivenAnImageDownloader
     private readonly MockFileSystem fileSystem = new();
     private readonly ImageDownloader downloader;
 
-    public GivenAnImageDownloader() => downloader = new(fileSystem);
+    public GivenAnImageDownloader() => downloader = new(fileSystem, System.TimeProvider.System, DownloadPacing.None);
 
     [Fact]
     public async Task when_downloading_an_image_succeeds_then_it_is_written_to_the_directory_and_the_saved_path_and_progress_are_reported()
@@ -123,6 +124,31 @@ public sealed class GivenAnImageDownloader
         _ = await downloader.DownloadAsync(new WallpaperFileRequest(wallpaper, directory, NameFor(wallpaper, ".jpg"), "Top Wallpapers"), new CapturingProgress(), client, CancellationToken.None);
 
         (fileSystem.Directory.GetFiles(directory).Length, Convert.ToHexString(await fileSystem.File.ReadAllBytesAsync(finalPath, TestContext.Current.CancellationToken))).ShouldBe((1, "0102"));
+    }
+
+    [Fact]
+    [SuppressMessage("Reliability", "CA2025:Ensure tasks using 'IDisposable' instances complete before the instances are disposed", Justification = "The download is awaited before the client goes out of scope; the clock must advance while it is pending.")]
+    public async Task when_pacing_is_configured_then_the_download_waits_for_the_delay_before_requesting_the_image()
+    {
+        var clock = new FakeTimeProvider();
+        var pacedDownloader = new ImageDownloader(fileSystem, clock, new DownloadPacing(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(3)));
+        var requestCount = 0;
+        using var client = CreateClient(_ =>
+        {
+            requestCount++;
+
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1, 2]) };
+        });
+        var wallpaper = CreateWallpaper(id: "paced-1", path: "https://example.test/image.jpg");
+        var directory = fileSystem.Path.Combine("root-directory", "top-wallpapers");
+
+        var download = pacedDownloader.DownloadAsync(new WallpaperFileRequest(wallpaper, directory, NameFor(wallpaper, ".jpg"), "Top Wallpapers"), new CapturingProgress(), client, TestContext.Current.CancellationToken);
+        clock.Advance(TimeSpan.FromSeconds(1.9));
+        var requestsBeforeTheDelay = requestCount;
+        clock.Advance(TimeSpan.FromSeconds(1.1));
+        _ = await download;
+
+        (requestsBeforeTheDelay, requestCount).ShouldBe((0, 1));
     }
 
     private static FileName NameFor(Data wallpaper, string extension) => new($"{wallpaper.Id}{extension}");
