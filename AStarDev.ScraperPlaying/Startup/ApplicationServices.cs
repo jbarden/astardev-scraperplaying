@@ -60,6 +60,7 @@ public static class ApplicationServices
             }))
             .AddSingleton(TimeProvider.System)
             .AddTransient<WallhavenRateLimitingHandler>()
+            .AddTransient<WallhavenApiKeyHandler>()
             .AddSingleton<IDatabaseInitialization, DatabaseInitialization>()
             .AddSingleton<StatusReporter>()
             .AddSingleton<UserOperationRunner>()
@@ -71,5 +72,5 @@ public static class ApplicationServices
             {
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36");
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            }).AddHttpMessageHandler<WallhavenRateLimitingHandler>().Services;
+            }).AddHttpMessageHandler<WallhavenApiKeyHandler>().AddHttpMessageHandler<WallhavenRateLimitingHandler>().Services;
 }

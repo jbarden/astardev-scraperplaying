@@ -18,12 +18,10 @@ public sealed class WallhavenRateLimitingHandler(RateLimiter limiter, TimeProvid
     /// <summary>The wait applied to a 429 that has no usable <c>Retry-After</c> header.</summary>
     public static readonly TimeSpan DefaultRetryDelay = TimeSpan.FromMinutes(1);
 
-    private const string ApiPathPrefix = "/api/";
-
     /// <inheritdoc/>
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        if (!IsApiRequest(request)) return await base.SendAsync(request, cancellationToken);
+        if (!WallhavenApiRequests.IsApiRequest(request)) return await base.SendAsync(request, cancellationToken);
 
         var response = await SendWithPermitAsync(request, cancellationToken);
         for (var retry = 0; retry < MaximumRetries && response.StatusCode == HttpStatusCode.TooManyRequests; retry++)
@@ -37,9 +35,6 @@ public sealed class WallhavenRateLimitingHandler(RateLimiter limiter, TimeProvid
 
         return response;
     }
-
-    private static bool IsApiRequest(HttpRequestMessage request)
-        => request.RequestUri?.AbsolutePath.StartsWith(ApiPathPrefix, StringComparison.Ordinal) == true;
 
     private static HttpRequestMessage CloneRequest(HttpRequestMessage request)
     {

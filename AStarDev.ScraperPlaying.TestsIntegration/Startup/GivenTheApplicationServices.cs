@@ -1,3 +1,5 @@
+using System.Net;
+using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.Startup;
 using AStarDev.ScraperPlaying.UI;
 using Microsoft.Extensions.Configuration;
@@ -65,6 +67,27 @@ public sealed class GivenTheApplicationServices : IDisposable
         ]);
     }
 
+    [Fact]
+    public async Task when_the_real_wallhaven_client_sends_an_api_request_and_an_image_request_then_only_the_api_request_carries_the_api_key()
+    {
+        using var capture = new CapturingHandler();
+        var configuration = new ConfigurationBuilder().Build();
+        using var provider = new ServiceCollection()
+            .AddConfigurationServices(configuration)
+            .AddDataServices(databasePath)
+            .AddInfrastructureServices()
+            .AddApplicationServices(configuration)
+            .AddLogging()
+            .AddHttpClient(ApplicationConstants.WallhavenHttpClientName).ConfigurePrimaryHttpMessageHandler(() => capture).Services
+            .BuildServiceProvider();
+        using var client = provider.GetRequiredService<IWallhavenClientFactory>().Create(new WallhavenConnection("secret-key", new Uri("https://wallhaven.cc/")));
+
+        using var apiResponse = await client.GetAsync(new Uri("https://wallhaven.cc/api/v1/search?page=1"), TestContext.Current.CancellationToken);
+        using var imageResponse = await client.GetAsync(new Uri("https://w.wallhaven.cc/full/ab/wallhaven-abc123.jpg"), TestContext.Current.CancellationToken);
+
+        capture.ApiKeysByHost.ShouldBe(["wallhaven.cc=secret-key", "w.wallhaven.cc="]);
+    }
+
     public void Dispose()
     {
         if (disposed) return;
@@ -72,5 +95,17 @@ public sealed class GivenTheApplicationServices : IDisposable
         disposed = true;
         serviceProvider.Dispose();
         if (File.Exists(databasePath)) File.Delete(databasePath);
+    }
+
+    private sealed class CapturingHandler : HttpMessageHandler
+    {
+        public List<string> ApiKeysByHost { get; } = [];
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            ApiKeysByHost.Add($"{request.RequestUri!.Host}={(request.Headers.TryGetValues("X-API-Key", out var values) ? string.Join(",", values) : string.Empty)}");
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+        }
     }
 }
