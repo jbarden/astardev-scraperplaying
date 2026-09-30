@@ -31,7 +31,7 @@ public partial class MainWindow : Window, IDisposable
     private readonly OperationCoordinator operationCoordinator;
     private bool isDisposing;
     private bool isRootDirectoryAvailable = true;
-    private bool isImageDisplayEnabled = true;
+    private readonly ImageDisplayCoordinator imageDisplayCoordinator;
 
     public MainWindow(ILogger<MainWindow> logger, IScrapeConfigurationFileService scrapeConfigurationFileService, IScrapeConfigurationCatalogue scrapeConfigurationCatalogue, IScrapeConfigurationUpdater scrapeConfigurationUpdater, IFileSystem fileSystem, IScrapeService scrapeService, OperationCoordinator operationCoordinator, ImageDisplayCoordinator imageDisplayCoordinator)
     {
@@ -43,6 +43,7 @@ public partial class MainWindow : Window, IDisposable
         this.scrapeService = scrapeService;
         this.logger = logger;
         this.operationCoordinator = operationCoordinator;
+        this.imageDisplayCoordinator = imageDisplayCoordinator;
         operationCoordinator.StateChanged += (_, _) => UpdateOperationControls();
         imageDisplayCoordinator.ImageReady += (_, preview) => Dispatcher.UIThread.Post(() => DisplayImage(preview));
         Closed += (_, _) => Dispose();
@@ -154,8 +155,8 @@ public partial class MainWindow : Window, IDisposable
 
     public void ToggleImageDisplay(object? sender, RoutedEventArgs eventArgs)
     {
-        isImageDisplayEnabled = ImageDisplayToggle.IsChecked == true;
-        if (!isImageDisplayEnabled) ClearDisplayedImage();
+        imageDisplayCoordinator.IsEnabled = ImageDisplayToggle.IsChecked == true;
+        if (!imageDisplayCoordinator.IsEnabled) ClearDisplayedImage();
     }
 
     public void Exit(object? sender, RoutedEventArgs eventArgs) => Close();
@@ -238,7 +239,7 @@ public partial class MainWindow : Window, IDisposable
 
     private void DisplayImage(WallpaperPreviewImage preview)
     {
-        if (!isImageDisplayEnabled)
+        if (!imageDisplayCoordinator.IsEnabled)
         {
             preview.PngStream.Dispose();
 
