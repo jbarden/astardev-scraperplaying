@@ -10,6 +10,9 @@ internal sealed class FakeUnitOfWork : IUnitOfWork
     /// <summary>The ordered log of repository operations and saves (<c>add</c>, <c>delete</c>, <c>save</c>) shared with the repositories created by <see cref="Register{TAggregate, TKey}"/>.</summary>
     public List<string> Operations { get; } = [];
 
+    /// <summary>The number of transactions started through <see cref="InTransactionAsync{T}"/>.</summary>
+    public int TransactionCount { get; private set; }
+
     /// <summary>The number of times <see cref="SaveChangesAsync"/> was called.</summary>
     public int SaveCount { get; private set; }
 
@@ -32,6 +35,13 @@ internal sealed class FakeUnitOfWork : IUnitOfWork
     public IRepository<TAggregate, TKey> GetRepository<TAggregate, TKey>()
         where TAggregate : IAggregateRoot =>
         (IRepository<TAggregate, TKey>)repositories[typeof(TAggregate)];
+
+    public Task<T> InTransactionAsync<T>(Func<Task<T>> operation, CancellationToken cancellationToken = default)
+    {
+        TransactionCount++;
+
+        return operation();
+    }
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

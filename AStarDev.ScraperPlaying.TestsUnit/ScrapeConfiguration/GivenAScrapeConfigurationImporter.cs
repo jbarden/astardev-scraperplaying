@@ -39,6 +39,27 @@ public sealed class GivenAScrapeConfigurationImporter : IDisposable
     }
 
     [Fact]
+    public async Task when_a_document_is_imported_then_the_delete_and_add_happen_inside_a_single_transaction()
+    {
+        repository.First = (Option<ScrapeConfigurationEntity>)new ScrapeConfigurationEntity(new ScrapeConfigurationId(Guid.CreateVersion7()));
+
+        _ = await importer.ImportScrapeConfigurationAsync(CreateDocument("user"));
+
+        unitOfWork.TransactionCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task when_the_document_cannot_be_mapped_then_the_existing_configuration_is_not_deleted_and_nothing_is_saved()
+    {
+        repository.First = (Option<ScrapeConfigurationEntity>)new ScrapeConfigurationEntity(new ScrapeConfigurationId(Guid.CreateVersion7()));
+        var unmappable = new ScrapeConfigurationImportDocument { SearchConfiguration = new SearchConfigurationImportDocument { SearchCategories = [null!] } };
+
+        var result = await importer.ImportScrapeConfigurationAsync(unmappable);
+
+        (result.Match(_ => true, _ => false), repository.Deleted.Count, unitOfWork.SaveCount).ShouldBe((false, 0, 0));
+    }
+
+    [Fact]
     public async Task when_no_configuration_exists_then_the_document_is_added_without_a_prior_delete()
     {
         repository.First = Option<ScrapeConfigurationEntity>.None.Instance;

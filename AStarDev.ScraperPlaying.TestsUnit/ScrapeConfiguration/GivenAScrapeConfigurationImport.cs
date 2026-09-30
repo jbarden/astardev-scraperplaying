@@ -167,7 +167,7 @@ public sealed class GivenAScrapeConfigurationImport
         var path = Path.GetTempFileName();
         try
         {
-            await File.WriteAllTextAsync(path, """{ "SearchConfiguration": { "SearchTerm": "cats" } }""", TestContext.Current.CancellationToken);
+            await File.WriteAllTextAsync(path, """{ "UserConfiguration": {}, "SearchConfiguration": { "SearchTerm": "cats" }, "ScrapeDirectories": {}, "BaseUrl": "https://example.test", "LoginUrl": "login" }""", TestContext.Current.CancellationToken);
 
             var document = await new ScrapeConfigurationFileReader().ReadAsync(path, TestContext.Current.CancellationToken);
 
@@ -185,11 +185,69 @@ public sealed class GivenAScrapeConfigurationImport
         var path = Path.GetTempFileName();
         try
         {
-            await File.WriteAllTextAsync(path, """{ "SearchConfiguration": { "PersonCategories": [] } }""", TestContext.Current.CancellationToken);
+            await File.WriteAllTextAsync(path, """{ "UserConfiguration": {}, "SearchConfiguration": { "PersonCategories": [] }, "ScrapeDirectories": {}, "BaseUrl": "https://example.test", "LoginUrl": "login" }""", TestContext.Current.CancellationToken);
 
             var document = await new ScrapeConfigurationFileReader().ReadAsync(path, TestContext.Current.CancellationToken);
 
             document.SearchConfiguration.PersonCategories.ShouldBeEmpty();
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData("""{ "searchConfiguration": {}, "scrapeDirectories": {}, "baseUrl": "https://example.test", "loginUrl": "login" }""", "userConfiguration")]
+    [InlineData("""{ "userConfiguration": {}, "scrapeDirectories": {}, "baseUrl": "https://example.test", "loginUrl": "login" }""", "searchConfiguration")]
+    [InlineData("""{ "userConfiguration": {}, "searchConfiguration": {}, "baseUrl": "https://example.test", "loginUrl": "login" }""", "scrapeDirectories")]
+    [InlineData("""{ "userConfiguration": {}, "searchConfiguration": {}, "scrapeDirectories": {}, "loginUrl": "login" }""", "baseUrl")]
+    [InlineData("""{ "userConfiguration": {}, "searchConfiguration": {}, "scrapeDirectories": {}, "baseUrl": "https://example.test" }""", "loginUrl")]
+    [InlineData("""{ "userConfiguration": null, "searchConfiguration": {}, "scrapeDirectories": {}, "baseUrl": "https://example.test", "loginUrl": "login" }""", "userConfiguration")]
+    [InlineData("""{ "USERCONFIGURATION": {}, "SEARCHCONFIGURATION": {}, "scrapeDirectories": null, "BASEURL": "https://example.test", "LOGINURL": "login" }""", "scrapeDirectories")]
+    public async Task when_a_required_value_is_missing_or_null_then_reading_fails_naming_it(string json, string missing)
+    {
+        var thrown = await Should.ThrowAsync<JsonException>(() => ReadJsonAsync(json));
+
+        thrown.Message.ShouldContain(missing);
+    }
+
+    [Fact]
+    public async Task when_several_required_values_are_missing_then_every_one_is_named()
+    {
+        var thrown = await Should.ThrowAsync<JsonException>(() => ReadJsonAsync("""{ "apiKey": "key" }"""));
+
+        thrown.Message.ShouldBe("The configuration file is missing required values: userConfiguration, searchConfiguration, scrapeDirectories, baseUrl, loginUrl.");
+    }
+
+    [Theory]
+    [InlineData("[]")]
+    [InlineData("42")]
+    [InlineData("null")]
+    public async Task when_the_file_is_not_a_json_object_then_reading_fails_with_a_json_exception(string json)
+        => _ = await Should.ThrowAsync<JsonException>(() => ReadJsonAsync(json));
+
+    [Theory]
+    [InlineData("""{ "scrapeConfiguration": { "searchConfiguration": { "baseUrl": "https://example.test", "loginUrl": "login" }, "scrapeDirectories": {} } }""", "scrapeConfiguration.userConfiguration")]
+    [InlineData("""{ "scrapeConfiguration": { "userConfiguration": {}, "searchConfiguration": { "baseUrl": "https://example.test", "loginUrl": "login" } } }""", "scrapeConfiguration.scrapeDirectories")]
+    [InlineData("""{ "scrapeConfiguration": { "userConfiguration": {}, "scrapeDirectories": {} } }""", "scrapeConfiguration.searchConfiguration")]
+    [InlineData("""{ "scrapeConfiguration": { "userConfiguration": {}, "searchConfiguration": { "loginUrl": "login" }, "scrapeDirectories": {} } }""", "scrapeConfiguration.searchConfiguration.baseUrl")]
+    [InlineData("""{ "scrapeConfiguration": { "userConfiguration": {}, "searchConfiguration": { "baseUrl": "https://example.test" }, "scrapeDirectories": {} } }""", "scrapeConfiguration.searchConfiguration.loginUrl")]
+    public async Task when_a_required_application_settings_value_is_missing_then_reading_fails_naming_it(string json, string missing)
+    {
+        var thrown = await Should.ThrowAsync<JsonException>(() => ReadJsonAsync(json));
+
+        thrown.Message.ShouldContain(missing);
+    }
+
+    private static async Task<ScrapeConfigurationImportDocument> ReadJsonAsync(string json)
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllTextAsync(path, json, TestContext.Current.CancellationToken);
+
+            return await new ScrapeConfigurationFileReader().ReadAsync(path, TestContext.Current.CancellationToken);
         }
         finally
         {
