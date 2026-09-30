@@ -26,14 +26,14 @@ public class FilesQuery(ControlDbContext context) : IFilesQuery
             => await context.Files.AnyAsync(HasName(name), cancellationToken).ConfigureAwait(false);
 
     /// <inheritdoc/>
-    public Task<Exceptional<IReadOnlyList<FileName>>> GetExistingNamesAsync(IReadOnlyCollection<FileName> names, CancellationToken cancellationToken = default)
-            => Try.RunAsync<IReadOnlyList<FileName>>(async () =>
+    public Task<Exceptional<IReadOnlyList<FileHandle>>> GetExistingHandlesAsync(IReadOnlyCollection<FileHandle> fileHandles, CancellationToken cancellationToken = default)
+            => Try.RunAsync<IReadOnlyList<FileHandle>>(async () =>
             {
-                var values = names.Select(name => name.Value).ToList();
+                var wanted = fileHandles.ToList();
 
                 return await context.Files
-                                    .Where(file => values.Contains(file.FileName.Value))
-                                    .Select(file => file.FileName)
+                                    .Where(file => wanted.Contains(file.FileHandle))
+                                    .Select(file => file.FileHandle)
                                     .ToListAsync(cancellationToken)
                                     .ConfigureAwait(false);
             });
