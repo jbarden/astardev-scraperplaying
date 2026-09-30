@@ -74,6 +74,45 @@
                 ensures consistent reference to the expected configuration file across the application.
             </remarks>
         </member>
+        <member name="T:AStarDev.LoggingExtensions.FileLoggerProvider">
+            <summary>
+            Writes log entries to a local text file, one file per day named <c>{prefix}-{yyyyMMdd}.log</c> in the supplied directory, which is created on first write.
+            A failure to write is swallowed: losing a log line must never take the application down.
+            </summary>
+            <param name="directory">The directory the log files are written to.</param>
+            <param name="fileNamePrefix">The start of every log file name.</param>
+            <param name="timeProvider">The clock used for the entry timestamps and to choose the day's file.</param>
+        </member>
+        <member name="M:AStarDev.LoggingExtensions.FileLoggerProvider.#ctor(System.String,System.String,System.TimeProvider)">
+            <summary>
+            Writes log entries to a local text file, one file per day named <c>{prefix}-{yyyyMMdd}.log</c> in the supplied directory, which is created on first write.
+            A failure to write is swallowed: losing a log line must never take the application down.
+            </summary>
+            <param name="directory">The directory the log files are written to.</param>
+            <param name="fileNamePrefix">The start of every log file name.</param>
+            <param name="timeProvider">The clock used for the entry timestamps and to choose the day's file.</param>
+        </member>
+        <member name="M:AStarDev.LoggingExtensions.FileLoggerProvider.FilePathFor(System.DateTimeOffset)">
+            <summary>Gets the path of the log file that entries written at <paramref name="moment"/> go to.</summary>
+            <param name="moment">The time of the entry.</param>
+            <returns>The full path of that day's log file.</returns>
+        </member>
+        <member name="M:AStarDev.LoggingExtensions.FileLoggerProvider.CreateLogger(System.String)">
+            <inheritdoc/>
+        </member>
+        <member name="M:AStarDev.LoggingExtensions.FileLoggerProvider.Dispose">
+            <inheritdoc/>
+        </member>
+        <member name="T:AStarDev.LoggingExtensions.FileLoggingBuilderExtensions">
+            <summary>Registers the <see cref="T:AStarDev.LoggingExtensions.FileLoggerProvider"/> with the logging builder.</summary>
+        </member>
+        <member name="M:AStarDev.LoggingExtensions.FileLoggingBuilderExtensions.AddFileLogging(Microsoft.Extensions.Logging.ILoggingBuilder,System.String,System.String)">
+            <summary>Adds a provider that writes the log to a daily local file.</summary>
+            <param name="loggingBuilder">The logging builder to add the provider to.</param>
+            <param name="directory">The directory the log files are written to.</param>
+            <param name="fileNamePrefix">The start of every log file name.</param>
+            <returns>The original instance of <see cref="T:Microsoft.Extensions.Logging.ILoggingBuilder" /> for further method chaining.</returns>
+        </member>
         <member name="T:AStarDev.LoggingExtensions.ILoggerAstar`1">
             <summary>Defines an interface for a logging mechanism that extends the basic ILogger functionalities by adding support for logging specific page view events.</summary>
             <typeparam name="T">The type representing the category name for the logger.</typeparam>

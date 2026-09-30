@@ -49,6 +49,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../packages/logging/AStarDev.LoggingExtensions/AStarDev.LoggingExtensions.csproj" />
+    <ProjectReference Include="../packages/logging/AStarDev.LoggingOTel/AStarDev.LoggingOTel.csproj" />
     <ProjectReference Include="../packages/AStarDev.FunctionalParadigm/AStarDev.FunctionalParadigm.csproj" />
     <ProjectReference Include="../packages/AStarDev.ControlDb/AStarDev.ControlDb.csproj" />
     <ProjectReference Include="../packages/source-generators/AStarDev.SourceGeneratorAttributes/AStarDev.SourceGeneratorAttributes.csproj" />
