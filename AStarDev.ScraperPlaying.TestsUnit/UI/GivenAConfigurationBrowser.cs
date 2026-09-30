@@ -14,7 +14,7 @@ public sealed class GivenAConfigurationBrowser
     private readonly StatusReporter status = new(NullLogger<StatusReporter>.Instance);
     private readonly ConfigurationBrowser browser;
 
-    public GivenAConfigurationBrowser() => browser = new(catalogue, new FakeUpdater(), new MockFileSystem(), status);
+    public GivenAConfigurationBrowser() => browser = new(catalogue, new ConfigurationEditSaver(new FakeUpdater()), new MockFileSystem(), status);
 
     [Fact]
     public async Task when_the_configurations_are_listed_then_the_summaries_are_returned_without_any_status()
