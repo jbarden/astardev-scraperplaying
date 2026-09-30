@@ -23,6 +23,9 @@ public sealed class ScrapeConfigurationImporter(IServiceScopeFactory scopeFactor
             var replacement = document.ToEntity();
             var current = (await dbContext.TryGetFirstAsync()).Match(option => option, exception => throw exception);
 
+            // Exports leave the API keys out by default, so a file without them must not blank the keys already stored.
+            _ = current.Match(existing => KeepStoredApiKeysWhereFileHasNone(replacement, existing), () => Unit.Instance);
+
             // Delete and add commit together, so a failure while saving the replacement leaves the current configuration in place.
             return await unitOfWork.InTransactionAsync(async () =>
             {
@@ -40,5 +43,13 @@ public sealed class ScrapeConfigurationImporter(IServiceScopeFactory scopeFactor
                 return Unit.Instance;
             });
         });
+    }
+
+    private static Unit KeepStoredApiKeysWhereFileHasNone(ScrapeConfigurationEntity replacement, ScrapeConfigurationEntity existing)
+    {
+        if (string.IsNullOrEmpty(replacement.ApiKey)) replacement.ApiKey = existing.ApiKey;
+        if (string.IsNullOrEmpty(replacement.UserConfiguration.ApiKey)) replacement.UserConfiguration.ApiKey = existing.UserConfiguration.ApiKey;
+
+        return Unit.Instance;
     }
 }

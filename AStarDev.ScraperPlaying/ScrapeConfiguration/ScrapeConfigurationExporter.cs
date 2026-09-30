@@ -10,7 +10,7 @@ namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 public sealed class ScrapeConfigurationExporter(IServiceScopeFactory scopeFactory) : IScrapeConfigurationExporter
 {
     /// <inheritdoc/>
-    public async Task<Exceptional<Option<ScrapeConfigurationImportDocument>>> ExportScrapeConfigurationAsync()
+    public async Task<Exceptional<Option<ScrapeConfigurationImportDocument>>> ExportScrapeConfigurationAsync(ApiKeyExport apiKeys)
     {
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<IUnitOfWork>().GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>();
@@ -19,7 +19,7 @@ public sealed class ScrapeConfigurationExporter(IServiceScopeFactory scopeFactor
         {
             var current = (await dbContext.TryGetFirstAsync()).Match(option => option, exception => throw exception);
 
-            return current.Match(entity => (Option<ScrapeConfigurationImportDocument>)entity.ToImportDocument(), () => Option<ScrapeConfigurationImportDocument>.None.Instance);
+            return current.Match(entity => (Option<ScrapeConfigurationImportDocument>)entity.ToImportDocument(apiKeys), () => Option<ScrapeConfigurationImportDocument>.None.Instance);
         });
     }
 }

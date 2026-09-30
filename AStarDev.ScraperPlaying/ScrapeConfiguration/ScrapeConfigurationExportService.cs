@@ -5,17 +5,17 @@ namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 public interface IScrapeConfigurationExportService
 {
-    Task<bool> ExportAsync(string filePath, CancellationToken cancellationToken = default);
+    Task<bool> ExportAsync(string filePath, ApiKeyExport apiKeys, CancellationToken cancellationToken = default);
 }
 
 public sealed class ScrapeConfigurationExportService(
     IScrapeConfigurationExporter repository,
     IScrapeConfigurationFileWriter fileWriter) : IScrapeConfigurationExportService
 {
-    public async Task<bool> ExportAsync(string filePath, CancellationToken cancellationToken = default)
+    public async Task<bool> ExportAsync(string filePath, ApiKeyExport apiKeys, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var result = (await repository.ExportScrapeConfigurationAsync()).Match(option => option, exception => throw exception);
+        var result = (await repository.ExportScrapeConfigurationAsync(apiKeys)).Match(option => option, exception => throw exception);
 
         return await result.MatchAsync(
             async document =>

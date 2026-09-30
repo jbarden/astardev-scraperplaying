@@ -41,7 +41,7 @@ public sealed class GivenAScrapeConfigurationImporter : IDisposable
     [Fact]
     public async Task when_a_document_is_imported_then_the_delete_and_add_happen_inside_a_single_transaction()
     {
-        repository.First = (Option<ScrapeConfigurationEntity>)new ScrapeConfigurationEntity(new ScrapeConfigurationId(Guid.CreateVersion7()));
+        repository.First = (Option<ScrapeConfigurationEntity>)StoredConfigurationWithKeys("stored-scrape-key", "stored-user-key");
 
         _ = await importer.ImportScrapeConfigurationAsync(CreateDocument("user"));
 
@@ -51,12 +51,65 @@ public sealed class GivenAScrapeConfigurationImporter : IDisposable
     [Fact]
     public async Task when_the_document_cannot_be_mapped_then_the_existing_configuration_is_not_deleted_and_nothing_is_saved()
     {
-        repository.First = (Option<ScrapeConfigurationEntity>)new ScrapeConfigurationEntity(new ScrapeConfigurationId(Guid.CreateVersion7()));
+        repository.First = (Option<ScrapeConfigurationEntity>)StoredConfigurationWithKeys("stored-scrape-key", "stored-user-key");
         var unmappable = new ScrapeConfigurationImportDocument { SearchConfiguration = new SearchConfigurationImportDocument { SearchCategories = [null!] } };
 
         var result = await importer.ImportScrapeConfigurationAsync(unmappable);
 
         (result.Match(_ => true, _ => false), repository.Deleted.Count, unitOfWork.SaveCount).ShouldBe((false, 0, 0));
+    }
+
+    [Fact]
+    public async Task when_the_file_has_no_api_keys_then_the_stored_api_keys_are_kept()
+    {
+        repository.First = (Option<ScrapeConfigurationEntity>)StoredConfigurationWithKeys("stored-scrape-key", "stored-user-key");
+
+        _ = await importer.ImportScrapeConfigurationAsync(CreateDocument("user"));
+
+        (repository.Added.Single().ApiKey, repository.Added.Single().UserConfiguration.ApiKey).ShouldBe(("stored-scrape-key", "stored-user-key"));
+    }
+
+    [Fact]
+    public async Task when_the_file_has_api_keys_then_they_replace_the_stored_ones()
+    {
+        repository.First = (Option<ScrapeConfigurationEntity>)StoredConfigurationWithKeys("stored-scrape-key", "stored-user-key");
+        var document = new ScrapeConfigurationImportDocument { ApiKey = "file-scrape-key", UserConfiguration = new() { ApiKey = "file-user-key" }, SearchConfiguration = new(), ScrapeDirectories = new() };
+
+        _ = await importer.ImportScrapeConfigurationAsync(document);
+
+        (repository.Added.Single().ApiKey, repository.Added.Single().UserConfiguration.ApiKey).ShouldBe(("file-scrape-key", "file-user-key"));
+    }
+
+    [Fact]
+    public async Task when_the_file_has_no_api_keys_and_nothing_is_stored_then_the_keys_stay_empty()
+    {
+        repository.First = Option<ScrapeConfigurationEntity>.None.Instance;
+
+        _ = await importer.ImportScrapeConfigurationAsync(CreateDocument("user"));
+
+        (repository.Added.Single().ApiKey, repository.Added.Single().UserConfiguration.ApiKey).ShouldBe((string.Empty, string.Empty));
+    }
+
+    [Fact]
+    public async Task when_only_one_key_is_missing_from_the_file_then_only_that_one_is_kept_from_the_stored_configuration()
+    {
+        repository.First = (Option<ScrapeConfigurationEntity>)StoredConfigurationWithKeys("stored-scrape-key", "stored-user-key");
+        var document = new ScrapeConfigurationImportDocument { ApiKey = "file-scrape-key", UserConfiguration = new(), SearchConfiguration = new(), ScrapeDirectories = new() };
+
+        _ = await importer.ImportScrapeConfigurationAsync(document);
+
+        (repository.Added.Single().ApiKey, repository.Added.Single().UserConfiguration.ApiKey).ShouldBe(("file-scrape-key", "stored-user-key"));
+    }
+
+    private static ScrapeConfigurationEntity StoredConfigurationWithKeys(string scrapeKey, string userKey)
+    {
+        var id = new ScrapeConfigurationId(Guid.CreateVersion7());
+
+        return new ScrapeConfigurationEntity(id)
+        {
+            ApiKey = scrapeKey,
+            UserConfiguration = new UserConfigurationEntity(new UserConfigurationId(Guid.CreateVersion7()), id, "stored@example.test", "stored", userKey)
+        };
     }
 
     [Fact]
@@ -76,7 +129,7 @@ public sealed class GivenAScrapeConfigurationImporter : IDisposable
     [Fact]
     public async Task when_a_configuration_already_exists_then_it_is_deleted_before_the_new_one_is_added()
     {
-        var existing = new ScrapeConfigurationEntity(new ScrapeConfigurationId(Guid.CreateVersion7()));
+        var existing = StoredConfigurationWithKeys("stored-scrape-key", "stored-user-key");
         repository.First = (Option<ScrapeConfigurationEntity>)existing;
 
         var result = await importer.ImportScrapeConfigurationAsync(CreateDocument("new-user"));
