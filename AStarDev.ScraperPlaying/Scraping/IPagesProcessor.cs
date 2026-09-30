@@ -1,4 +1,5 @@
 using AStarDev.FunctionalParadigm;
+using AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 namespace AStarDev.ScraperPlaying.Scraping;
 
@@ -8,11 +9,12 @@ public interface IPagesProcessor
     /// <summary>Fetches and processes pages asynchronously based on the provided parameters.</summary>
     /// <param name="logLabel">A label used for logging purposes.</param>
     /// <param name="categoryName">The search category name when a category search is being performed, or <see cref="Option{T}.None"/> when fetching the "Top Wallpapers" scrape.</param>
+    /// <param name="previousProgress">The progress recorded by the previous scrape of the category, or <see cref="Option{T}.None"/> when there is none or it is the "Top Wallpapers" scrape, which is never skipped.</param>
     /// <param name="pageUrlFactory">A function that generates page URLs based on the page number.</param>
     /// <param name="connection">The Wallhaven API credentials and target host to fetch pages from.</param>
     /// <param name="personCategories">The tag category names whose tags are person names when naming saved files.</param>
     /// <param name="progress">The progress reporter to report the fetching and processing progress.</param>
     /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    Task FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Func<int, Uri> pageUrlFactory, WallhavenConnection connection, IReadOnlyList<string> personCategories, IProgress<string> progress, CancellationToken cancellationToken);
+    /// <returns>The progress observed by this scrape, or <see cref="Option{T}.None"/> when the search was skipped because nothing had changed since the previous scrape.</returns>
+    Task<Option<SearchCategoryProgress>> FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Option<SearchCategoryProgress> previousProgress, Func<int, Uri> pageUrlFactory, WallhavenConnection connection, IReadOnlyList<string> personCategories, IProgress<string> progress, CancellationToken cancellationToken);
 }

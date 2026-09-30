@@ -1,10 +1,12 @@
+using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
+using AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 namespace AStarDev.ScraperPlaying.Scraping;
 
 /// <inheritdoc/>
-public sealed class SearchOrchestrator(IPagesProcessor pagesProcessor, ScrapeLimits limits) : ISearchOrchestrator
+public sealed class SearchOrchestrator(IPagesProcessor pagesProcessor, IUnitOfWork unitOfWork, ScrapeLimits limits) : ISearchOrchestrator
 {
     /// <inheritdoc/>
     public async Task RunSearchesAsync(ScrapeConfigurationEntity configuration, IProgress<string> progress, CancellationToken cancellationToken)
@@ -18,10 +20,15 @@ public sealed class SearchOrchestrator(IPagesProcessor pagesProcessor, ScrapeLim
         progress.Report("Fetching categories.");
         foreach (var category in configuration.SearchConfiguration.SearchCategories.Take(limits.MaximumSearchCategories))
         {
-            await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Name}", Option.Some(category.Name), page => WallhavenUrlBuilder.BuildCategoryPageUrl(searchCategoriesUrl, searchCategoriesSuffix, category, page), connection, personCategories, progress, cancellationToken);
+            var scrapedProgress = await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Name}", Option.Some(category.Name), Option.Some(new SearchCategoryProgress(category.LastKnownImageCount, category.LastPageVisited, category.TotalPages)), page => WallhavenUrlBuilder.BuildCategoryPageUrl(searchCategoriesUrl, searchCategoriesSuffix, category, page), connection, personCategories, progress, cancellationToken);
+            if (scrapedProgress.TryGetValue(out var scraped))
+            {
+                category.RecordScrapeProgress(scraped.LastKnownImageCount, scraped.LastPageVisited, scraped.TotalPages);
+                _ = await unitOfWork.SaveChangesAsync(cancellationToken);
+            }
         }
 
         progress.Report("Fetching top wallpapers.");
-        await pagesProcessor.FetchAndProcessPagesAsync("top wallpapers", Option.None<string>(), page => WallhavenUrlBuilder.BuildTopWallpapersPageUrl(topWallpapersUrl, page), connection, personCategories, progress, cancellationToken);
+        _ = await pagesProcessor.FetchAndProcessPagesAsync("top wallpapers", Option.None<string>(), Option.None<SearchCategoryProgress>(), page => WallhavenUrlBuilder.BuildTopWallpapersPageUrl(topWallpapersUrl, page), connection, personCategories, progress, cancellationToken);
     }
 }
