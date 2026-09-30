@@ -58,6 +58,7 @@ public static class ApplicationServices
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst
             }))
             .AddSingleton(TimeProvider.System)
+            .AddSingleton(DownloadPacing.Default)
             .AddTransient<WallhavenRateLimitingHandler>()
             .AddTransient<WallhavenApiKeyHandler>()
             .AddSingleton<IDatabaseInitialization, DatabaseInitialization>()
