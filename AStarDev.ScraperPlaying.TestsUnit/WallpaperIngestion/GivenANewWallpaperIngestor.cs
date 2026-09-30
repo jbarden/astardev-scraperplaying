@@ -54,6 +54,16 @@ public sealed class GivenANewWallpaperIngestor
     }
 
     [Fact]
+    public async Task when_only_the_tags_are_fetched_then_nothing_is_downloaded_recorded_or_linked()
+    {
+        using var client = new HttpClient();
+
+        var tags = await ingestor.FetchTagsAsync(CreateWallpaper("tags-only"), new WallpaperIngestionContext("some-directory", client, fileRepository, "resolved-category", []), progress, TestContext.Current.CancellationToken);
+
+        (tags.Count, imageDownloader.Requests.Count, fileRecorder.Recorded.Count, tagsProcessor.Linked.Count, progress.Messages.Contains("No existing data found for wallpaper tags-only.")).ShouldBe((0, 0, 0, 0, true));
+    }
+
+    [Fact]
     public async Task when_downloading_fails_then_the_failure_is_reported_and_nothing_is_recorded_linked_or_announced()
     {
         imageDownloader.OnDownload = () => throw new HttpRequestException("download failed");
@@ -135,8 +145,10 @@ public sealed class GivenANewWallpaperIngestor
     private async Task IngestWithToken(Data wallpaper, string extension, string directory, CancellationToken cancellationToken)
     {
         using var client = new HttpClient();
+        var context = new WallpaperIngestionContext(directory, client, fileRepository, "resolved-category", []);
 
-        await ingestor.IngestAsync(wallpaper, extension, new WallpaperIngestionContext(directory, client, fileRepository, "resolved-category", []), progress, cancellationToken);
+        var tags = await ingestor.FetchTagsAsync(wallpaper, context, progress, cancellationToken);
+        await ingestor.IngestAsync(wallpaper, extension, tags, context, progress, cancellationToken);
     }
 
     private static Data CreateWallpaper(string id) => new(id, 0, 0, 0, "", "");

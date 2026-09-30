@@ -1,8 +1,10 @@
+using System.Diagnostics.CodeAnalysis;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 using AStarDev.Utilities;
+using Tag = AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse.Tag;
 
 namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 
@@ -22,17 +24,14 @@ public class WallpaperIngestionService(IFilesQuery filesQuery, INewWallpaperInge
             async existingHandles =>
             {
                 var existing = existingHandles.Select(handle => handle.Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                foreach (var (wallpaper, extension) in candidates)
+                List<(Data Wallpaper, string Extension)> newWallpapers = [];
+                foreach (var candidate in candidates)
                 {
-                    if (existing.Contains(wallpaper.Id))
-                    {
-                        progress.Report($"The file details already exist for wallpaper {wallpaper.Id} - no need to fetch again.");
-
-                        continue;
-                    }
-
-                    await newWallpaperIngestor.IngestAsync(wallpaper, extension, context, progress, cancellationToken);
+                    if (existing.Contains(candidate.Wallpaper.Id)) progress.Report($"The file details already exist for wallpaper {candidate.Wallpaper.Id} - no need to fetch again.");
+                    else newWallpapers.Add(candidate);
                 }
+
+                await IngestNewWallpapersAsync(newWallpapers, context, progress, cancellationToken);
             },
             exception =>
             {
@@ -41,5 +40,44 @@ public class WallpaperIngestionService(IFilesQuery filesQuery, INewWallpaperInge
                 return Task.CompletedTask;
             }
         );
+    }
+
+    /// <summary>
+    /// Ingests the new wallpapers in page order, fetching the next wallpaper's tags (network only, and one fetch at a time so the API rate limit still applies) while the current one
+    /// downloads and is recorded (network and the single, non-thread-safe database context, and one wallpaper at a time).
+    /// </summary>
+    private async Task IngestNewWallpapersAsync(List<(Data Wallpaper, string Extension)> newWallpapers, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+    {
+        if (newWallpapers.Count == 0) return;
+
+        var prefetch = newWallpaperIngestor.FetchTagsAsync(newWallpapers[0].Wallpaper, context, progress, cancellationToken);
+        try
+        {
+            for (var i = 0; i < newWallpapers.Count; i++)
+            {
+                var tags = await prefetch;
+                prefetch = i + 1 < newWallpapers.Count ? newWallpaperIngestor.FetchTagsAsync(newWallpapers[i + 1].Wallpaper, context, progress, cancellationToken) : Task.FromResult<IReadOnlyList<Tag>>([]);
+
+                await newWallpaperIngestor.IngestAsync(newWallpapers[i].Wallpaper, newWallpapers[i].Extension, tags, context, progress, cancellationToken);
+            }
+        }
+        finally
+        {
+            await ObserveAsync(prefetch);
+        }
+    }
+
+    /// <summary>Waits for an outstanding prefetch that is no longer needed (the loop finished or was abandoned) so it is never left running or unobserved; its outcome is irrelevant.</summary>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "The prefetch result is discarded; only its completion matters and any failure it had is already reported by the ingestor.")]
+    private static async Task ObserveAsync(Task prefetch)
+    {
+        try
+        {
+            await prefetch;
+        }
+        catch (Exception)
+        {
+            // Abandoned prefetch (cancellation or failure): nothing to do.
+        }
     }
 }
