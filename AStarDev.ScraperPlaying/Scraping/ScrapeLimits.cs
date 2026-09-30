@@ -9,10 +9,10 @@ public sealed record ScrapeLimits(int MaximumSearchCategories, int MaximumPagesP
 {
     private const string SectionName = "ScrapeLimits";
 
-    /// <summary>The limits used when none are configured: three categories and four pages per search.</summary>
-    public static ScrapeLimits Default { get; } = new(3, 4);
+    /// <summary>The limits used when none are configured: no limit, so every category and every page is scraped.</summary>
+    public static ScrapeLimits Default { get; } = new(int.MaxValue, int.MaxValue);
 
-    /// <summary>Reads the limits from the <c>ScrapeLimits</c> configuration section; a missing, unparsable or less-than-one value falls back to its default.</summary>
+    /// <summary>Reads the limits from the <c>ScrapeLimits</c> configuration section; a missing, unparsable or less-than-one value means that limit is unlimited.</summary>
     /// <param name="configuration">The application configuration.</param>
     public static ScrapeLimits From(IConfiguration configuration)
     {

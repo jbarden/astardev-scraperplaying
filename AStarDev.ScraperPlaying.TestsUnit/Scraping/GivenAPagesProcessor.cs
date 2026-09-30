@@ -21,7 +21,7 @@ public sealed class GivenAPagesProcessor
     public GivenAPagesProcessor()
     {
         fileRepository = unitOfWork.Register<FileEntity, FileId>();
-        processor = new(new FakeClientFactory(), new FakePageFetcher(jsonResponseProcessor), unitOfWork, new FakeSaveDirectoryResolver(), wallpaperIngestionService, ScrapeLimits.Default);
+        processor = new(new FakeClientFactory(), new FakePageFetcher(jsonResponseProcessor), unitOfWork, new FakeSaveDirectoryResolver(), wallpaperIngestionService, new ScrapeLimits(3, 4));
     }
 
     [Fact]
