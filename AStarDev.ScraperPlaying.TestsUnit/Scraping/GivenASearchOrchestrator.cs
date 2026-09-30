@@ -13,7 +13,7 @@ public sealed class GivenASearchOrchestrator
     private readonly CapturingProgress progress = new();
     private readonly SearchOrchestrator orchestrator;
 
-    public GivenASearchOrchestrator() => orchestrator = new(pagesProcessor, ScrapeLimits.Default);
+    public GivenASearchOrchestrator() => orchestrator = new(pagesProcessor, new ScrapeLimits(3, 4));
 
     [Fact]
     public async Task when_a_configuration_has_many_categories_then_up_to_three_categories_then_top_wallpapers_are_processed()
@@ -28,6 +28,16 @@ public sealed class GivenASearchOrchestrator
             ("search category category three", Option.Some("category three")),
             ("top wallpapers", Option.None<string>())
         ]);
+    }
+
+    [Fact]
+    public async Task when_the_default_limits_are_used_then_every_category_is_processed()
+    {
+        var unlimitedOrchestrator = new SearchOrchestrator(pagesProcessor, ScrapeLimits.Default);
+
+        await unlimitedOrchestrator.RunSearchesAsync(ScrapeConfigurationTestData.CreateConfiguration(categoryCount: 5), progress, CancellationToken.None);
+
+        pagesProcessor.Calls.Count.ShouldBe(6);
     }
 
     [Fact]
