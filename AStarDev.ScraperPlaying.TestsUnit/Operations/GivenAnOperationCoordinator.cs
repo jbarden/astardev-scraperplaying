@@ -1,6 +1,6 @@
-using AStarDev.ScraperPlaying.UI;
+using AStarDev.ScraperPlaying.Operations;
 
-namespace AStarDev.ScraperPlaying.TestsUnit.UI;
+namespace AStarDev.ScraperPlaying.TestsUnit.Operations;
 
 public sealed class GivenAnOperationCoordinator
 {

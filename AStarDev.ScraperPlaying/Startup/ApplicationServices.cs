@@ -1,3 +1,4 @@
+using AStarDev.ScraperPlaying.Operations;
 using System.Net.Http.Headers;
 using System.Threading.RateLimiting;
 using Microsoft.Extensions.Configuration;
@@ -20,6 +21,7 @@ public static class ApplicationServices
         services
             .AddSingleton<IApplicationDirectories, ApplicationDirectories>()
             .AddSingleton<IScrapeService, ScrapeService>()
+            .AddSingleton<IRootDirectoryCheck, RootDirectoryCheck>()
             .AddSingleton<IConfigurationFilePicker, ConfigurationFilePicker>()
             .AddSingleton<IScrapeConfigurationFileReader, ScrapeConfigurationFileReader>()
             .AddSingleton<IScrapeConfigurationImportService, ScrapeConfigurationImportService>()
@@ -35,6 +37,7 @@ public static class ApplicationServices
             .AddSingleton<ImageDisplayCoordinator>()
             .AddSingleton<OperationCoordinator>()
             .AddScoped<IPagesProcessor, PagesProcessor>()
+            .AddScoped<ISearchOrchestrator, SearchOrchestrator>()
             .AddScoped<IJsonResponseProcessor, JsonResponseProcessor>()
             .AddScoped<IImageProcessor, ImageProcessor>()
             .AddScoped<ISaveDirectoryResolver, SaveDirectoryResolver>()

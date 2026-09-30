@@ -1,15 +1,14 @@
 using System.Diagnostics;
-using System.IO.Abstractions;
-using AStarDev.FunctionalParadigm;
-using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.ControlDb;
-using AStarDev.ScraperPlaying.UI;
+using AStarDev.ScraperPlaying.Operations;
+using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using AStarDev.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AStarDev.ScraperPlaying.Scraping;
 
-public class ScrapeService(OperationCoordinator operationCoordinator, IServiceScopeFactory scopeFactory, IFileSystem fileSystem) : IScrapeService
+/// <summary>Runs a scrape as the single active operation: owns its lifecycle, timing and error reporting, and leaves the choice of searches to <see cref="ISearchOrchestrator"/>.</summary>
+public class ScrapeService(OperationCoordinator operationCoordinator, IServiceScopeFactory scopeFactory) : IScrapeService
 {
     /// <inheritdoc/>
     public async Task RunScraperAsync(IProgress<string> progress)
@@ -21,12 +20,12 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
         {
             using var scope = scopeFactory.CreateScope();
             var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-            var pagesProcessor = scope.ServiceProvider.GetRequiredService<IPagesProcessor>();
+            var searchOrchestrator = scope.ServiceProvider.GetRequiredService<ISearchOrchestrator>();
 
             progress.Report("Starting scrape operation.");
-            var configuration = await LoadConfigurationAsync(unitOfWork);
+            var configuration = await unitOfWork.LoadScrapeConfigurationAsync();
 
-            await RunSearchesAsync(pagesProcessor, configuration, progress, cancellationToken);
+            await searchOrchestrator.RunSearchesAsync(configuration, progress, cancellationToken);
 
             progress.Report($"Search completed in: {Stopwatch.GetElapsedTime(startTime).ToDurationString()}.");
         }
@@ -42,42 +41,5 @@ public class ScrapeService(OperationCoordinator operationCoordinator, IServiceSc
         {
             operationCoordinator.Complete();
         }
-    }
-
-    /// <inheritdoc/>
-    public async Task<bool> RootDirectoryExistsAsync()
-    {
-        using var scope = scopeFactory.CreateScope();
-        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-        var configuration = await LoadConfigurationAsync(unitOfWork);
-
-        return fileSystem.Directory.Exists(configuration.ScrapeDirectories.RootDirectory);
-    }
-
-    private static async Task<ScrapeConfigurationEntity> LoadConfigurationAsync(IUnitOfWork unitOfWork)
-        => (await unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().TryGetFirstAsync())
-            .Match(
-                option => option.Match(scrapeConfig => scrapeConfig, () => throw new InvalidOperationException("Scrape configuration not found")),
-                exception => throw exception
-            );
-
-    private static async Task RunSearchesAsync(IPagesProcessor pagesProcessor, ScrapeConfigurationEntity configuration, IProgress<string> progress, CancellationToken cancellationToken)
-    {
-        var connection = new WallhavenConnection(configuration.UserConfiguration.ApiKey, configuration.BaseUrl);
-        var topWallpapersUrl = configuration.TopWallpapers;
-        var searchCategoriesUrl = configuration.SearchStringPrefix;
-        var searchCategoriesSuffix = configuration.SearchStringSuffix;
-        var searchCategories = configuration.SearchConfiguration.SearchCategories;
-        var subscriptionsUrl = configuration.Subscriptions;
-        IReadOnlyList<string> personCategories = [.. configuration.SearchConfiguration.PersonCategories.Select(category => category.Name)];
-
-        progress.Report("Fetching categories.");
-        foreach (var category in searchCategories.Take(3))
-        {
-            await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Name}", Option.Some(category.Name), page => WallhavenUrlBuilder.BuildCategoryPageUrl(searchCategoriesUrl, searchCategoriesSuffix, category, page), connection, personCategories, progress, cancellationToken);
-        }
-
-        progress.Report("Fetching top wallpapers.");
-        await pagesProcessor.FetchAndProcessPagesAsync("top wallpapers", Option.None<string>(), page => WallhavenUrlBuilder.BuildTopWallpapersPageUrl(topWallpapersUrl, page), connection, personCategories, progress, cancellationToken);
     }
 }

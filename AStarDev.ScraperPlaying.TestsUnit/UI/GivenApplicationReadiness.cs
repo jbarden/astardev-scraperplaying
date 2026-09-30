@@ -1,4 +1,5 @@
-using AStarDev.ScraperPlaying.Scraping;
+using AStarDev.ScraperPlaying.Operations;
+using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using AStarDev.ScraperPlaying.Startup;
 using AStarDev.ScraperPlaying.UI;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -8,12 +9,12 @@ namespace AStarDev.ScraperPlaying.TestsUnit.UI;
 public sealed class GivenApplicationReadiness : IDisposable
 {
     private readonly FakeDatabaseInitialization database = new();
-    private readonly FakeScrapeService scrapeService = new();
+    private readonly FakeRootDirectoryCheck rootDirectoryCheck = new();
     private readonly OperationCoordinator coordinator = new();
     private readonly StatusReporter status = new(NullLogger<StatusReporter>.Instance);
     private readonly ApplicationReadiness readiness;
 
-    public GivenApplicationReadiness() => readiness = new(database, scrapeService, coordinator, status);
+    public GivenApplicationReadiness() => readiness = new(database, rootDirectoryCheck, coordinator, status);
 
     public void Dispose() => coordinator.Dispose();
 
@@ -32,7 +33,7 @@ public sealed class GivenApplicationReadiness : IDisposable
     [Fact]
     public async Task when_the_root_directory_does_not_exist_then_operations_are_enabled_but_the_scraper_is_not_and_the_user_is_told()
     {
-        scrapeService.RootDirectoryExists = false;
+        rootDirectoryCheck.Exists = false;
 
         await readiness.InitialiseAsync();
 
@@ -52,7 +53,7 @@ public sealed class GivenApplicationReadiness : IDisposable
     [Fact]
     public async Task when_checking_the_root_directory_fails_then_the_failure_is_reported_and_the_scraper_is_not_enabled()
     {
-        scrapeService.RootDirectoryCheck = () => throw new InvalidOperationException("Scrape configuration not found");
+        rootDirectoryCheck.Check = () => throw new InvalidOperationException("Scrape configuration not found");
 
         await readiness.InitialiseAsync();
 
@@ -89,14 +90,12 @@ public sealed class GivenApplicationReadiness : IDisposable
         public Task ReadyAsync() => Ready;
     }
 
-    private sealed class FakeScrapeService : IScrapeService
+    private sealed class FakeRootDirectoryCheck : IRootDirectoryCheck
     {
-        public bool RootDirectoryExists { get; set; } = true;
+        public bool Exists { get; set; } = true;
 
-        public Func<bool> RootDirectoryCheck { get; set; } = () => true;
+        public Func<bool> Check { get; set; } = () => true;
 
-        public Task RunScraperAsync(IProgress<string> progress) => Task.CompletedTask;
-
-        public Task<bool> RootDirectoryExistsAsync() => Task.FromResult(RootDirectoryExists && RootDirectoryCheck());
+        public Task<bool> ExistsAsync() => Task.FromResult(Exists && Check());
     }
 }
