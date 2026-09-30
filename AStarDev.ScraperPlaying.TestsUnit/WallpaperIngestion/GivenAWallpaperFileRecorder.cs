@@ -29,6 +29,7 @@ public sealed class GivenAWallpaperFileRecorder
         addedEntity.ImageDetail!.Width.ShouldBe(1920);
         addedEntity.ImageDetail!.Height.ShouldBe(1080);
         addedEntity.FileAccessDetail.DetailsLastUpdated.ShouldBe(now.UtcDateTime);
+        addedEntity.LastUpdated.ShouldBe(now);
         fileRepository.Added.ShouldBe([addedEntity]);
     }
 

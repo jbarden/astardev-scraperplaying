@@ -23,6 +23,9 @@ public sealed class FileEntity : IAggregateRoot
     /// <summary>Whether the file is of a supported image type.</summary>
     public bool IsImage { get; set; }
 
+    /// <summary>The date and time the file was last updated; for a scraped wallpaper, when it was downloaded and recorded.</summary>
+    public DateTimeOffset LastUpdated { get; set; } = DateTimeOffset.UtcNow;
+
     /// <summary>Navigation property to the owned file access detail.</summary>
     public FileAccessDetailEntity FileAccessDetail { get; set; } = new() { Id = FileAccessDetailId.Create(), FileId = FileId.Create() };
 

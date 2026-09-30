@@ -23,6 +23,7 @@ public sealed class WallpaperFileRecorder(Func<DateTimeOffset> clock) : IWallpap
                 Id = FileAccessDetailId.Empty,
                 FileId = FileId.Empty
             },
+            LastUpdated = clock(),
             FileSize = wallpaper.FileSize,
             FileHandle = FileHandle.Create(wallpaper.Id),
             FileType = wallpaper.FileType,
