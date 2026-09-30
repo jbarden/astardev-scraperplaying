@@ -26,10 +26,7 @@ public class PagesProcessor(IHttpClientFactory httpClientFactory, IUnitOfWork un
             {
                 pageResult = await FetchPageAsync(logLabel, pageUrlFactory, page, client, progress, cancellationToken);
 
-                foreach (var wallpaper in pageResult.Data)
-                {
-                    await wallpaperIngestionService.IngestAsync(wallpaper, ingestionContext, progress, cancellationToken);
-                }
+                await wallpaperIngestionService.IngestPageAsync(pageResult.Data, ingestionContext, progress, cancellationToken);
 
                 _ = await unitOfWork.SaveChangesAsync(cancellationToken);
                 page++;

@@ -14,7 +14,7 @@ internal static class FileEntityFactory
             Id = fileId,
             FileName = fileName,
             DirectoryName = DirectoryName.Create("directory-name"),
-            FileHandle = FileHandle.Create("file-handle"),
+            FileHandle = FileHandle.Create(fileName.Value == "file-name" ? "file-handle" : $"handle-{fileName.Value}"),
             FileSize = 12345,
             IsImage = true,
             FileAccessDetail = new FileAccessDetailEntity()

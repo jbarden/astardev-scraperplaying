@@ -102,6 +102,40 @@ public sealed class GivenAFilesQuery : IDisposable
     }
 
     [Fact]
+    public async Task when_some_of_the_names_exist_then_get_existing_names_returns_only_the_stored_ones()
+    {
+        await context.Files.AddRangeAsync([FileEntityFactory.CreateFileEntity(FileName.Create("stored-1.jpg")), FileEntityFactory.CreateFileEntity(FileName.Create("stored-2.jpg"))], TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var query = new FilesQuery(context);
+
+        var result = await query.GetExistingNamesAsync([FileName.Create("stored-1.jpg"), FileName.Create("missing.jpg"), FileName.Create("stored-2.jpg")], TestContext.Current.CancellationToken);
+
+        result.Match(names => names.Select(name => name.Value).Order().ToList(), exception => throw exception).ShouldBe(["stored-1.jpg", "stored-2.jpg"]);
+    }
+
+    [Fact]
+    public async Task when_no_names_are_supplied_then_get_existing_names_returns_an_empty_list()
+    {
+        var query = new FilesQuery(context);
+
+        var result = await query.GetExistingNamesAsync([], TestContext.Current.CancellationToken);
+
+        result.Match(names => names.Count, exception => throw exception).ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task when_a_name_differs_only_by_case_then_get_existing_names_still_returns_the_stored_name_because_the_database_collation_ignores_case()
+    {
+        await context.Files.AddAsync(FileEntityFactory.CreateFileEntity(FileName.Create("stored.jpg")), TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var query = new FilesQuery(context);
+
+        var result = await query.GetExistingNamesAsync([FileName.Create("STORED.JPG")], TestContext.Current.CancellationToken);
+
+        result.Match(names => names.Select(name => name.Value).ToList(), exception => throw exception).ShouldBe(["stored.jpg"]);
+    }
+
+    [Fact]
     public async Task when_the_name_is_only_a_substring_of_a_stored_name_then_try_get_by_name_returns_none()
     {
         var fileEntity = FileEntityFactory.CreateFileEntity(FileName.Create("my-file-name-2.jpg"));

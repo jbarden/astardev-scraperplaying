@@ -38,29 +38,23 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
         => Try.RunAsync(async () =>
         {
             var tagRepository = unitOfWork.GetRepository<TagEntity, TagId>();
-            var linkedTagIds = new HashSet<int>();
+            var distinctTags = tags.DistinctBy(tag => tag.Id).ToList();
+            await CacheExistingTagsAsync(distinctTags, cancellationToken);
 
-            foreach (var tag in tags)
+            foreach (var tag in distinctTags)
             {
-                if (!linkedTagIds.Add(tag.Id)) continue;
-
                 if (!resolvedTags.TryGetValue(tag.Id, out var tagEntity))
                 {
-                    tagEntity = (await tagsQuery.TryFindByWallhavenIdAsync(tag.Id, cancellationToken))
-                        .Match(
-                            option => option.Match(
-                                existing => existing,
-                                () => tagRepository.Add(new TagEntity
-                                {
-                                    Id = TagId.Empty,
-                                    WallhavenTagId = tag.Id,
-                                    Name = tag.Name,
-                                    Alias = tag.Alias,
-                                    CategoryId = tag.CategoryId,
-                                    Category = tag.Category,
-                                    Purity = tag.Purity
-                                }).Match(added => added, ex => throw ex)),
-                            exception => throw exception);
+                    tagEntity = tagRepository.Add(new TagEntity
+                    {
+                        Id = TagId.Empty,
+                        WallhavenTagId = tag.Id,
+                        Name = tag.Name,
+                        Alias = tag.Alias,
+                        CategoryId = tag.CategoryId,
+                        Category = tag.Category,
+                        Purity = tag.Purity
+                    }).Match(added => added, ex => throw ex);
 
                     resolvedTags.Add(tag.Id, tagEntity);
                 }
@@ -71,4 +65,18 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
 
             return Unit.Instance;
         });
+
+    private async Task CacheExistingTagsAsync(IReadOnlyList<Tag> tags, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<int> uncachedIds = [.. tags.Where(tag => !resolvedTags.ContainsKey(tag.Id)).Select(tag => tag.Id)];
+        if (uncachedIds.Count == 0) return;
+
+        var existingTags = (await tagsQuery.FindByWallhavenIdsAsync(uncachedIds, cancellationToken))
+            .Match(found => found, exception => throw exception);
+
+        foreach (var existingTag in existingTags)
+        {
+            resolvedTags[existingTag.WallhavenTagId] = existingTag;
+        }
+    }
 }

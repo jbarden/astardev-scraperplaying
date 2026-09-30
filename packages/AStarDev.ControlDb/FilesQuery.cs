@@ -25,5 +25,18 @@ public class FilesQuery(ControlDbContext context) : IFilesQuery
     public async Task<Exceptional<bool>> CheckExistsByNameAsync(FileName name, CancellationToken cancellationToken = default)
             => await context.Files.AnyAsync(HasName(name), cancellationToken).ConfigureAwait(false);
 
+    /// <inheritdoc/>
+    public Task<Exceptional<IReadOnlyList<FileName>>> GetExistingNamesAsync(IReadOnlyCollection<FileName> names, CancellationToken cancellationToken = default)
+            => Try.RunAsync<IReadOnlyList<FileName>>(async () =>
+            {
+                var values = names.Select(name => name.Value).ToList();
+
+                return await context.Files
+                                    .Where(file => values.Contains(file.FileName.Value))
+                                    .Select(file => file.FileName)
+                                    .ToListAsync(cancellationToken)
+                                    .ConfigureAwait(false);
+            });
+
     private static Expression<Func<FileEntity, bool>> HasName(FileName name) => file => file.FileName.Value == name.Value;
 }

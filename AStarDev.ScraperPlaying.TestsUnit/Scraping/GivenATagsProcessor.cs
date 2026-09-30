@@ -98,6 +98,31 @@ public sealed class GivenATagsProcessor
     }
 
     [Fact]
+    public async Task when_a_wallpaper_has_several_tags_then_the_existing_ones_are_looked_up_with_a_single_query_of_the_distinct_ids()
+    {
+        SetUpDetailResponse(CreateTag(wallhavenTagId: 5, name: "one"), CreateTag(wallhavenTagId: 6, name: "two"), CreateTag(wallhavenTagId: 5, name: "one"), CreateTag(wallhavenTagId: 7, name: "three"));
+        tagsQuery.Existing[6] = new TagEntity { Id = TagId.Create(), WallhavenTagId = 6, Name = "two" };
+
+        var result = await Run();
+
+        result.Match(_ => true, ex => throw ex).ShouldBeTrue();
+        (tagsQuery.Queries.Count, string.Join(",", tagsQuery.Queries.Single().Order()), string.Join(",", tagRepository.Added.Select(tag => tag.WallhavenTagId).Order())).ShouldBe((1, "5,6,7", "5,7"));
+    }
+
+    [Fact]
+    public async Task when_every_tag_of_a_later_wallpaper_is_already_cached_then_no_query_is_made()
+    {
+        var tag = CreateTag(wallhavenTagId: 8, name: "cached");
+        jsonResponseProcessor.Responses["wallpaper-a"] = CreateDetailResponse(tag);
+        jsonResponseProcessor.Responses["wallpaper-b"] = CreateDetailResponse(tag);
+
+        _ = await FetchAndLink("wallpaper-a", FileId.Create());
+        _ = await FetchAndLink("wallpaper-b", FileId.Create());
+
+        tagsQuery.Queries.Count.ShouldBe(1);
+    }
+
+    [Fact]
     public async Task when_tags_are_fetched_then_they_are_returned_with_their_categories()
     {
         SetUpDetailResponse(new Tag(9, "Max Verstappen", "max-verstappen", 51, "Other Figures", "sfw"));
@@ -176,8 +201,14 @@ public sealed class GivenATagsProcessor
     {
         public Dictionary<int, TagEntity> Existing { get; } = [];
 
-        public Task<Exceptional<Option<TagEntity>>> TryFindByWallhavenIdAsync(int wallhavenTagId, CancellationToken cancellationToken = default) =>
-            Task.FromResult<Exceptional<Option<TagEntity>>>(Existing.TryGetValue(wallhavenTagId, out var tag) ? (Option<TagEntity>)tag : Option<TagEntity>.None.Instance);
+        public List<IReadOnlyCollection<int>> Queries { get; } = [];
+
+        public Task<Exceptional<IReadOnlyList<TagEntity>>> FindByWallhavenIdsAsync(IReadOnlyCollection<int> wallhavenTagIds, CancellationToken cancellationToken = default)
+        {
+            Queries.Add(wallhavenTagIds);
+
+            return Task.FromResult<Exceptional<IReadOnlyList<TagEntity>>>(wallhavenTagIds.Where(Existing.ContainsKey).Select(id => Existing[id]).ToList());
+        }
     }
 
     private sealed class FakeFileTagRepository : IFileTagRepository
