@@ -1,4 +1,5 @@
 using AStarDev.FunctionalParadigm;
+using AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 namespace AStarDev.ScraperPlaying.UI;
 
@@ -13,7 +14,8 @@ public static class ConfigurationTransferMessages
 
     /// <summary>Gets the message for an export outcome.</summary>
     /// <param name="outcome">Some(true) when a configuration was written, some(false) when there was none to export, none when the user did not complete it.</param>
-    public static string ForExport(Option<bool> outcome) => outcome.Match(
-        exported => exported ? "Scrape configuration exported." : "No scrape configuration was found to export.",
+    /// <param name="apiKeys">Whether the file was asked to carry the API keys.</param>
+    public static string ForExport(Option<bool> outcome, ApiKeyExport apiKeys) => outcome.Match(
+        exported => exported ? $"Scrape configuration exported {(apiKeys == ApiKeyExport.Include ? "including its API keys" : "without its API keys")}." : "No scrape configuration was found to export.",
         () => "Scrape configuration export could not be completed.");
 }

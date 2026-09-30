@@ -101,6 +101,20 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
     }
 
     [Fact]
+    public async Task when_the_default_export_is_imported_over_a_configuration_with_api_keys_then_the_file_has_no_keys_and_the_stored_keys_survive()
+    {
+        var id = await source.CreateAsync();
+        await source.Updater.SaveAsync(id, [new RootSettings(new Uri("https://example.test/"), "login", "scrape-key-123", "term", "top", "prefix", "suffix", "subs", 1, 1, 2, 1, 2, 1, 2, false, Option.None<float>()), new UserSettings("user@example.test", "user", "user-key-456")], TestContext.Current.CancellationToken);
+
+        (await source.ExportAsync(exportPath, ApiKeyExport.Exclude)).ShouldBeTrue();
+        var text = await File.ReadAllTextAsync(exportPath, TestContext.Current.CancellationToken);
+        await source.ImportAsync(exportPath);
+
+        var afterImport = await source.ReadFirstAsync();
+        (text.Contains("scrape-key-123", StringComparison.Ordinal), text.Contains("user-key-456", StringComparison.Ordinal), afterImport.ApiKey, afterImport.UserConfiguration.ApiKey).ShouldBe((false, false, "scrape-key-123", "user-key-456"));
+    }
+
+    [Fact]
     public async Task when_the_max_results_limit_is_cleared_then_it_is_still_unlimited_after_export_and_import()
     {
         var id = await source.CreateAsync();
@@ -174,11 +188,11 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
-        public async Task<bool> ExportAsync(string path)
+        public async Task<bool> ExportAsync(string path, ApiKeyExport apiKeys = ApiKeyExport.Include)
         {
             var exporter = new ScrapeConfigurationExporter(serviceProvider.GetRequiredService<IServiceScopeFactory>());
 
-            return await new ScrapeConfigurationExportService(exporter, new ScrapeConfigurationFileWriter()).ExportAsync(path, TestContext.Current.CancellationToken);
+            return await new ScrapeConfigurationExportService(exporter, new ScrapeConfigurationFileWriter()).ExportAsync(path, apiKeys, TestContext.Current.CancellationToken);
         }
 
         public async Task ImportAsync(string path)

@@ -20,5 +20,5 @@ public interface IScrapeConfigurationFileService
     /// a scrape configuration existed to export, or <see cref="Option{T}.None"/> if the user cancelled the file
     /// picker.
     /// </returns>
-    Task<Option<bool>> ExportViaPickerAsync(Window owner, CancellationToken cancellationToken);
+    Task<Option<bool>> ExportViaPickerAsync(Window owner, ApiKeyExport apiKeys, CancellationToken cancellationToken);
 }

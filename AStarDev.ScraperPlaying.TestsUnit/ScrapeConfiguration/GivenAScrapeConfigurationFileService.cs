@@ -42,10 +42,23 @@ public sealed class GivenAScrapeConfigurationFileService
         filePicker.PickedForExport = Option.Some("path/to/export.json");
         exportService.ConfigurationExists = true;
 
-        var result = await service.ExportViaPickerAsync(null!, CancellationToken.None);
+        var result = await service.ExportViaPickerAsync(null!, ApiKeyExport.Exclude, CancellationToken.None);
 
         result.ShouldBe(Option.Some(true));
         exportService.ExportedPaths.ShouldBe(["path/to/export.json"]);
+    }
+
+    [Theory]
+    [InlineData(ApiKeyExport.Exclude)]
+    [InlineData(ApiKeyExport.Include)]
+    public async Task when_exporting_then_the_requested_api_key_mode_is_passed_to_the_export(ApiKeyExport apiKeys)
+    {
+        filePicker.PickedForExport = Option.Some("path/to/export.json");
+        exportService.ConfigurationExists = true;
+
+        _ = await service.ExportViaPickerAsync(null!, apiKeys, CancellationToken.None);
+
+        exportService.ExportedModes.ShouldBe([apiKeys]);
     }
 
     [Fact]
@@ -54,7 +67,7 @@ public sealed class GivenAScrapeConfigurationFileService
         filePicker.PickedForExport = Option.Some("path/to/export.json");
         exportService.ConfigurationExists = false;
 
-        var result = await service.ExportViaPickerAsync(null!, CancellationToken.None);
+        var result = await service.ExportViaPickerAsync(null!, ApiKeyExport.Exclude, CancellationToken.None);
 
         result.ShouldBe(Option.Some(false));
     }
@@ -64,7 +77,7 @@ public sealed class GivenAScrapeConfigurationFileService
     {
         filePicker.PickedForExport = Option.None<string>();
 
-        var result = await service.ExportViaPickerAsync(null!, CancellationToken.None);
+        var result = await service.ExportViaPickerAsync(null!, ApiKeyExport.Exclude, CancellationToken.None);
 
         result.ShouldBe(Option.None<bool>());
         exportService.ExportedPaths.ShouldBeEmpty();
@@ -88,9 +101,12 @@ public sealed class GivenAScrapeConfigurationFileService
 
         public List<string> ExportedPaths { get; } = [];
 
-        public Task<bool> ExportAsync(string filePath, CancellationToken cancellationToken = default)
+        public List<ApiKeyExport> ExportedModes { get; } = [];
+
+        public Task<bool> ExportAsync(string filePath, ApiKeyExport apiKeys, CancellationToken cancellationToken = default)
         {
             ExportedPaths.Add(filePath);
+            ExportedModes.Add(apiKeys);
 
             return Task.FromResult(ConfigurationExists);
         }

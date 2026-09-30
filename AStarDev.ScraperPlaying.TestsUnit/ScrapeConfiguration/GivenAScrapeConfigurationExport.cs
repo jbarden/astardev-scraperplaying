@@ -19,7 +19,7 @@ public sealed class GivenAScrapeConfigurationExport
         var writer = new FakeWriter();
         var service = new ScrapeConfigurationExportService(exporter, writer);
 
-        var exported = await service.ExportAsync("configuration.json", TestContext.Current.CancellationToken);
+        var exported = await service.ExportAsync("configuration.json", ApiKeyExport.Exclude, TestContext.Current.CancellationToken);
 
         exported.ShouldBeTrue();
         writer.Written.ShouldBe([(document, "configuration.json")]);
@@ -32,7 +32,7 @@ public sealed class GivenAScrapeConfigurationExport
         var writer = new FakeWriter();
         var service = new ScrapeConfigurationExportService(exporter, writer);
 
-        var exported = await service.ExportAsync("configuration.json", TestContext.Current.CancellationToken);
+        var exported = await service.ExportAsync("configuration.json", ApiKeyExport.Exclude, TestContext.Current.CancellationToken);
 
         exported.ShouldBeFalse();
         writer.Written.ShouldBeEmpty();
@@ -47,7 +47,7 @@ public sealed class GivenAScrapeConfigurationExport
         var service = new ScrapeConfigurationExportService(exporter, writer);
 
         var thrown = await Should.ThrowAsync<InvalidOperationException>(
-            () => service.ExportAsync("configuration.json", TestContext.Current.CancellationToken));
+            () => service.ExportAsync("configuration.json", ApiKeyExport.Exclude, TestContext.Current.CancellationToken));
 
         thrown.ShouldBeSameAs(exception);
         writer.Written.ShouldBeEmpty();
@@ -62,7 +62,7 @@ public sealed class GivenAScrapeConfigurationExport
         await cancellationTokenSource.CancelAsync();
 
         await Should.ThrowAsync<OperationCanceledException>(
-            () => service.ExportAsync("configuration.json", cancellationTokenSource.Token));
+            () => service.ExportAsync("configuration.json", ApiKeyExport.Exclude, cancellationTokenSource.Token));
 
         exporter.LookupCount.ShouldBe(0);
     }
@@ -94,6 +94,66 @@ public sealed class GivenAScrapeConfigurationExport
         }
     }
 
+    [Theory]
+    [InlineData(ApiKeyExport.Exclude)]
+    [InlineData(ApiKeyExport.Include)]
+    public async Task when_exporting_then_the_api_key_mode_is_passed_to_the_exporter(ApiKeyExport apiKeys)
+    {
+        var exporter = new FakeExporter { Result = (Option<ScrapeConfigurationImportDocument>)new ScrapeConfigurationImportDocument() };
+
+        _ = await new ScrapeConfigurationExportService(exporter, new FakeWriter()).ExportAsync("configuration.json", apiKeys, TestContext.Current.CancellationToken);
+
+        exporter.Modes.ShouldBe([apiKeys]);
+    }
+
+    [Fact]
+    public void when_api_keys_are_excluded_then_both_api_keys_in_the_document_are_empty_and_nothing_else_is_lost()
+    {
+        var document = EntityWithApiKeys().ToImportDocument(ApiKeyExport.Exclude);
+
+        (document.ApiKey, document.UserConfiguration.ApiKey, document.UserConfiguration.Username, document.SearchString).ShouldBe((string.Empty, string.Empty, "user", "search"));
+    }
+
+    [Fact]
+    public void when_api_keys_are_included_then_both_api_keys_are_in_the_document()
+    {
+        var document = EntityWithApiKeys().ToImportDocument(ApiKeyExport.Include);
+
+        (document.ApiKey, document.UserConfiguration.ApiKey).ShouldBe(("scrape-key", "user-key"));
+    }
+
+    [Fact]
+    public async Task when_api_keys_are_excluded_then_the_written_file_contains_neither_key()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            await new ScrapeConfigurationFileWriter().WriteAsync(EntityWithApiKeys().ToImportDocument(ApiKeyExport.Exclude), path, TestContext.Current.CancellationToken);
+            var text = await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken);
+
+            (text.Contains("scrape-key", StringComparison.Ordinal), text.Contains("user-key", StringComparison.Ordinal)).ShouldBe((false, false));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    private static ScrapeConfigurationEntity EntityWithApiKeys()
+    {
+        var scrapeConfigurationId = new ScrapeConfigurationId(Guid.CreateVersion7());
+        var searchConfigurationId = new SearchConfigurationId(Guid.CreateVersion7());
+
+        return new ScrapeConfigurationEntity(scrapeConfigurationId)
+        {
+            ApiKey = "scrape-key",
+            SearchString = "search",
+            UserConfiguration = new UserConfigurationEntity(new UserConfigurationId(Guid.CreateVersion7()), scrapeConfigurationId, "user@example.test", "user", "user-key"),
+            SearchConfiguration = new SearchConfigurationEntity(searchConfigurationId, scrapeConfigurationId, "cats", 10, []),
+            ScrapeDirectories = new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.CreateVersion7()), scrapeConfigurationId, "/tmp", "Pictures/Famous", "Wallhaven")
+        };
+    }
+
     [Fact]
     public void when_an_entity_is_mapped_then_the_full_document_graph_is_created()
     {
@@ -109,7 +169,7 @@ public sealed class GivenAScrapeConfigurationExport
         };
         entity.SearchConfiguration.PersonCategories.Add(new PersonCategoryEntity { SearchConfigurationId = searchConfigurationId, Name = "Drivers" });
 
-        var document = entity.ToImportDocument();
+        var document = entity.ToImportDocument(ApiKeyExport.Include);
 
         document.UserConfiguration.Username.ShouldBe("user");
         document.SearchConfiguration.SearchTerm.ShouldBe("cats");
@@ -124,9 +184,12 @@ public sealed class GivenAScrapeConfigurationExport
 
         public int LookupCount { get; private set; }
 
-        public Task<Exceptional<Option<ScrapeConfigurationImportDocument>>> ExportScrapeConfigurationAsync()
+        public List<ApiKeyExport> Modes { get; } = [];
+
+        public Task<Exceptional<Option<ScrapeConfigurationImportDocument>>> ExportScrapeConfigurationAsync(ApiKeyExport apiKeys)
         {
             LookupCount++;
+            Modes.Add(apiKeys);
 
             return Task.FromResult(Result);
         }

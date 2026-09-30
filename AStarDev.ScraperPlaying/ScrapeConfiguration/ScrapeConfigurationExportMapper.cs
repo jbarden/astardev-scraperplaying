@@ -4,7 +4,7 @@ namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 public static class ScrapeConfigurationExportMapper
 {
-    public static ScrapeConfigurationImportDocument ToImportDocument(this ScrapeConfigurationEntity entity)
+    public static ScrapeConfigurationImportDocument ToImportDocument(this ScrapeConfigurationEntity entity, ApiKeyExport apiKeys)
     {
         var search = entity.SearchConfiguration;
 
@@ -16,7 +16,7 @@ public static class ScrapeConfigurationExportMapper
                 Id = entity.UserConfiguration.Id.Value,
                 EmailAddress = entity.UserConfiguration.EmailAddress,
                 Username = entity.UserConfiguration.Username,
-                ApiKey = entity.UserConfiguration.ApiKey
+                ApiKey = apiKeys == ApiKeyExport.Include ? entity.UserConfiguration.ApiKey : string.Empty
             },
             SearchConfiguration = new SearchConfigurationImportDocument
             {
@@ -44,7 +44,7 @@ public static class ScrapeConfigurationExportMapper
                 SubDirectoryName = entity.ScrapeDirectories.SubDirectoryName
             },
             BaseUrl = entity.BaseUrl,
-            ApiKey = entity.ApiKey,
+            ApiKey = apiKeys == ApiKeyExport.Include ? entity.ApiKey : string.Empty,
             SearchString = entity.SearchString,
             TopWallpapers = entity.TopWallpapers,
             SearchStringPrefix = entity.SearchStringPrefix,

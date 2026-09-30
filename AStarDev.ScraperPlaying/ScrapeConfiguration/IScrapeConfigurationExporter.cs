@@ -6,5 +6,5 @@ namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 public interface IScrapeConfigurationExporter
 {
     /// <summary>Reads the persisted scrape configuration aggregate, if one exists.</summary>
-    Task<Exceptional<Option<ScrapeConfigurationImportDocument>>> ExportScrapeConfigurationAsync();
+    Task<Exceptional<Option<ScrapeConfigurationImportDocument>>> ExportScrapeConfigurationAsync(ApiKeyExport apiKeys);
 }

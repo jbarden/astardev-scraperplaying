@@ -24,7 +24,7 @@ public sealed class ScrapeConfigurationFileService(IScrapeConfigurationImportSer
     }
 
     /// <inheritdoc/>
-    public async Task<Option<bool>> ExportViaPickerAsync(Window owner, CancellationToken cancellationToken)
+    public async Task<Option<bool>> ExportViaPickerAsync(Window owner, ApiKeyExport apiKeys, CancellationToken cancellationToken)
     {
         var path = await configurationFilePicker.PickSaveAsync(owner);
 
@@ -32,7 +32,7 @@ public sealed class ScrapeConfigurationFileService(IScrapeConfigurationImportSer
             async selectedPath =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var exported = await exportService.ExportAsync(selectedPath, cancellationToken);
+                var exported = await exportService.ExportAsync(selectedPath, apiKeys, cancellationToken);
 
                 return Option.Some(exported);
             },

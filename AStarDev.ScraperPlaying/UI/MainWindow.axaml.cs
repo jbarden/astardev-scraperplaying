@@ -44,9 +44,9 @@ public partial class MainWindow : Window
             await RefreshConfigurationPickerAsync();
         });
 
-    public async void ExportConfiguration(object? sender, RoutedEventArgs eventArgs) =>
-        await operations.RunAsync("Scrape configuration export cancelled.", "Unable to export scrape configuration.", async cancellationToken =>
-            status.Append(ConfigurationTransferMessages.ForExport(await scrapeConfigurationFileService.ExportViaPickerAsync(this, cancellationToken))));
+    public void ExportConfiguration(object? sender, RoutedEventArgs eventArgs) => Export(ApiKeyExport.Exclude);
+
+    public void ExportConfigurationWithApiKeys(object? sender, RoutedEventArgs eventArgs) => Export(ApiKeyExport.Include);
 
     public void ConfigurationSelected(object? sender, SelectionChangedEventArgs eventArgs) => UpdateControls();
 
@@ -81,6 +81,10 @@ public partial class MainWindow : Window
         base.OnKeyDown(e);
     }
 
+    private async void Export(ApiKeyExport apiKeys) =>
+        await operations.RunAsync("Scrape configuration export cancelled.", "Unable to export scrape configuration.", async cancellationToken =>
+            status.Append(ConfigurationTransferMessages.ForExport(await scrapeConfigurationFileService.ExportViaPickerAsync(this, apiKeys, cancellationToken), apiKeys)));
+
     private async Task InitialiseAsync()
     {
         if (await readiness.InitialiseAsync()) await RefreshConfigurationPickerAsync();
@@ -99,6 +103,7 @@ public partial class MainWindow : Window
     {
         ImportConfigurationMenuItem.IsEnabled = readiness.CanOperate;
         ExportConfigurationMenuItem.IsEnabled = readiness.CanOperate;
+        ExportConfigurationWithApiKeysMenuItem.IsEnabled = readiness.CanOperate;
         ConfigurationPicker.IsEnabled = readiness.CanOperate;
         EditConfigurationButton.IsEnabled = readiness.CanOperate && ConfigurationPicker.SelectedItem is ScrapeConfigurationSummary;
         RunScraperButton.IsEnabled = readiness.CanRunScraper;

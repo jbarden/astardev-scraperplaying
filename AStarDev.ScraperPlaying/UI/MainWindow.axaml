@@ -12,6 +12,7 @@
       <MenuItem Header="_File">
         <MenuItem x:Name="ImportConfigurationMenuItem" Header="_Import Configuration" Click="ImportConfiguration" />
         <MenuItem x:Name="ExportConfigurationMenuItem" Header="_Export Configuration" Click="ExportConfiguration" />
+        <MenuItem x:Name="ExportConfigurationWithApiKeysMenuItem" Header="Export Configuration with API _Keys" Click="ExportConfigurationWithApiKeys" />
         <Separator />
         <MenuItem Header="E_xit" Click="Exit" />
       </MenuItem>
