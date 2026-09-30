@@ -15,7 +15,7 @@ public sealed class ConfigurationFilePicker : IConfigurationFilePicker
             FileTypeFilter = [new FilePickerFileType("JSON configuration") { Patterns = ["*.json"] }]
         });
 
-        return files.Count == 0 ? null! : files[0].Path.LocalPath;
+        return files.Count == 0 ? Option.None<string>() : Option.Some(files[0].Path.LocalPath);
     }
 
     public async Task<Option<string>> PickSaveAsync(Window owner)
@@ -28,6 +28,6 @@ public sealed class ConfigurationFilePicker : IConfigurationFilePicker
             FileTypeChoices = [new FilePickerFileType("JSON configuration") { Patterns = ["*.json"] }]
         });
 
-        return file is null ? null! : file.Path.LocalPath;
+        return file is null ? Option.None<string>() : Option.Some(file.Path.LocalPath);
     }
 }

@@ -30,9 +30,6 @@ public static class Seeder
     {
         if (context.Set<ScrapeConfigurationEntity>().Any())
         {
-#pragma warning disable CA1303 // Do not pass literals as localized parameters
-            Console.WriteLine("Seeding ControlDbContext skipped as it already contains data.");
-#pragma warning restore CA1303 // Do not pass literals as localized parameters
             return;
         }
 
@@ -50,9 +47,9 @@ public static class Seeder
 
         _ = context.Set<ScrapeConfigurationEntity>().Add(new ScrapeConfigurationEntity(Guid.Empty)
         {
-            UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, "jason.j.barden2@outlook.com", "jbarden", Environment.GetEnvironmentVariable("ScrapePassword") ?? "Password1!", "n/a"),
+            UserConfiguration = new UserConfigurationEntity(Guid.Empty, Guid.Empty, "user@example.com", "user", string.Empty, "n/a"),
             SearchConfiguration = searchConfiguration,
-            ScrapeDirectories = new ScrapeDirectoriesEntity(Guid.Empty, Guid.Empty, "/run/media/jbarden/Tbdrive/sync/jason.barden1@outlook.com/", "Pictures/WallHaven/Famous", "subdirectory"),
+            ScrapeDirectories = new ScrapeDirectoriesEntity(Guid.Empty, Guid.Empty, DefaultRootDirectory(), Path.Combine(DefaultRootDirectory(), "Famous"), "subdirectory"),
             BaseUrl = new Uri("https://wallhaven.cc/"),
             ApiKey = "your-api-key",
             SearchString = "search string",
@@ -63,5 +60,14 @@ public static class Seeder
             Subscriptions = "subscription?page=",
             UseHeadless = false
         });
+    }
+
+    /// <summary>A neutral default the user is expected to change: a WallHaven folder under their pictures folder (their profile's Pictures folder where the platform reports none).</summary>
+    private static string DefaultRootDirectory()
+    {
+        var pictures = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+        if (string.IsNullOrWhiteSpace(pictures)) pictures = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Pictures");
+
+        return Path.Combine(pictures, "WallHaven");
     }
 }

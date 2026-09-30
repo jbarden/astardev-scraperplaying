@@ -49,7 +49,6 @@ public static class ApplicationServices
             .AddScoped<ISaveDirectoryResolver, SaveDirectoryResolver>()
             .AddScoped<ITagsProcessor, TagsProcessor>()
             .AddScoped<IWallpaperIngestionService, WallpaperIngestionService>()
-            .AddSingleton<Func<DateTimeOffset>>(_ => () => DateTimeOffset.UtcNow)
             .AddSingleton<RateLimiter>(_ => new SlidingWindowRateLimiter(new SlidingWindowRateLimiterOptions
             {
                 PermitLimit = ApplicationConstants.WallhavenRequestsPerWindow,

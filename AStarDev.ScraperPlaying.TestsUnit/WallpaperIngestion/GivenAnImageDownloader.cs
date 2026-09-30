@@ -81,6 +81,50 @@ public sealed class GivenAnImageDownloader
         fileSystem.File.Exists(fileSystem.Path.Combine(directory, "wallpaper-4.jpg")).ShouldBeFalse();
     }
 
+    [Fact]
+    public async Task when_reading_the_image_fails_part_way_then_no_partial_file_is_left_behind()
+    {
+        using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(new FailingStream()) });
+        var directory = fileSystem.Path.Combine("root-directory", "top-wallpapers");
+        var wallpaper = CreateWallpaper(id: "wallpaper-9", path: "https://example.test/image.jpg");
+
+        await Should.ThrowAsync<IOException>(
+            () => downloader.DownloadAsync(new WallpaperFileRequest(wallpaper, directory, NameFor(wallpaper, ".jpg"), "Top Wallpapers"), new CapturingProgress(), client, CancellationToken.None));
+
+        fileSystem.Directory.GetFiles(directory).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task when_reading_the_image_fails_part_way_then_an_existing_file_of_the_same_name_is_left_untouched()
+    {
+        var directory = fileSystem.Path.Combine("root-directory", "top-wallpapers");
+        var existingPath = fileSystem.Path.Combine(directory, "wallpaper-10.jpg");
+        fileSystem.Directory.CreateDirectory(directory);
+        await fileSystem.File.WriteAllBytesAsync(existingPath, [7, 7, 7], TestContext.Current.CancellationToken);
+        using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(new FailingStream()) });
+        var wallpaper = CreateWallpaper(id: "wallpaper-10", path: "https://example.test/image.jpg");
+
+        await Should.ThrowAsync<IOException>(
+            () => downloader.DownloadAsync(new WallpaperFileRequest(wallpaper, directory, NameFor(wallpaper, ".jpg"), "Top Wallpapers"), new CapturingProgress(), client, CancellationToken.None));
+
+        (await fileSystem.File.ReadAllBytesAsync(existingPath, TestContext.Current.CancellationToken)).ShouldBe([7, 7, 7]);
+    }
+
+    [Fact]
+    public async Task when_the_download_succeeds_then_only_the_final_file_is_left_and_it_replaces_an_existing_one()
+    {
+        var directory = fileSystem.Path.Combine("root-directory", "top-wallpapers");
+        var finalPath = fileSystem.Path.Combine(directory, "wallpaper-11.jpg");
+        fileSystem.Directory.CreateDirectory(directory);
+        await fileSystem.File.WriteAllBytesAsync(finalPath, [7, 7, 7], TestContext.Current.CancellationToken);
+        using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1, 2]) });
+        var wallpaper = CreateWallpaper(id: "wallpaper-11", path: "https://example.test/image.jpg");
+
+        _ = await downloader.DownloadAsync(new WallpaperFileRequest(wallpaper, directory, NameFor(wallpaper, ".jpg"), "Top Wallpapers"), new CapturingProgress(), client, CancellationToken.None);
+
+        (fileSystem.Directory.GetFiles(directory).Length, Convert.ToHexString(await fileSystem.File.ReadAllBytesAsync(finalPath, TestContext.Current.CancellationToken))).ShouldBe((1, "0102"));
+    }
+
     private static FileName NameFor(Data wallpaper, string extension) => new($"{wallpaper.Id}{extension}");
 
     private static Data CreateWallpaper(string id, string path = "")
@@ -89,6 +133,39 @@ public sealed class GivenAnImageDownloader
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient owns and disposes the handler.")]
     private static HttpClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> responder)
         => new(new StubHttpMessageHandler(responder));
+
+    private sealed class FailingStream : Stream
+    {
+        public override bool CanRead => true;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush()
+        {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) => throw new IOException("connection reset");
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => throw new IOException("connection reset");
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) => throw new IOException("connection reset");
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
 
     private sealed class CapturingProgress : IProgress<string>
     {
