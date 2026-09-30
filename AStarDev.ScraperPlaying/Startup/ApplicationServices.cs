@@ -51,6 +51,7 @@ public static class ApplicationServices
             }))
             .AddSingleton(TimeProvider.System)
             .AddTransient<WallhavenRateLimitingHandler>()
+            .AddSingleton<DatabaseInitialization>()
             .AddSingleton<MainWindow>()
             .AddHttpClient(ApplicationConstants.WallhavenHttpClientName, client =>
             {

@@ -3,7 +3,6 @@ using AStarDev.ScraperPlaying.Startup;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ApplicationMessages = AStarDev.LoggingExtensions.ApplicationMessages;
@@ -53,16 +52,14 @@ public partial class App : Application, IDisposable
         applicationDirectories.CreateIfRequired();
         var logger = serviceProvider.GetRequiredService<ILogger<App>>();
         ApplicationMessages.StartupSuccessful(logger, ApplicationMetadata.ApplicationName);
-        MigrateDatabase(serviceProvider);
+        StartDatabaseInitialization(serviceProvider);
 
         return serviceProvider;
     }
 
-    private static void MigrateDatabase(ServiceProvider serviceProvider) =>
-        DatabaseMigrator.MigrateAsync(
-            serviceProvider.GetRequiredService<IDbContextFactory<ControlDb.ControlDbContext>>(),
-            serviceProvider.GetRequiredService<ILogger<App>>()).GetAwaiter().GetResult();
-
+    // The migration runs in the background so the window appears immediately; MainWindow awaits the same task before touching the database and reports any failure.
+    private static void StartDatabaseInitialization(ServiceProvider serviceProvider) =>
+        _ = serviceProvider.GetRequiredService<DatabaseInitialization>().ReadyAsync();
 
     /// <summary>Releases the resources held by the application's dependency injection container.</summary>
     /// <param name="disposing">Whether managed resources should be released.</param>
