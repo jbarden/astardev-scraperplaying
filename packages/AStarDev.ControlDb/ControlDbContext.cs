@@ -104,6 +104,17 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
             return Unit.Instance;
         });
 
+    /// <inheritdoc/>
+    public async Task<T> InTransactionAsync<T>(Func<Task<T>> operation, CancellationToken cancellationToken = default)
+    {
+        var transaction = await Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        await using var disposal = transaction.ConfigureAwait(false);
+        var result = await operation().ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+
+        return result;
+    }
+
     /// <summary>Gets the repository for managing scrape configuration entities in the database.</summary>
     public DbSet<ScrapeConfigurationEntity> ScrapeConfigurations => Set<ScrapeConfigurationEntity>();
 

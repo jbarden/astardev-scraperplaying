@@ -19,20 +19,26 @@ public sealed class ScrapeConfigurationImporter(IServiceScopeFactory scopeFactor
 
         return await Try.RunAsync(async () =>
         {
+            // Map first: an unmappable document must not cost the user their current configuration.
+            var replacement = document.ToEntity();
             var current = (await dbContext.TryGetFirstAsync()).Match(option => option, exception => throw exception);
 
-            await current.MatchAsync(
-                async e =>
-                {
-                    _ = dbContext.Delete(e).Match(unit => unit, exception => throw exception);
-                    _ = await unitOfWork.SaveChangesAsync();
-                },
-                () => { });
+            // Delete and add commit together, so a failure while saving the replacement leaves the current configuration in place.
+            return await unitOfWork.InTransactionAsync(async () =>
+            {
+                await current.MatchAsync(
+                    async e =>
+                    {
+                        _ = dbContext.Delete(e).Match(unit => unit, exception => throw exception);
+                        _ = await unitOfWork.SaveChangesAsync();
+                    },
+                    () => { });
 
-            _ = dbContext.Add(document.ToEntity()).Match(entity => entity, exception => throw exception);
-            _ = await unitOfWork.SaveChangesAsync();
+                _ = dbContext.Add(replacement).Match(entity => entity, exception => throw exception);
+                _ = await unitOfWork.SaveChangesAsync();
 
-            return Unit.Instance;
+                return Unit.Instance;
+            });
         });
     }
 }
