@@ -232,6 +232,9 @@ public sealed class GivenATagsProcessor
 
         public int IgnoredQueryCount { get; private set; }
 
+        public Task<Exceptional<IReadOnlyList<TagEntity>>> ListAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<Exceptional<IReadOnlyList<TagEntity>>>(Existing.Values.ToList());
+
         public Task<Exceptional<IReadOnlyCollection<int>>> GetIgnoredWallhavenIdsAsync(CancellationToken cancellationToken = default)
         {
             IgnoredQueryCount++;

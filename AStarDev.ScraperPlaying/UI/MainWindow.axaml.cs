@@ -18,15 +18,17 @@ public partial class MainWindow : Window
     private readonly ApplicationReadiness readiness;
     private readonly UserOperationRunner operations;
     private readonly ConfigurationBrowser configurationBrowser;
+    private readonly TagsBrowser tagsBrowser;
     private readonly ScrapeRunner scrapeRunner;
 
-    public MainWindow(StatusReporter status, ApplicationReadiness readiness, UserOperationRunner operations, ConfigurationBrowser configurationBrowser, ScrapeRunner scrapeRunner, IScrapeConfigurationFileService scrapeConfigurationFileService, ImageDisplayCoordinator imageDisplayCoordinator)
+    public MainWindow(StatusReporter status, ApplicationReadiness readiness, UserOperationRunner operations, ConfigurationBrowser configurationBrowser, TagsBrowser tagsBrowser, ScrapeRunner scrapeRunner, IScrapeConfigurationFileService scrapeConfigurationFileService, ImageDisplayCoordinator imageDisplayCoordinator)
     {
         InitializeComponent();
         this.status = status;
         this.readiness = readiness;
         this.operations = operations;
         this.configurationBrowser = configurationBrowser;
+        this.tagsBrowser = tagsBrowser;
         this.scrapeRunner = scrapeRunner;
         this.scrapeConfigurationFileService = scrapeConfigurationFileService;
         status.RefreshRequired += (_, _) => Dispatcher.UIThread.Post(RefreshStatusText);
@@ -48,6 +50,12 @@ public partial class MainWindow : Window
         await operations.ReportFailuresAsync("Unable to edit scrape configuration.", async () =>
         {
             if (await configurationBrowser.CreateEditorAsync() is Option<ConfigurationEditorWindow>.Some editor) _ = await editor.Value.ShowDialog<bool>(this);
+        });
+
+    public async void EditTags(object? sender, RoutedEventArgs eventArgs) =>
+        await operations.ReportFailuresAsync("Unable to edit tags.", async () =>
+        {
+            if (await tagsBrowser.CreateEditorAsync() is Option<TagsEditorWindow>.Some editor) _ = await editor.Value.ShowDialog<bool>(this);
         });
 
     public async void RunScraper(object? sender, RoutedEventArgs eventArgs) => await scrapeRunner.RunAsync();
@@ -80,6 +88,7 @@ public partial class MainWindow : Window
         ExportConfigurationMenuItem.IsEnabled = readiness.CanOperate;
         ExportConfigurationWithApiKeysMenuItem.IsEnabled = readiness.CanOperate;
         EditConfigurationMenuItem.IsEnabled = readiness.CanOperate;
+        EditTagsMenuItem.IsEnabled = readiness.CanOperate;
         RunScraperButton.IsEnabled = readiness.CanRunScraper;
         CancelButton.IsEnabled = readiness.IsOperationRunning;
     }

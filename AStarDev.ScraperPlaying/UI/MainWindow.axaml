@@ -11,6 +11,7 @@
     <Menu Grid.Row="0" Margin="5,5,0,0">
       <MenuItem Header="_Edit">
         <MenuItem x:Name="EditConfigurationMenuItem" Header="_Configuration" Click="EditConfiguration" />
+        <MenuItem x:Name="EditTagsMenuItem" Header="_Tags" Click="EditTags" />
       </MenuItem>
       <MenuItem Header="_File">
         <MenuItem x:Name="ImportConfigurationMenuItem" Header="_Import Configuration" Click="ImportConfiguration" />

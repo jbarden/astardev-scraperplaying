@@ -58,6 +58,18 @@ public sealed class GivenATagsQuery : IDisposable
     }
 
     [Fact]
+    public async Task when_tags_are_stored_then_list_returns_every_tag_ordered_by_name()
+    {
+        await context.Tags.AddRangeAsync([TagEntityFactory.CreateTagEntity(wallhavenTagId: 1, name: "beta"), TagEntityFactory.CreateTagEntity(wallhavenTagId: 2, name: "alpha")], TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var query = new TagsQuery(context);
+
+        var result = await query.ListAsync(TestContext.Current.CancellationToken);
+
+        result.Match(tags => tags.Select(tag => tag.Name).ToList(), exception => throw exception).ShouldBe(["alpha", "beta"]);
+    }
+
+    [Fact]
     public async Task when_a_tag_is_stored_then_it_does_not_ignore_images_by_default()
     {
         await context.Tags.AddAsync(TagEntityFactory.CreateTagEntity(wallhavenTagId: 12, name: "default"), TestContext.Current.CancellationToken);

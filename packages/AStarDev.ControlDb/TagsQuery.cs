@@ -11,6 +11,10 @@ public interface ITagsQuery
     /// <param name="cancellationToken">A cancellation token for the asynchronous operation.</param>
     Task<Exceptional<IReadOnlyList<TagEntity>>> FindByWallhavenIdsAsync(IReadOnlyCollection<int> wallhavenTagIds, CancellationToken cancellationToken = default);
 
+    /// <summary>Lists every stored tag, ordered by name.</summary>
+    /// <param name="cancellationToken">A cancellation token for the asynchronous operation.</param>
+    Task<Exceptional<IReadOnlyList<TagEntity>>> ListAsync(CancellationToken cancellationToken = default);
+
     /// <summary>Gets the Wallhaven ids of every tag flagged <see cref="TagEntity.IgnoreImage"/>.</summary>
     /// <param name="cancellationToken">A cancellation token for the asynchronous operation.</param>
     Task<Exceptional<IReadOnlyCollection<int>>> GetIgnoredWallhavenIdsAsync(CancellationToken cancellationToken = default);
@@ -21,6 +25,12 @@ public class TagsQuery(ControlDbContext context) : ITagsQuery
     public Task<Exceptional<IReadOnlyList<TagEntity>>> FindByWallhavenIdsAsync(IReadOnlyCollection<int> wallhavenTagIds, CancellationToken cancellationToken = default)
             => Try.RunAsync<IReadOnlyList<TagEntity>>(async () => await context.Tags
                             .Where(tag => wallhavenTagIds.Contains(tag.WallhavenTagId))
+                            .ToListAsync(cancellationToken)
+                            .ConfigureAwait(false));
+
+    public Task<Exceptional<IReadOnlyList<TagEntity>>> ListAsync(CancellationToken cancellationToken = default)
+            => Try.RunAsync<IReadOnlyList<TagEntity>>(async () => await context.Tags
+                            .OrderBy(tag => tag.Name)
                             .ToListAsync(cancellationToken)
                             .ConfigureAwait(false));
 
