@@ -12,7 +12,20 @@ internal sealed class FakeScrapeConfigurationLookup : IScrapeConfigurationLookup
     /// <summary>The result of <see cref="TryGetRootDirectoryAsync"/>.</summary>
     public Exceptional<Option<string>> RootDirectory { get; set; } = Exceptional.Success(Option.None<string>());
 
+    /// <summary>The result of <see cref="TryGetRootDirectoriesAsync"/>.</summary>
+    public Exceptional<Option<RootDirectories>> RootDirectoriesResult { get; set; } = Exceptional.Success(Option.None<RootDirectories>());
+
+    /// <summary>How many times <see cref="TryGetRootDirectoriesAsync"/> has been called.</summary>
+    public int RootDirectoriesLookupCount { get; private set; }
+
     public Task<Exceptional<IReadOnlyList<ScrapeConfigurationHeader>>> ListHeadersAsync(CancellationToken cancellationToken = default) => Task.FromResult(Headers);
 
     public Task<Exceptional<Option<string>>> TryGetRootDirectoryAsync(CancellationToken cancellationToken = default) => Task.FromResult(RootDirectory);
+
+    public Task<Exceptional<Option<RootDirectories>>> TryGetRootDirectoriesAsync(CancellationToken cancellationToken = default)
+    {
+        RootDirectoriesLookupCount++;
+
+        return Task.FromResult(RootDirectoriesResult);
+    }
 }

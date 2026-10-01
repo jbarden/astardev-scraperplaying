@@ -12,17 +12,15 @@ public sealed class GivenADownloadsClearer : IDisposable
 {
     private readonly MockFileSystem fileSystem = new();
     private readonly FakeFileDetailsClearer fileDetailsClearer = new();
-    private readonly FakeRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> configurations;
+    private readonly FakeScrapeConfigurationLookup lookup = new();
     private readonly ServiceProvider serviceProvider;
     private readonly DownloadsClearer clearer;
 
     public GivenADownloadsClearer()
     {
-        var unitOfWork = new FakeUnitOfWork();
-        configurations = unitOfWork.Register<ScrapeConfigurationEntity, ScrapeConfigurationId>();
-        configurations.First = Option.Some(ScrapeConfigurationTestData.CreateConfiguration(rootDirectory: "/scrapes/root", famousRootDirectory: "/scrapes/famous"));
+        lookup.RootDirectoriesResult = Exceptional.Success(Option.Some(new RootDirectories("/scrapes/root", "/scrapes/famous")));
         serviceProvider = new ServiceCollection()
-            .AddScoped<IUnitOfWork>(_ => unitOfWork)
+            .AddScoped<IScrapeConfigurationLookup>(_ => lookup)
             .AddScoped<IFileDetailsClearer>(_ => fileDetailsClearer)
             .BuildServiceProvider();
         clearer = new DownloadsClearer(serviceProvider.GetRequiredService<IServiceScopeFactory>(), fileSystem);
@@ -59,7 +57,7 @@ public sealed class GivenADownloadsClearer : IDisposable
     [Fact]
     public async Task when_the_famous_directory_is_inside_the_root_then_both_directories_exist_afterwards()
     {
-        configurations.First = Option.Some(ScrapeConfigurationTestData.CreateConfiguration(rootDirectory: "/scrapes/root", famousRootDirectory: "/scrapes/root/famous"));
+        lookup.RootDirectoriesResult = Exceptional.Success(Option.Some(new RootDirectories("/scrapes/root", "/scrapes/root/famous")));
         await AddFileAsync("/scrapes/root/famous/one.jpg", "one");
 
         _ = await clearer.ClearAsync(TestContext.Current.CancellationToken);
@@ -82,7 +80,7 @@ public sealed class GivenADownloadsClearer : IDisposable
     [Fact]
     public async Task when_there_is_no_scrape_configuration_then_a_failure_is_returned_and_nothing_is_cleared()
     {
-        configurations.First = Option<ScrapeConfigurationEntity>.None.Instance;
+        lookup.RootDirectoriesResult = Exceptional.Success(Option.None<RootDirectories>());
         fileDetailsClearer.Count = 3;
 
         var result = await clearer.ClearAsync(TestContext.Current.CancellationToken);
