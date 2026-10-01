@@ -34,12 +34,12 @@ public sealed class PagesProcessor(IWallhavenClientFactory clientFactory, IWallh
 
     private async Task<Option<SearchCategoryProgress>> ScrapeAsync(PageScrapeRequest request, IProgress<string> progress, CancellationToken cancellationToken)
     {
-        var client = clientFactory.Create(request.Connection);
+        var client = clientFactory.Create(request.Target.Connection);
         var ingestionContext = await CreateIngestionContextAsync(request, client, cancellationToken);
         var startPage = await ResolveStartPageAsync(request, client, progress, cancellationToken);
         if (IsUnchangedSincePreviousScrape(request.PreviousProgress, startPage.Response.Meta))
         {
-            progress.Report($"Skipping {request.LogLabel} - nothing has changed since the last scrape.");
+            progress.Report($"Skipping {request.Label.LogLabel} - nothing has changed since the last scrape.");
 
             return Option.None<SearchCategoryProgress>();
         }
@@ -49,10 +49,10 @@ public sealed class PagesProcessor(IWallhavenClientFactory clientFactory, IWallh
 
     private async Task<WallpaperIngestionContext> CreateIngestionContextAsync(PageScrapeRequest request, HttpClient client, CancellationToken cancellationToken)
     {
-        var directories = await saveDirectoryResolver.ResolveSaveDirectoriesAsync(request.CategoryName, cancellationToken);
-        var categoryLabel = request.CategoryName.Match(name => name, () => "Top Wallpapers");
+        var directories = await saveDirectoryResolver.ResolveSaveDirectoriesAsync(request.Label.CategoryName, cancellationToken);
+        var categoryLabel = request.Label.CategoryName.Match(name => name, () => "Top Wallpapers");
 
-        return new WallpaperIngestionContext(directories, client, unitOfWork.GetRepository<FileEntity, FileId>(), categoryLabel, request.PersonCategories);
+        return new WallpaperIngestionContext(directories, client, unitOfWork.GetRepository<FileEntity, FileId>(), categoryLabel, request.Target.PersonCategories);
     }
 
     private async Task<FetchedPage> ResolveStartPageAsync(PageScrapeRequest request, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
@@ -79,12 +79,12 @@ public sealed class PagesProcessor(IWallhavenClientFactory clientFactory, IWallh
     private async Task IngestPageAsync(PageScrapeRequest request, WallpaperIngestionContext ingestionContext, FetchedPage page, IProgress<string> progress, CancellationToken cancellationToken)
     {
         await wallpaperIngestionService.IngestPageAsync(page.Response.Data, ingestionContext, progress, cancellationToken);
-        request.OnPageCompleted(new SearchCategoryProgress(page.Response.Meta.Total, page.Number, page.Response.Meta.LastPage));
+        request.Hooks.OnPageCompleted(new SearchCategoryProgress(page.Response.Meta.Total, page.Number, page.Response.Meta.LastPage));
         _ = await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     private async Task<FetchedPage> FetchPageAsync(PageScrapeRequest request, HttpClient client, int page, IProgress<string> progress, CancellationToken cancellationToken)
-        => new(page, await pageFetcher.FetchPageAsync(new PageFetchRequest(request.LogLabel, request.PageUrlFactory(page), page), client, progress, cancellationToken));
+        => new(page, await pageFetcher.FetchPageAsync(new PageFetchRequest(request.Label.LogLabel, request.Hooks.PageUrlFactory(page), page), client, progress, cancellationToken));
 
     private bool IsLastPageToVisit(FetchedPage page)
         => page.Number >= page.Response.Meta.LastPage || page.Number >= limits.MaximumPagesPerSearch;

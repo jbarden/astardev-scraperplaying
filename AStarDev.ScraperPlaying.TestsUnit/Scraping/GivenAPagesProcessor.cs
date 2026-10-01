@@ -278,7 +278,7 @@ public sealed class GivenAPagesProcessor
         => processor.FetchAndProcessPagesAsync(CreateRequest("wallpapers", Option.None<string>(), previousProgress, completedProgress.Add), progress, cancellationToken);
 
     private static PageScrapeRequest CreateRequest(string logLabel, Option<string> categoryName, Option<SearchCategoryProgress> previousProgress, Action<SearchCategoryProgress> onPageCompleted)
-        => new(logLabel, categoryName, previousProgress, onPageCompleted, page => new Uri($"https://example.test/page/{page}"), new WallhavenConnection("api-key", new Uri("https://example.test")), personCategories);
+        => new(new ScrapeLabel(logLabel, categoryName), previousProgress, new PageHooks(onPageCompleted, page => new Uri($"https://example.test/page/{page}")), new ScrapeTarget(new WallhavenConnection("api-key", new Uri("https://example.test")), personCategories));
 
     private IEnumerable<string> IngestedPages => progress.Messages.Where(message => message.StartsWith("Ingested page of ", StringComparison.Ordinal));
 
