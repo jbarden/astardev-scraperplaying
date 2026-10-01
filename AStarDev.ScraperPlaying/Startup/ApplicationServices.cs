@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Threading.RateLimiting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using AStarDev.ScraperPlaying.Downloads;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.Tags;
@@ -68,6 +69,8 @@ public static class ApplicationServices
             .AddSingleton<ITagCatalogue, TagCatalogue>()
             .AddSingleton<ConfigurationBrowser>()
             .AddSingleton<TagsBrowser>()
+            .AddSingleton<IDownloadsClearer, DownloadsClearer>()
+            .AddSingleton<ClearDownloadsRunner>()
             .AddSingleton<ScrapeRunner>()
             .AddSingleton<ApplicationReadiness>()
             .AddSingleton<MainWindow>()

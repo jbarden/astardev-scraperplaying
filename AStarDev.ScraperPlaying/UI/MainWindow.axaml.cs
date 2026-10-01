@@ -20,8 +20,9 @@ public partial class MainWindow : Window
     private readonly ConfigurationBrowser configurationBrowser;
     private readonly TagsBrowser tagsBrowser;
     private readonly ScrapeRunner scrapeRunner;
+    private readonly ClearDownloadsRunner clearDownloadsRunner;
 
-    public MainWindow(StatusReporter status, ApplicationReadiness readiness, UserOperationRunner operations, ConfigurationBrowser configurationBrowser, TagsBrowser tagsBrowser, ScrapeRunner scrapeRunner, IScrapeConfigurationFileService scrapeConfigurationFileService, ImageDisplayCoordinator imageDisplayCoordinator)
+    public MainWindow(StatusReporter status, ApplicationReadiness readiness, UserOperationRunner operations, ConfigurationBrowser configurationBrowser, TagsBrowser tagsBrowser, ScrapeRunner scrapeRunner, ClearDownloadsRunner clearDownloadsRunner, IScrapeConfigurationFileService scrapeConfigurationFileService, ImageDisplayCoordinator imageDisplayCoordinator)
     {
         InitializeComponent();
         this.status = status;
@@ -30,6 +31,7 @@ public partial class MainWindow : Window
         this.configurationBrowser = configurationBrowser;
         this.tagsBrowser = tagsBrowser;
         this.scrapeRunner = scrapeRunner;
+        this.clearDownloadsRunner = clearDownloadsRunner;
         this.scrapeConfigurationFileService = scrapeConfigurationFileService;
         status.RefreshRequired += (_, _) => Dispatcher.UIThread.Post(RefreshStatusText);
         readiness.Changed += (_, _) => Dispatcher.UIThread.Post(UpdateControls);
@@ -56,6 +58,16 @@ public partial class MainWindow : Window
         await operations.ReportFailuresAsync("Unable to edit tags.", async () =>
         {
             if (await tagsBrowser.CreateEditorAsync() is Option<TagsEditorWindow>.Some editor) _ = await editor.Value.ShowDialog<bool>(this);
+        });
+
+    public async void ClearDownloads(object? sender, RoutedEventArgs eventArgs) =>
+        await operations.ReportFailuresAsync("Unable to clear downloads.", async () =>
+        {
+            var confirmation = new ConfirmationWindow(
+                "Clear Downloads",
+                "This permanently deletes every file record and everything inside the base save and famous directories. Nothing else is affected. This cannot be undone. Continue?",
+                "Clear Downloads");
+            if (await confirmation.ShowDialog<bool>(this)) await clearDownloadsRunner.RunAsync();
         });
 
     public async void RunScraper(object? sender, RoutedEventArgs eventArgs) => await scrapeRunner.RunAsync();
@@ -89,6 +101,7 @@ public partial class MainWindow : Window
         ExportConfigurationWithApiKeysMenuItem.IsEnabled = readiness.CanOperate;
         EditConfigurationMenuItem.IsEnabled = readiness.CanOperate;
         EditTagsMenuItem.IsEnabled = readiness.CanOperate;
+        ClearDownloadsMenuItem.IsEnabled = readiness.CanOperate;
         RunScraperButton.IsEnabled = readiness.CanRunScraper;
         CancelButton.IsEnabled = readiness.IsOperationRunning;
     }

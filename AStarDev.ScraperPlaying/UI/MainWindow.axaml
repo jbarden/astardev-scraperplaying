@@ -19,6 +19,8 @@
         <MenuItem x:Name="ExportConfigurationMenuItem" Header="_Export Configuration" Click="ExportConfiguration" />
         <MenuItem x:Name="ExportConfigurationWithApiKeysMenuItem" Header="Export Configuration with API _Keys" Click="ExportConfigurationWithApiKeys" />
         <Separator />
+        <MenuItem x:Name="ClearDownloadsMenuItem" Header="_Clear Downloads" Click="ClearDownloads" />
+        <Separator />
         <MenuItem Header="E_xit" Click="Exit" />
       </MenuItem>
     </Menu>
