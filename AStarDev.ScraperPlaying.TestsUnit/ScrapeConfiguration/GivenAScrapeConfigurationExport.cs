@@ -2,11 +2,14 @@ using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using System.Text.Json;
+using Testably.Abstractions.Testing;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.ScrapeConfiguration;
 
 public sealed class GivenAScrapeConfigurationExport
 {
+    private readonly MockFileSystem fileSystem = new();
+
     [Fact]
     public async Task when_a_configuration_exists_then_it_is_written_to_the_destination_file()
     {
@@ -70,28 +73,21 @@ public sealed class GivenAScrapeConfigurationExport
     [Fact]
     public async Task when_a_document_is_written_then_the_json_file_contains_the_full_configuration()
     {
-        var path = Path.GetTempFileName();
-        try
+        const string path = "/configuration.json";
+        var document = new ScrapeConfigurationImportDocument
         {
-            var document = new ScrapeConfigurationImportDocument
-            {
-                UserConfiguration = new() { Username = "user" },
-                SearchConfiguration = new() { SearchTerm = "cats", SearchCategories = [new() { Id = "1", Name = "General", IsFamous = true }] },
-                ScrapeDirectories = new() { RootDirectory = "/tmp/scrapes" }
-            };
+            UserConfiguration = new() { Username = "user" },
+            SearchConfiguration = new() { SearchTerm = "cats", SearchCategories = [new() { Id = "1", Name = "General", IsFamous = true }] },
+            ScrapeDirectories = new() { RootDirectory = "/tmp/scrapes" }
+        };
 
-            await new ScrapeConfigurationFileWriter().WriteAsync(document, path, TestContext.Current.CancellationToken);
-            using var json = JsonDocument.Parse(await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken));
+        await new ScrapeConfigurationFileWriter(fileSystem).WriteAsync(document, path, TestContext.Current.CancellationToken);
+        using var json = JsonDocument.Parse(await fileSystem.File.ReadAllTextAsync(path, TestContext.Current.CancellationToken));
 
-            json.RootElement.GetProperty("userConfiguration").GetProperty("username").GetString().ShouldBe("user");
-            json.RootElement.GetProperty("searchConfiguration").GetProperty("searchTerm").GetString().ShouldBe("cats");
-            json.RootElement.GetProperty("searchConfiguration").GetProperty("searchCategories")[0].GetProperty("isFamous").GetBoolean().ShouldBeTrue();
-            json.RootElement.GetProperty("scrapeDirectories").GetProperty("rootDirectory").GetString().ShouldBe("/tmp/scrapes");
-        }
-        finally
-        {
-            File.Delete(path);
-        }
+        json.RootElement.GetProperty("userConfiguration").GetProperty("username").GetString().ShouldBe("user");
+        json.RootElement.GetProperty("searchConfiguration").GetProperty("searchTerm").GetString().ShouldBe("cats");
+        json.RootElement.GetProperty("searchConfiguration").GetProperty("searchCategories")[0].GetProperty("isFamous").GetBoolean().ShouldBeTrue();
+        json.RootElement.GetProperty("scrapeDirectories").GetProperty("rootDirectory").GetString().ShouldBe("/tmp/scrapes");
     }
 
     [Theory]
@@ -125,18 +121,11 @@ public sealed class GivenAScrapeConfigurationExport
     [Fact]
     public async Task when_api_keys_are_excluded_then_the_written_file_contains_neither_key()
     {
-        var path = Path.GetTempFileName();
-        try
-        {
-            await new ScrapeConfigurationFileWriter().WriteAsync(EntityWithApiKeys().ToImportDocument(ApiKeyExport.Exclude), path, TestContext.Current.CancellationToken);
-            var text = await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken);
+        const string path = "/configuration.json";
+        await new ScrapeConfigurationFileWriter(fileSystem).WriteAsync(EntityWithApiKeys().ToImportDocument(ApiKeyExport.Exclude), path, TestContext.Current.CancellationToken);
+        var text = await fileSystem.File.ReadAllTextAsync(path, TestContext.Current.CancellationToken);
 
-            (text.Contains("scrape-key", StringComparison.Ordinal), text.Contains("user-key", StringComparison.Ordinal)).ShouldBe((false, false));
-        }
-        finally
-        {
-            File.Delete(path);
-        }
+        (text.Contains("scrape-key", StringComparison.Ordinal), text.Contains("user-key", StringComparison.Ordinal)).ShouldBe((false, false));
     }
 
     private static ScrapeConfigurationEntity EntityWithApiKeys()

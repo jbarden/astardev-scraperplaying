@@ -20,7 +20,7 @@ public sealed class GivenAnImageDisplayCoordinator
         notifier.NotifyImageDownloaded(Details("wallpaper-1"));
 
         var preview = (await received.Task.WaitAsync(Timeout, TestContext.Current.CancellationToken)).Single();
-        (preview.PngStream, preview.Name, preview.CategoryLabel, preview.FileSizeBytes, preview.Width, preview.Height).ShouldBe((decodedStream, "wallpaper-1", "Cars", 1234, 1920, 1080));
+        (preview.PngStream, preview.Info).ShouldBe((decodedStream, new WallpaperInfo("wallpaper-1", "Cars", 1234, 1920, 1080)));
     }
 
     [Fact]
@@ -81,7 +81,7 @@ public sealed class GivenAnImageDisplayCoordinator
 
         notifier.NotifyImageDownloaded(Details("wallpaper-1"));
 
-        (await received.Task.WaitAsync(Timeout, TestContext.Current.CancellationToken)).Single().Name.ShouldBe("wallpaper-1");
+        (await received.Task.WaitAsync(Timeout, TestContext.Current.CancellationToken)).Single().Info.Name.ShouldBe("wallpaper-1");
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public sealed class GivenAnImageDisplayCoordinator
         notifier.NotifyImageDownloaded(Details("wallpaper-3"));
         release.Set();
 
-        var names = (await received.Task.WaitAsync(Timeout, TestContext.Current.CancellationToken)).Select(preview => preview.Name);
+        var names = (await received.Task.WaitAsync(Timeout, TestContext.Current.CancellationToken)).Select(preview => preview.Info.Name);
         (string.Join(",", names), decoder.DecodedPaths.Count).ShouldBe(("wallpaper-1,wallpaper-3", 2));
     }
 
@@ -123,10 +123,10 @@ public sealed class GivenAnImageDisplayCoordinator
         await WaitForDecodesAsync(1);
         notifier.NotifyImageDownloaded(Details("good"));
 
-        (await received.Task.WaitAsync(Timeout, TestContext.Current.CancellationToken)).Single().Name.ShouldBe("good");
+        (await received.Task.WaitAsync(Timeout, TestContext.Current.CancellationToken)).Single().Info.Name.ShouldBe("good");
     }
 
-    private static WallpaperDownloadDetails Details(string name) => new($"/some/path/{name}.jpg", name, "Cars", 1234, 1920, 1080);
+    private static WallpaperDownloadDetails Details(string name) => new($"/some/path/{name}.jpg", new WallpaperInfo(name, "Cars", 1234, 1920, 1080));
 
     private static TaskCompletionSource<IReadOnlyList<WallpaperPreviewImage>> ExpectImages(ImageDisplayCoordinator coordinator, int count)
     {

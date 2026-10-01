@@ -4,7 +4,7 @@ namespace AStarDev.ScraperPlaying.TestsUnit.WallpaperIngestion;
 
 public sealed class GivenAnImageDownloadNotifier
 {
-    private static readonly WallpaperDownloadDetails details = new("/some/path/wallpaper-1.jpg", "wallpaper-1", "Top Wallpapers", 1234, 1920, 1080);
+    private static readonly WallpaperDownloadDetails details = new("/some/path/wallpaper-1.jpg", new WallpaperInfo("wallpaper-1", "Top Wallpapers", 1234, 1920, 1080));
 
     [Fact]
     public void when_an_image_download_is_notified_then_subscribers_receive_the_details()

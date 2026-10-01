@@ -85,7 +85,7 @@ public sealed class ImageDisplayCoordinator
         try
         {
             var pngStream = decoder.DecodeToPng(details.FilePath, PreviewMaximumDimension);
-            ImageReady?.Invoke(this, new WallpaperPreviewImage(pngStream, details.Name, details.CategoryLabel, details.FileSizeBytes, details.Width, details.Height));
+            ImageReady?.Invoke(this, new WallpaperPreviewImage(pngStream, details.Info));
         }
         catch (Exception)
         {

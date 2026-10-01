@@ -8,7 +8,7 @@ using Avalonia.Interactivity;
 namespace AStarDev.ScraperPlaying.UI;
 
 /// <summary>Hosts the section tabs used to edit a single root scrape configuration. Save writes every section and closes with <c>true</c>, Cancel closes with <c>false</c>.</summary>
-public partial class ConfigurationEditorWindow : Window
+public sealed partial class ConfigurationEditorWindow : Window
 {
     private readonly ConfigurationBrowser browser = null!;
     private readonly ConfigurationEditSaver saver = null!;

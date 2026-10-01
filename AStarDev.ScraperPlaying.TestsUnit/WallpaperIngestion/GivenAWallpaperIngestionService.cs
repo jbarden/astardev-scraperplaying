@@ -262,17 +262,17 @@ public sealed class GivenAWallpaperIngestionService
             }
         }
 
-        public async Task IngestAsync(Data wallpaper, string extension, IReadOnlyList<Tag> tags, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+        public async Task IngestAsync(WallpaperCandidate candidate, IReadOnlyList<Tag> tags, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
         {
             lock (gate) MaximumConcurrentIngests = Math.Max(MaximumConcurrentIngests, ++concurrentIngests);
 
             try
             {
-                await OnIngest(wallpaper, cancellationToken);
+                await OnIngest(candidate.Wallpaper, cancellationToken);
                 lock (gate)
                 {
-                    ingested.Add((wallpaper, extension, context, progress));
-                    tagsIngested[wallpaper.Id] = tags;
+                    ingested.Add((candidate.Wallpaper, candidate.Extension, context, progress));
+                    tagsIngested[candidate.Wallpaper.Id] = tags;
                 }
             }
             finally

@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AStarDev.ScraperPlaying.Scraping;
 
 /// <inheritdoc/>
-public class PagesProcessor(IWallhavenClientFactory clientFactory, IWallhavenPageFetcher pageFetcher, IUnitOfWork unitOfWork, ISaveDirectoryResolver saveDirectoryResolver, IWallpaperIngestionService wallpaperIngestionService, ScrapeLimits limits) : IPagesProcessor
+public sealed class PagesProcessor(IWallhavenClientFactory clientFactory, IWallhavenPageFetcher pageFetcher, IUnitOfWork unitOfWork, ISaveDirectoryResolver saveDirectoryResolver, IWallpaperIngestionService wallpaperIngestionService, ScrapeLimits limits) : IPagesProcessor
 {
     /// <inheritdoc/>
     public async Task<Option<SearchCategoryProgress>> FetchAndProcessPagesAsync(PageScrapeRequest request, IProgress<string> progress, CancellationToken cancellationToken)

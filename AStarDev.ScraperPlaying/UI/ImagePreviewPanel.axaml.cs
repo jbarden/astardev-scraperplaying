@@ -8,7 +8,7 @@ using Avalonia.Threading;
 namespace AStarDev.ScraperPlaying.UI;
 
 /// <summary>The live preview of the wallpaper most recently downloaded, with its details and the switch that turns the preview on and off.</summary>
-public partial class ImagePreviewPanel : UserControl
+public sealed partial class ImagePreviewPanel : UserControl
 {
     private ImageDisplayCoordinator? coordinator;
 
@@ -47,10 +47,10 @@ public partial class ImagePreviewPanel : UserControl
 
         (previousImage as IDisposable)?.Dispose();
 
-        ImageNameText.Text = preview.Name;
-        ImageCategoryText.Text = $"Category: {preview.CategoryLabel}";
-        ImageSizeText.Text = $"Size: {preview.FileSizeBytes.ToFileSizeString()}";
-        ImageDimensionsText.Text = $"Dimensions: {preview.Width} x {preview.Height}";
+        ImageNameText.Text = preview.Info.Name;
+        ImageCategoryText.Text = $"Category: {preview.Info.CategoryLabel}";
+        ImageSizeText.Text = $"Size: {preview.Info.FileSizeBytes.ToFileSizeString()}";
+        ImageDimensionsText.Text = $"Dimensions: {preview.Info.Width} x {preview.Info.Height}";
         ImageDetailsPanel.IsVisible = true;
     }
 

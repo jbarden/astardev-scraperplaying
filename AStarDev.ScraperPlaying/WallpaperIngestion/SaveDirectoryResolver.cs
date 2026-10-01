@@ -6,7 +6,7 @@ namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 
 /// <inheritdoc/>
 /// <remarks>Registered as Scoped (one scrape run): the root directories are loaded on first use and reused, rather than reloading the whole scrape configuration for every page set.</remarks>
-public class SaveDirectoryResolver(IScrapeConfigurationLookup lookup) : ISaveDirectoryResolver
+public sealed class SaveDirectoryResolver(IScrapeConfigurationLookup lookup) : ISaveDirectoryResolver
 {
     private const string TopWallpapersDirectorySegment = "top-wallpapers";
     private Option<RootDirectories> rootDirectories = Option.None<RootDirectories>();

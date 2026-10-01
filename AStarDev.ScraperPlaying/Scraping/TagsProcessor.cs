@@ -8,7 +8,7 @@ using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse;
 namespace AStarDev.ScraperPlaying.Scraping;
 
 /// <inheritdoc/>
-public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQuery tagsQuery, IUnitOfWork unitOfWork, IFileTagRepository fileTagRepository) : ITagsProcessor
+public sealed class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQuery tagsQuery, IUnitOfWork unitOfWork, IFileTagRepository fileTagRepository) : ITagsProcessor
 {
     /// <summary>
     /// Caches resolved tags for the lifetime of this instance (one scrape run - <see cref="TagsProcessor"/> is

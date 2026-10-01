@@ -7,7 +7,7 @@ using Avalonia.Interactivity;
 namespace AStarDev.ScraperPlaying.UI;
 
 /// <summary>Lists, adds, edits and removes the search categories of a scrape configuration.</summary>
-public partial class SearchCategoriesEditor : UserControl
+public sealed partial class SearchCategoriesEditor : UserControl
 {
     private readonly ObservableCollection<SearchCategoryRow> rows = [];
 

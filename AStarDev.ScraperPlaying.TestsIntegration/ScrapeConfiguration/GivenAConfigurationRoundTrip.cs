@@ -7,6 +7,7 @@ using AStarDev.ScraperPlaying.Startup;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
+using Testably.Abstractions;
 using Xunit;
 
 namespace AStarDev.ScraperPlaying.TestsIntegration.ScrapeConfiguration;
@@ -186,7 +187,7 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
         {
             var exporter = new ScrapeConfigurationExporter(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()));
 
-            return await new ScrapeConfigurationExportService(exporter, new ScrapeConfigurationFileWriter()).ExportAsync(path, apiKeys, TestContext.Current.CancellationToken);
+            return await new ScrapeConfigurationExportService(exporter, new ScrapeConfigurationFileWriter(new RealFileSystem())).ExportAsync(path, apiKeys, TestContext.Current.CancellationToken);
         }
 
         public async Task ImportAsync(string path)
@@ -195,7 +196,7 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
             await scope.ServiceProvider.GetRequiredService<ControlDbContext>().Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
             var importer = new ScrapeConfigurationImporter(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()));
 
-            await new ScrapeConfigurationImportService(importer, new ScrapeConfigurationFileReader()).ImportAsync(path, TestContext.Current.CancellationToken);
+            await new ScrapeConfigurationImportService(importer, new ScrapeConfigurationFileReader(new RealFileSystem())).ImportAsync(path, TestContext.Current.CancellationToken);
         }
 
         public async Task<ScrapeConfigurationEntity> ReadFirstAsync()

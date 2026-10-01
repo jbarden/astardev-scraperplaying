@@ -54,6 +54,7 @@ public sealed class GivenTheApplicationServices : IDisposable
             serviceProvider.GetRequiredService<ConfigurationBrowser>(),
             serviceProvider.GetRequiredService<TagsBrowser>(),
             serviceProvider.GetRequiredService<ScrapeRunner>(),
+            serviceProvider.GetRequiredService<MainWindowActions>(),
             serviceProvider.GetRequiredService<ImageDisplayCoordinator>()
         };
 
@@ -65,6 +66,7 @@ public sealed class GivenTheApplicationServices : IDisposable
             serviceProvider.GetRequiredService<ConfigurationBrowser>(),
             serviceProvider.GetRequiredService<TagsBrowser>(),
             serviceProvider.GetRequiredService<ScrapeRunner>(),
+            serviceProvider.GetRequiredService<MainWindowActions>(),
             serviceProvider.GetRequiredService<ImageDisplayCoordinator>()
         ]);
     }

@@ -4,7 +4,7 @@ using Avalonia.Controls;
 namespace AStarDev.ScraperPlaying.UI;
 
 /// <summary>Edits the user settings of a scrape configuration.</summary>
-public partial class UserSettingsEditor : UserControl
+public sealed partial class UserSettingsEditor : UserControl
 {
     public UserSettingsEditor() => InitializeComponent();
 
