@@ -23,7 +23,7 @@ public sealed class GivenAWallpaperIngestionServiceWithPersonTags
 
     public GivenAWallpaperIngestionServiceWithPersonTags()
     {
-        var newWallpaperIngestor = new NewWallpaperIngestor(tagsProcessor, new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None), new WallpaperFileRecorder(new FakeTimeProvider(DateTimeOffset.UnixEpoch)), new ImageDownloadNotifier());
+        var newWallpaperIngestor = new NewWallpaperIngestor(tagsProcessor, tagsProcessor, new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None), new WallpaperFileRecorder(new FakeTimeProvider(DateTimeOffset.UnixEpoch)), new ImageDownloadNotifier());
         service = new(filesQuery, newWallpaperIngestor);
     }
 
@@ -82,7 +82,7 @@ public sealed class GivenAWallpaperIngestionServiceWithPersonTags
         await service.IngestPageAsync([new Data(id, 1920, 1080, 3, "image/jpeg", $"https://example.test/full/{id}.jpg")], new WallpaperIngestionContext(new SaveDirectories("some-directory", "famous-some-directory", ""), client, fileRepository, "Top Wallpapers", ["Celebrities", "Models", "Pornstars", "Other Figures", "Actress"]), new Progress<string>(), CancellationToken.None);
     }
 
-    private sealed class StubTagsProcessor : ITagsProcessor
+    private sealed class StubTagsProcessor : ITagFetcher, ITagLinker
     {
         public IReadOnlyList<Tag> Tags { get; set; } = [];
 
