@@ -1,4 +1,3 @@
-using System.IO.Abstractions;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.LoggingExtensions;
@@ -9,11 +8,10 @@ namespace AStarDev.ScraperPlaying.UI;
 
 /// <summary>Lists and loads scrape configurations for the main window, reporting problems to the user instead of throwing, and creates the editor for a loaded configuration.</summary>
 /// <param name="catalogue">The source of the configurations.</param>
-/// <param name="saver">The service the editor validates and saves through.</param>
-/// <param name="fileSystem">The file system the editor uses to check the scrape directories.</param>
+/// <param name="editorFactory">Creates the editor window for a loaded configuration.</param>
 /// <param name="status">Where problems are reported.</param>
 /// <param name="logger">The logger the visit to the editor is written to.</param>
-public sealed class ConfigurationBrowser(IScrapeConfigurationCatalogue catalogue, ConfigurationEditSaver saver, IFileSystem fileSystem, StatusReporter status, ILogger<ConfigurationBrowser> logger)
+public sealed class ConfigurationBrowser(IScrapeConfigurationCatalogue catalogue, ConfigurationEditorWindowFactory editorFactory, StatusReporter status, ILogger<ConfigurationBrowser> logger)
 {
     /// <summary>Lists the available configurations; an empty list, with the failure reported, if they could not be listed.</summary>
     public async Task<IReadOnlyList<ScrapeConfigurationSummary>> ListAsync() =>
@@ -46,7 +44,7 @@ public sealed class ConfigurationBrowser(IScrapeConfigurationCatalogue catalogue
         }
 
         return (await FindAsync(summaries[0])) is Option<ScrapeConfigurationEntity>.Some found
-            ? Option.Some(new ConfigurationEditorWindow(found.Value, summaries, this, saver, fileSystem))
+            ? Option.Some(editorFactory.Create(found.Value, summaries, this))
             : Option.None<ConfigurationEditorWindow>();
     }
 

@@ -1,0 +1,27 @@
+using AStarDev.ControlDb.FileDetail;
+using AStarDev.FunctionalParadigm;
+
+namespace AStarDev.ScraperPlaying.WallpaperIngestion;
+
+/// <summary>Downloads a wallpaper's image, tells listeners it arrived and records it as a file entity.</summary>
+/// <param name="imageDownloader">Downloads the image.</param>
+/// <param name="fileRecorder">Records the downloaded wallpaper as a file entity.</param>
+/// <param name="imageDownloadNotifier">Tells listeners an image was downloaded.</param>
+public sealed class WallpaperSaver(IImageDownloader imageDownloader, IWallpaperFileRecorder fileRecorder, IImageDownloadNotifier imageDownloadNotifier)
+{
+    /// <summary>Downloads and records the wallpaper described by <paramref name="request"/>.</summary>
+    /// <param name="request">The wallpaper, and the file name and directory its image is saved under.</param>
+    /// <param name="context">The client to download with and the repository to record into.</param>
+    /// <param name="progress">Receives progress messages.</param>
+    /// <param name="cancellationToken">Cancels the download, or the recording before it starts.</param>
+    /// <returns>The recorded <see cref="FileEntity"/>; a recording failure is thrown.</returns>
+    public async Task<FileEntity> SaveAsync(WallpaperFileRequest request, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+    {
+        var savedPath = await imageDownloader.DownloadAsync(request, progress, context.Client, cancellationToken);
+        progress.Report($"Downloaded image data for wallpaper {request.Wallpaper.Id}");
+        imageDownloadNotifier.NotifyImageDownloaded(new WallpaperDownloadDetails(savedPath, new WallpaperInfo(request.FileName.Value, request.CategoryLabel, request.Wallpaper.FileSize, request.Wallpaper.DimensionX, request.Wallpaper.DimensionY)));
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return fileRecorder.Record(context.FileRepository, request).Match(entity => entity, exception => throw exception);
+    }
+}
