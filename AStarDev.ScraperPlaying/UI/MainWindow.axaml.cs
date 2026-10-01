@@ -29,17 +29,17 @@ public sealed partial class MainWindow : Window
         UpdateControls();
     }
 
-    public async void ImportConfiguration(object? sender, RoutedEventArgs eventArgs) => await actions.ImportConfigurationAsync(this);
+    public async void ImportConfiguration(object? sender, RoutedEventArgs eventArgs) => await actions.ImportConfigurationAsync(new WindowDialogHost(this));
 
-    public async void ExportConfiguration(object? sender, RoutedEventArgs eventArgs) => await actions.ExportConfigurationAsync(this, ApiKeyExport.Exclude);
+    public async void ExportConfiguration(object? sender, RoutedEventArgs eventArgs) => await actions.ExportConfigurationAsync(new WindowDialogHost(this), ApiKeyExport.Exclude);
 
-    public async void ExportConfigurationWithApiKeys(object? sender, RoutedEventArgs eventArgs) => await actions.ExportConfigurationAsync(this, ApiKeyExport.Include);
+    public async void ExportConfigurationWithApiKeys(object? sender, RoutedEventArgs eventArgs) => await actions.ExportConfigurationAsync(new WindowDialogHost(this), ApiKeyExport.Include);
 
-    public async void EditConfiguration(object? sender, RoutedEventArgs eventArgs) => await actions.EditConfigurationAsync(this);
+    public async void EditConfiguration(object? sender, RoutedEventArgs eventArgs) => await actions.EditConfigurationAsync(new WindowDialogHost(this));
 
-    public async void EditTags(object? sender, RoutedEventArgs eventArgs) => await actions.EditTagsAsync(this);
+    public async void EditTags(object? sender, RoutedEventArgs eventArgs) => await actions.EditTagsAsync(new WindowDialogHost(this));
 
-    public async void ClearDownloads(object? sender, RoutedEventArgs eventArgs) => await actions.ClearDownloadsAsync(this);
+    public async void ClearDownloads(object? sender, RoutedEventArgs eventArgs) => await actions.ClearDownloadsAsync(new WindowDialogHost(this));
 
     public async void RunScraper(object? sender, RoutedEventArgs eventArgs) => await actions.RunScraperAsync();
 
