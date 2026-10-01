@@ -90,6 +90,27 @@ public sealed class GivenAConfigurationBrowser
         (found is Option<ScrapeConfigurationEntity>.None, status.Text).ShouldBe((true, "Unable to load scrape configuration. load failed"));
     }
 
+    [Fact]
+    public async Task when_there_are_no_configurations_to_edit_then_no_editor_is_created_and_the_user_is_told()
+    {
+        catalogue.Summaries = Exceptional.Success<IReadOnlyList<ScrapeConfigurationSummary>>([]);
+
+        var editor = await browser.CreateEditorAsync();
+
+        (editor is Option<ConfigurationEditorWindow>.None, status.Text).ShouldBe((true, "There are no scrape configurations to edit."));
+    }
+
+    [Fact]
+    public async Task when_the_first_configuration_cannot_be_loaded_then_no_editor_is_created()
+    {
+        catalogue.Summaries = Exceptional.Success<IReadOnlyList<ScrapeConfigurationSummary>>([Summary]);
+        catalogue.Found = Exceptional.Success(Option.None<ScrapeConfigurationEntity>());
+
+        var editor = await browser.CreateEditorAsync();
+
+        (editor is Option<ConfigurationEditorWindow>.None, status.Text).ShouldBe((true, "The selected scrape configuration could not be found."));
+    }
+
     private sealed class FakeUpdater : IScrapeConfigurationUpdater
     {
         public Task<Exceptional<Option<Unit>>> SaveAsync(ScrapeConfigurationId id, IReadOnlyList<IScrapeConfigurationSectionEdit> edits, CancellationToken cancellationToken)

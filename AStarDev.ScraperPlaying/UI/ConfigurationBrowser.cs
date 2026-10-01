@@ -34,9 +34,21 @@ public sealed class ConfigurationBrowser(IScrapeConfigurationCatalogue catalogue
             return Option.None<ScrapeConfigurationEntity>();
         });
 
-    /// <summary>Creates the editor window for <paramref name="configuration"/>.</summary>
-    /// <param name="configuration">The configuration to edit.</param>
-    public ConfigurationEditorWindow CreateEditor(ScrapeConfigurationEntity configuration) => new(configuration, saver, fileSystem);
+    /// <summary>Creates the editor window with every configuration selectable, opened on the first; none, with the reason reported, if there is nothing to edit.</summary>
+    public async Task<Option<ConfigurationEditorWindow>> CreateEditorAsync()
+    {
+        var summaries = await ListAsync();
+        if (summaries.Count == 0)
+        {
+            status.Append("There are no scrape configurations to edit.");
+
+            return Option.None<ConfigurationEditorWindow>();
+        }
+
+        return (await FindAsync(summaries[0])) is Option<ScrapeConfigurationEntity>.Some found
+            ? Option.Some(new ConfigurationEditorWindow(found.Value, summaries, this, saver, fileSystem))
+            : Option.None<ConfigurationEditorWindow>();
+    }
 
     private Option<ScrapeConfigurationEntity> ReportIfMissing(Option<ScrapeConfigurationEntity> found)
     {
