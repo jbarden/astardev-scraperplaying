@@ -30,10 +30,28 @@ public sealed class GivenAScrapeConfigurationCatalogue : IDisposable
         var second = new ScrapeConfigurationHeader(new ScrapeConfigurationId(Guid.CreateVersion7()), new Uri("https://example.com"), "dogs");
         lookup.Headers = Exceptional.Success<IReadOnlyList<ScrapeConfigurationHeader>>([first, second]);
 
-        var result = await catalogue.ListAsync();
+        var result = await catalogue.ListAsync(TestContext.Current.CancellationToken);
 
         var summaries = result.Match(list => list, exception => throw exception);
         (string.Join(",", summaries.Select(summary => summary.Id.Value)), string.Join(",", summaries.Select(summary => summary.Label))).ShouldBe(($"{first.Id.Value},{second.Id.Value}", "example.com - cats,example.com - dogs"));
+    }
+
+    [Fact]
+    public async Task when_the_token_is_cancelled_then_listing_is_cancelled()
+    {
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        _ = await Should.ThrowAsync<OperationCanceledException>(() => catalogue.ListAsync(cancellation.Token));
+    }
+
+    [Fact]
+    public async Task when_the_token_is_cancelled_then_finding_is_cancelled()
+    {
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        _ = await Should.ThrowAsync<OperationCanceledException>(() => catalogue.FindAsync(new ScrapeConfigurationId(Guid.CreateVersion7()), cancellation.Token));
     }
 
     [Fact]
@@ -41,7 +59,7 @@ public sealed class GivenAScrapeConfigurationCatalogue : IDisposable
     {
         lookup.Headers = Exceptional.Success<IReadOnlyList<ScrapeConfigurationHeader>>([]);
 
-        var result = await catalogue.ListAsync();
+        var result = await catalogue.ListAsync(TestContext.Current.CancellationToken);
 
         result.Match(list => list, exception => throw exception).ShouldBeEmpty();
     }
@@ -52,7 +70,7 @@ public sealed class GivenAScrapeConfigurationCatalogue : IDisposable
         var failure = new InvalidOperationException("list failed");
         lookup.Headers = failure;
 
-        var result = await catalogue.ListAsync();
+        var result = await catalogue.ListAsync(TestContext.Current.CancellationToken);
 
         result.Match(_ => (Exception?)null, exception => exception).ShouldBeSameAs(failure);
     }
@@ -63,7 +81,7 @@ public sealed class GivenAScrapeConfigurationCatalogue : IDisposable
         var entity = CreateEntity("cats");
         repository.Found = (Option<ScrapeConfigurationEntity>)entity;
 
-        var result = await catalogue.FindAsync(entity.Id);
+        var result = await catalogue.FindAsync(entity.Id, TestContext.Current.CancellationToken);
 
         result.Match(option => option, exception => throw exception).Match(found => found.Id, () => default).ShouldBe(entity.Id);
     }
@@ -73,7 +91,7 @@ public sealed class GivenAScrapeConfigurationCatalogue : IDisposable
     {
         repository.Found = Option<ScrapeConfigurationEntity>.None.Instance;
 
-        var result = await catalogue.FindAsync(new ScrapeConfigurationId(Guid.CreateVersion7()));
+        var result = await catalogue.FindAsync(new ScrapeConfigurationId(Guid.CreateVersion7()), TestContext.Current.CancellationToken);
 
         result.Match(option => option, exception => throw exception).Match(_ => true, () => false).ShouldBeFalse();
     }
@@ -84,7 +102,7 @@ public sealed class GivenAScrapeConfigurationCatalogue : IDisposable
         var failure = new InvalidOperationException("find failed");
         repository.Found = failure;
 
-        var result = await catalogue.FindAsync(new ScrapeConfigurationId(Guid.CreateVersion7()));
+        var result = await catalogue.FindAsync(new ScrapeConfigurationId(Guid.CreateVersion7()), TestContext.Current.CancellationToken);
 
         result.Match(_ => (Exception?)null, exception => exception).ShouldBeSameAs(failure);
     }

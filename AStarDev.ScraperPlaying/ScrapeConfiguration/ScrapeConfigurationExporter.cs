@@ -10,12 +10,12 @@ namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 public sealed class ScrapeConfigurationExporter(IScopedRunner scopedRunner) : IScrapeConfigurationExporter
 {
     /// <inheritdoc/>
-    public async Task<Exceptional<Option<ScrapeConfigurationImportDocument>>> ExportScrapeConfigurationAsync(ApiKeyExport apiKeys)
+    public async Task<Exceptional<Option<ScrapeConfigurationImportDocument>>> ExportScrapeConfigurationAsync(ApiKeyExport apiKeys, CancellationToken cancellationToken = default)
         =>
         await scopedRunner.RunAsync<IUnitOfWork, Exceptional<Option<ScrapeConfigurationImportDocument>>>(unitOfWork => Try.RunAsync(async () =>
         {
             var dbContext = unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>();
-            var current = (await dbContext.TryGetFirstAsync()).Match(option => option, exception => throw exception);
+            var current = (await dbContext.TryGetFirstAsync(cancellationToken)).Match(option => option, exception => throw exception);
 
             return current.Match(entity => (Option<ScrapeConfigurationImportDocument>)entity.ToImportDocument(apiKeys), () => Option<ScrapeConfigurationImportDocument>.None.Instance);
         }));

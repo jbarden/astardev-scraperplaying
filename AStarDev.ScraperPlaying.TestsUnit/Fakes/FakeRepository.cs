@@ -36,11 +36,11 @@ internal sealed class FakeRepository<TAggregate, TKey>(List<string> operations) 
     /// <summary>The aggregates passed to <see cref="Delete"/> that did not fail.</summary>
     public List<TAggregate> Deleted { get; } = [];
 
-    public Task<Exceptional<Option<TAggregate>>> TryFindAsync(TKey key, CancellationToken cancellationToken = default) => Task.FromResult(Found);
+    public Task<Exceptional<Option<TAggregate>>> TryFindAsync(TKey key, CancellationToken cancellationToken = default) => cancellationToken.IsCancellationRequested ? Task.FromCanceled<Exceptional<Option<TAggregate>>>(cancellationToken) : Task.FromResult(Found);
 
-    public Task<Exceptional<Option<TAggregate>>> TryGetFirstAsync(CancellationToken cancellationToken = default) => Task.FromResult(First);
+    public Task<Exceptional<Option<TAggregate>>> TryGetFirstAsync(CancellationToken cancellationToken = default) => cancellationToken.IsCancellationRequested ? Task.FromCanceled<Exceptional<Option<TAggregate>>>(cancellationToken) : Task.FromResult(First);
 
-    public Task<Exceptional<Option<IEnumerable<TAggregate>>>> TryGetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult(All);
+    public Task<Exceptional<Option<IEnumerable<TAggregate>>>> TryGetAllAsync(CancellationToken cancellationToken = default) => cancellationToken.IsCancellationRequested ? Task.FromCanceled<Exceptional<Option<IEnumerable<TAggregate>>>>(cancellationToken) : Task.FromResult(All);
 
     public Exceptional<TAggregate> Add(TAggregate aggregate)
     {

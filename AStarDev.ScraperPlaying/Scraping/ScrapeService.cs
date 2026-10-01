@@ -25,7 +25,7 @@ public sealed class ScrapeService(OperationCoordinator operationCoordinator, ISc
             LogMessage.Information(logger, "Scrape started");
             _ = await scopedRunner.RunAsync<IUnitOfWork, ISearchOrchestrator, Unit>(async (unitOfWork, searchOrchestrator) =>
             {
-                var configuration = await unitOfWork.LoadScrapeConfigurationAsync();
+                var configuration = await unitOfWork.LoadScrapeConfigurationAsync(cancellationToken);
                 await searchOrchestrator.RunSearchesAsync(configuration, progress, cancellationToken);
 
                 return Unit.Instance;

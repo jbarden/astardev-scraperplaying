@@ -29,7 +29,7 @@ public sealed class GivenARootDirectoryCheck : IDisposable
         fileSystem.Directory.CreateDirectory("/scrapes/root");
         lookup.RootDirectory = Exceptional.Success(Option.Some("/scrapes/root"));
 
-        var exists = await check.ExistsAsync();
+        var exists = await check.ExistsAsync(TestContext.Current.CancellationToken);
 
         exists.ShouldBeTrue();
     }
@@ -39,9 +39,18 @@ public sealed class GivenARootDirectoryCheck : IDisposable
     {
         lookup.RootDirectory = Exceptional.Success(Option.Some("/scrapes/missing"));
 
-        var exists = await check.ExistsAsync();
+        var exists = await check.ExistsAsync(TestContext.Current.CancellationToken);
 
         exists.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task when_the_token_is_cancelled_then_the_check_is_cancelled()
+    {
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        _ = await Should.ThrowAsync<OperationCanceledException>(() => check.ExistsAsync(cancellation.Token));
     }
 
     [Fact]
@@ -49,7 +58,7 @@ public sealed class GivenARootDirectoryCheck : IDisposable
     {
         lookup.RootDirectory = Exceptional.Success(Option.None<string>());
 
-        var thrown = await Should.ThrowAsync<InvalidOperationException>(() => check.ExistsAsync());
+        var thrown = await Should.ThrowAsync<InvalidOperationException>(() => check.ExistsAsync(TestContext.Current.CancellationToken));
 
         thrown.Message.ShouldBe("Scrape configuration not found");
     }
@@ -60,7 +69,7 @@ public sealed class GivenARootDirectoryCheck : IDisposable
         var failure = new InvalidOperationException("query failed");
         lookup.RootDirectory = failure;
 
-        var thrown = await Should.ThrowAsync<InvalidOperationException>(() => check.ExistsAsync());
+        var thrown = await Should.ThrowAsync<InvalidOperationException>(() => check.ExistsAsync(TestContext.Current.CancellationToken));
 
         thrown.ShouldBeSameAs(failure);
     }

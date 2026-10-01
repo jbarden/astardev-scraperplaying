@@ -6,5 +6,5 @@ namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 public interface IScrapeConfigurationImporter
 {
     /// <summary>Replaces the persisted scrape configuration aggregate.</summary>
-    Task<Exceptional<Unit>> ImportScrapeConfigurationAsync(ScrapeConfigurationImportDocument document);
+    Task<Exceptional<Unit>> ImportScrapeConfigurationAsync(ScrapeConfigurationImportDocument document, CancellationToken cancellationToken = default);
 }

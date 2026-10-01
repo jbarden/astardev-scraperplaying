@@ -27,7 +27,7 @@ public sealed class GivenAConfigurationImportThatFails : IDisposable
         var originalId = await CreateOriginalAsync();
         var importer = new ScrapeConfigurationImporter(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()));
 
-        var result = await importer.ImportScrapeConfigurationAsync(DocumentWithDuplicateCategoryIds());
+        var result = await importer.ImportScrapeConfigurationAsync(DocumentWithDuplicateCategoryIds(), TestContext.Current.CancellationToken);
 
         var stored = await StoredConfigurationIdsAsync();
         (result.Match(_ => true, _ => false), stored.Count, stored.Single()).ShouldBe((false, 1, originalId));
@@ -40,7 +40,7 @@ public sealed class GivenAConfigurationImportThatFails : IDisposable
         var importer = new ScrapeConfigurationImporter(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()));
         var replacementId = Guid.CreateVersion7();
 
-        var result = await importer.ImportScrapeConfigurationAsync(new ScrapeConfigurationImportDocument { Id = replacementId, SearchConfiguration = new SearchConfigurationImportDocument { Id = Guid.CreateVersion7() }, UserConfiguration = new UserConfigurationImportDocument { Id = Guid.CreateVersion7() }, ScrapeDirectories = new ScrapeDirectoriesImportDocument { Id = Guid.CreateVersion7() } });
+        var result = await importer.ImportScrapeConfigurationAsync(new ScrapeConfigurationImportDocument { Id = replacementId, SearchConfiguration = new SearchConfigurationImportDocument { Id = Guid.CreateVersion7() }, UserConfiguration = new UserConfigurationImportDocument { Id = Guid.CreateVersion7() }, ScrapeDirectories = new ScrapeDirectoriesImportDocument { Id = Guid.CreateVersion7() } }, TestContext.Current.CancellationToken);
 
         (result.Match(_ => true, _ => false), (await StoredConfigurationIdsAsync()).Single().Value == replacementId, originalId.Value != replacementId).ShouldBe((true, true, true));
     }

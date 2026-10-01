@@ -123,8 +123,8 @@ public sealed class GivenAConfigurationBrowser
 
         public Exceptional<Option<ScrapeConfigurationEntity>> Found { get; set; } = Exceptional.Success(Option.None<ScrapeConfigurationEntity>());
 
-        public Task<Exceptional<IReadOnlyList<ScrapeConfigurationSummary>>> ListAsync() => Task.FromResult(Summaries);
+        public Task<Exceptional<IReadOnlyList<ScrapeConfigurationSummary>>> ListAsync(CancellationToken cancellationToken = default) => Task.FromResult(Summaries);
 
-        public Task<Exceptional<Option<ScrapeConfigurationEntity>>> FindAsync(ScrapeConfigurationId id) => Task.FromResult(Found);
+        public Task<Exceptional<Option<ScrapeConfigurationEntity>>> FindAsync(ScrapeConfigurationId id, CancellationToken cancellationToken = default) => Task.FromResult(Found);
     }
 }

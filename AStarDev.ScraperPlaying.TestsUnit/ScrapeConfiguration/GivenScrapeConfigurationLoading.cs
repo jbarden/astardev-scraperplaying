@@ -18,9 +18,18 @@ public sealed class GivenScrapeConfigurationLoading
         var configuration = ScrapeConfigurationTestData.CreateConfiguration();
         repository.First = (Option<ScrapeConfigurationEntity>)configuration;
 
-        var loaded = await unitOfWork.LoadScrapeConfigurationAsync();
+        var loaded = await unitOfWork.LoadScrapeConfigurationAsync(TestContext.Current.CancellationToken);
 
         loaded.ShouldBeSameAs(configuration);
+    }
+
+    [Fact]
+    public async Task when_the_token_is_cancelled_then_the_load_is_cancelled()
+    {
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        _ = await Should.ThrowAsync<OperationCanceledException>(() => unitOfWork.LoadScrapeConfigurationAsync(cancellation.Token));
     }
 
     [Fact]
@@ -28,7 +37,7 @@ public sealed class GivenScrapeConfigurationLoading
     {
         repository.First = Option<ScrapeConfigurationEntity>.None.Instance;
 
-        var thrown = await Should.ThrowAsync<InvalidOperationException>(() => unitOfWork.LoadScrapeConfigurationAsync());
+        var thrown = await Should.ThrowAsync<InvalidOperationException>(() => unitOfWork.LoadScrapeConfigurationAsync(TestContext.Current.CancellationToken));
 
         thrown.Message.ShouldBe("Scrape configuration not found");
     }
@@ -39,7 +48,7 @@ public sealed class GivenScrapeConfigurationLoading
         var failure = new InvalidOperationException("query failed");
         repository.First = failure;
 
-        var thrown = await Should.ThrowAsync<InvalidOperationException>(() => unitOfWork.LoadScrapeConfigurationAsync());
+        var thrown = await Should.ThrowAsync<InvalidOperationException>(() => unitOfWork.LoadScrapeConfigurationAsync(TestContext.Current.CancellationToken));
 
         thrown.ShouldBeSameAs(failure);
     }
