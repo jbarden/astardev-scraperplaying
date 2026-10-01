@@ -116,6 +116,29 @@ public sealed class GivenASearchOrchestrator
         pagesProcessor.Calls.Select(call => call.PreviousProgress).ShouldBe([Option.Some(new SearchCategoryProgress(7, 3, 9)), Option.None<SearchCategoryProgress>()]);
     }
 
+    [Fact]
+    public async Task when_a_page_completes_then_the_category_progress_is_recorded_on_the_category()
+    {
+        var configuration = ScrapeConfigurationTestData.CreateConfiguration(categoryCount: 1);
+        pagesProcessor.PageProgress.Add(new SearchCategoryProgress(50, 2, 10));
+
+        await Run(configuration);
+
+        var category = configuration.SearchConfiguration.SearchCategories.Single();
+        (category.LastKnownImageCount, category.LastPageVisited, category.TotalPages).ShouldBe((50, 2, 10));
+    }
+
+    [Fact]
+    public async Task when_top_wallpaper_pages_complete_then_no_category_progress_is_recorded()
+    {
+        var configuration = ScrapeConfigurationTestData.CreateConfiguration(categoryCount: 0);
+        pagesProcessor.PageProgress.Add(new SearchCategoryProgress(50, 2, 10));
+
+        await Run(configuration);
+
+        unitOfWork.SaveCount.ShouldBe(0);
+    }
+
     private Task Run(ScrapeConfigurationEntity configuration) => orchestrator.RunSearchesAsync(configuration, progress, CancellationToken.None);
 
     private sealed record PagesCall(string LogLabel, Option<string> CategoryName, Option<SearchCategoryProgress> PreviousProgress, WallhavenConnection Connection, IReadOnlyList<string> PersonCategories, IProgress<string> Progress);
@@ -124,14 +147,17 @@ public sealed class GivenASearchOrchestrator
     {
         public List<PagesCall> Calls { get; } = [];
 
+        public List<SearchCategoryProgress> PageProgress { get; } = [];
+
         public Action OnFetch { get; set; } = () => { };
 
         public Option<SearchCategoryProgress> Result { get; set; } = Option.None<SearchCategoryProgress>();
 
-        public Task<Option<SearchCategoryProgress>> FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Option<SearchCategoryProgress> previousProgress, Func<int, Uri> pageUrlFactory, WallhavenConnection connection, IReadOnlyList<string> personCategories, IProgress<string> progress, CancellationToken cancellationToken)
+        public Task<Option<SearchCategoryProgress>> FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Option<SearchCategoryProgress> previousProgress, Action<SearchCategoryProgress> onPageCompleted, Func<int, Uri> pageUrlFactory, WallhavenConnection connection, IReadOnlyList<string> personCategories, IProgress<string> progress, CancellationToken cancellationToken)
         {
             Calls.Add(new PagesCall(logLabel, categoryName, previousProgress, connection, personCategories, progress));
             OnFetch();
+            PageProgress.ForEach(onPageCompleted);
 
             return Task.FromResult(Result);
         }
