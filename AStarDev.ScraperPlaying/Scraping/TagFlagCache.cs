@@ -14,7 +14,13 @@ public sealed record TagFlagCache
 
     /// <summary>Builds a cache from the projected flags of the stored tags.</summary>
     /// <param name="flags">The flags of every stored tag.</param>
-    public static TagFlagCache From(IEnumerable<TagFlagProjection> flags) => new(flags.GroupBy(flag => flag.WallhavenTagId).ToDictionary(group => group.Key, group => group.First()));
+    public static TagFlagCache From(IEnumerable<TagFlagProjection> flags)
+    {
+        var flagsById = new Dictionary<int, TagFlagProjection>();
+        foreach (var flag in flags) _ = flagsById.TryAdd(flag.WallhavenTagId, flag);
+
+        return new TagFlagCache(flagsById);
+    }
 
     /// <summary>Whether a tag with this Wallhaven id was stored when the cache was built.</summary>
     public bool IsStored(int wallhavenTagId) => flagsById.ContainsKey(wallhavenTagId);
