@@ -27,7 +27,15 @@ public sealed class NewWallpaperIngestor(ITagsProcessor tagsProcessor, IImageDow
 
     /// <inheritdoc/>
     public async Task IngestAsync(Data wallpaper, string extension, IReadOnlyList<Tag> tags, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
-        => await Try.RunAsync(() => IngestStepsAsync(wallpaper, extension, tags, context, progress, cancellationToken))
+    {
+        if (tags.Any(tag => tag.IgnoreImage))
+        {
+            progress.Report($"Ignoring wallpaper {wallpaper.Id}: it has a tag flagged to ignore images.");
+
+            return;
+        }
+
+        await Try.RunAsync(() => IngestStepsAsync(wallpaper, extension, tags, context, progress, cancellationToken))
             .MatchAsync(
                 _ => Task.CompletedTask,
                 exception =>
@@ -36,6 +44,7 @@ public sealed class NewWallpaperIngestor(ITagsProcessor tagsProcessor, IImageDow
 
                     return Unit.Instance;
                 });
+    }
 
     private async Task<Unit> IngestStepsAsync(Data wallpaper, string extension, IReadOnlyList<Tag> tags, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
     {

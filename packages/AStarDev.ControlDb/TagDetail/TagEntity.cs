@@ -24,6 +24,9 @@ public sealed class TagEntity : IAggregateRoot
     /// <summary>The tag's purity rating.</summary>
     public string Purity { get; set; } = string.Empty;
 
+    /// <summary>When true, any image carrying this tag is ignored (not downloaded or recorded).</summary>
+    public bool IgnoreImage { get; set; }
+
     /// <summary>Navigation property to the files this tag is linked to.</summary>
     public ICollection<FileTagEntity> FileTags { get; } = [];
 }
