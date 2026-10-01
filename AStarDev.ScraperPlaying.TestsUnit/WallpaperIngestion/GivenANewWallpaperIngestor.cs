@@ -155,7 +155,7 @@ public sealed class GivenANewWallpaperIngestor
 
         await Ingest(wallpaper, ".jpg", directory: "resolved-directory");
 
-        imageDownloader.Requests.Single().Directory.ShouldBe("famous-resolved-directory");
+        imageDownloader.Requests.Single().Directory.ShouldBe(Path.Combine("famous-resolved-directory", "emma-watson", ""));
     }
 
     private Task Ingest(Data wallpaper, string extension, string directory = "some-directory")
