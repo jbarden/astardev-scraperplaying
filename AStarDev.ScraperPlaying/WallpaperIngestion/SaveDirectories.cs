@@ -10,7 +10,6 @@ namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 public sealed record SaveDirectories(string Root, string FamousRoot, string CategorySegment)
 {
     private const int MaxNameSegmentLength = 100;
-    private const string InvalidPathCharacters = "\\/:*?\"<>|";
 
     /// <summary>Gets the directory a wallpaper with the specified tags is saved into: the famous root when any tag is famous, otherwise the normal root; then the names of its name or famous tags, slugged and joined with underscores, when it has any; then the category.</summary>
     /// <param name="tags">The wallpaper's tags.</param>
@@ -23,8 +22,8 @@ public sealed record SaveDirectories(string Root, string FamousRoot, string Cate
     }
 
     private static string NameSegment(string name)
-        => string.Concat(name.ToDirectorySlug().Where(character => !InvalidPathCharacters.Contains(character, StringComparison.Ordinal) && !char.IsControl(character))).Trim('.');
+        => name.ToDirectorySlug().RemoveInvalidFileNameCharacters().Trim('.');
 
     private static string TrimToLimit(string names)
-        => names.Length > MaxNameSegmentLength ? names[..MaxNameSegmentLength] : names;
+        => names.TruncateIfRequired(MaxNameSegmentLength);
 }

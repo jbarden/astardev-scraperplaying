@@ -242,4 +242,15 @@ public sealed class GivenStringExtensions
     [InlineData("", "")]
     [InlineData("   ", "")]
     public void when_to_directory_slug_is_called_then_returns_the_expected_result(string? input, string expected) => input!.ToDirectorySlug().ShouldBe(expected);
+
+    [Theory]
+    [InlineData("plain name", "plain name")]
+    [InlineData("a\\b/c:d*e?f\"g<h>i|j", "abcdefghij")]
+    [InlineData("tab\there", "tabhere")]
+    [InlineData("", "")]
+    [InlineData(null, "")]
+    public void when_remove_invalid_file_name_characters_is_called_then_returns_the_expected_result(string? input, string expected) => input!.RemoveInvalidFileNameCharacters().ShouldBe(expected);
+
+    [Fact]
+    public void when_truncate_if_required_would_split_a_surrogate_pair_then_the_whole_pair_is_dropped() => "ab😀".TruncateIfRequired(3).ShouldBe("ab");
 }
