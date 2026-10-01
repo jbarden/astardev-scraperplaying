@@ -13,6 +13,7 @@ public sealed record RootSettingsInput(
     string ApiKey,
     string SearchString,
     string TopWallpapers,
+    string HotWallpapers,
     string SearchStringPrefix,
     string SearchStringSuffix,
     string Subscriptions,
@@ -23,6 +24,8 @@ public sealed record RootSettingsInput(
     int SubscriptionsTotalPages,
     int TopWallpapersStartingPageNumber,
     int TopWallpapersTotalPages,
+    int HotWallpapersStartingPageNumber,
+    int HotWallpapersTotalPages,
     bool UseHeadless,
     Option<float> SlowMotionDelay)
 {
@@ -38,6 +41,7 @@ public sealed record RootSettingsInput(
             settings.ApiKey,
             settings.SearchString,
             settings.TopWallpapers,
+            settings.HotWallpapers,
             settings.SearchStringPrefix,
             settings.SearchStringSuffix,
             settings.Subscriptions,
@@ -48,6 +52,8 @@ public sealed record RootSettingsInput(
             settings.SubscriptionsTotalPages,
             settings.TopWallpapersStartingPageNumber,
             settings.TopWallpapersTotalPages,
+            settings.HotWallpapersStartingPageNumber,
+            settings.HotWallpapersTotalPages,
             settings.UseHeadless,
             settings.SlowMotionDelay);
     }
@@ -62,6 +68,7 @@ public sealed record RootSettingsInput(
         RequirePages(nameof(StartingPageNumber), StartingPageNumber, nameof(TotalPages), TotalPages, errors);
         RequirePages(nameof(SubscriptionsStartingPageNumber), SubscriptionsStartingPageNumber, nameof(SubscriptionsTotalPages), SubscriptionsTotalPages, errors);
         RequirePages(nameof(TopWallpapersStartingPageNumber), TopWallpapersStartingPageNumber, nameof(TopWallpapersTotalPages), TopWallpapersTotalPages, errors);
+        RequirePages(nameof(HotWallpapersStartingPageNumber), HotWallpapersStartingPageNumber, nameof(HotWallpapersTotalPages), HotWallpapersTotalPages, errors);
         _ = SlowMotionDelay.Match(delay => RequireNotNegative(nameof(SlowMotionDelay), delay, errors), () => true);
 
         return errors.Count > 0
@@ -72,6 +79,7 @@ public sealed record RootSettingsInput(
                 ApiKey,
                 SearchString,
                 TopWallpapers,
+                HotWallpapers,
                 SearchStringPrefix,
                 SearchStringSuffix,
                 Subscriptions,
@@ -82,6 +90,8 @@ public sealed record RootSettingsInput(
                 SubscriptionsTotalPages,
                 TopWallpapersStartingPageNumber,
                 TopWallpapersTotalPages,
+                HotWallpapersStartingPageNumber,
+                HotWallpapersTotalPages,
                 UseHeadless,
                 SlowMotionDelay));
     }

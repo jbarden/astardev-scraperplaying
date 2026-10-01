@@ -20,6 +20,7 @@ public partial class RootSettingsEditor : UserControl
         SearchStringPrefixBox.Text = input.SearchStringPrefix;
         SearchStringSuffixBox.Text = input.SearchStringSuffix;
         TopWallpapersBox.Text = input.TopWallpapers;
+        HotWallpapersBox.Text = input.HotWallpapers;
         SubscriptionsBox.Text = input.Subscriptions;
         ImagePauseInSecondsBox.Value = input.ImagePauseInSeconds;
         StartingPageNumberBox.Value = input.StartingPageNumber;
@@ -28,6 +29,8 @@ public partial class RootSettingsEditor : UserControl
         SubscriptionsTotalPagesBox.Value = input.SubscriptionsTotalPages;
         TopWallpapersStartingPageNumberBox.Value = input.TopWallpapersStartingPageNumber;
         TopWallpapersTotalPagesBox.Value = input.TopWallpapersTotalPages;
+        HotWallpapersStartingPageNumberBox.Value = input.HotWallpapersStartingPageNumber;
+        HotWallpapersTotalPagesBox.Value = input.HotWallpapersTotalPages;
         UseHeadlessCheckBox.IsChecked = input.UseHeadless;
         SlowMotionDelayBox.Value = input.SlowMotionDelay.Match(delay => (decimal?)delay, () => null);
     }
@@ -39,6 +42,7 @@ public partial class RootSettingsEditor : UserControl
         ApiKeyBox.Text ?? string.Empty,
         SearchStringBox.Text ?? string.Empty,
         TopWallpapersBox.Text ?? string.Empty,
+        HotWallpapersBox.Text ?? string.Empty,
         SearchStringPrefixBox.Text ?? string.Empty,
         SearchStringSuffixBox.Text ?? string.Empty,
         SubscriptionsBox.Text ?? string.Empty,
@@ -49,6 +53,8 @@ public partial class RootSettingsEditor : UserControl
         ToInt(SubscriptionsTotalPagesBox),
         ToInt(TopWallpapersStartingPageNumberBox),
         ToInt(TopWallpapersTotalPagesBox),
+        ToInt(HotWallpapersStartingPageNumberBox),
+        ToInt(HotWallpapersTotalPagesBox),
         UseHeadlessCheckBox.IsChecked == true,
         SlowMotionDelayBox.Value is { } delay ? Option.Some((float)delay) : Option.None<float>());
 

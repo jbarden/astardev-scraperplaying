@@ -11,6 +11,7 @@ public sealed class GivenARootSettingsInput
         "api-key",
         "cats",
         "top",
+        "hot",
         "prefix-",
         "-suffix",
         "subscriptions",
@@ -21,6 +22,8 @@ public sealed class GivenARootSettingsInput
         30,
         3,
         40,
+        4,
+        50,
         true,
         Option.Some(250f));
 
@@ -45,6 +48,7 @@ public sealed class GivenARootSettingsInput
         settings.SubscriptionsTotalPages.ShouldBe(30);
         settings.TopWallpapersStartingPageNumber.ShouldBe(3);
         settings.TopWallpapersTotalPages.ShouldBe(40);
+        (settings.HotWallpapers, settings.HotWallpapersStartingPageNumber, settings.HotWallpapersTotalPages).ShouldBe(("hot", 4, 50));
         settings.UseHeadless.ShouldBeTrue();
         settings.SlowMotionDelay.ShouldBe(Option.Some(250f));
     }
@@ -92,6 +96,8 @@ public sealed class GivenARootSettingsInput
         ErrorsFor(ValidInput with { SubscriptionsTotalPages = -1 }).ShouldContain(error => error.Property == nameof(RootSettingsInput.SubscriptionsTotalPages));
         ErrorsFor(ValidInput with { TopWallpapersStartingPageNumber = -1 }).ShouldContain(error => error.Property == nameof(RootSettingsInput.TopWallpapersStartingPageNumber));
         ErrorsFor(ValidInput with { TopWallpapersTotalPages = -1 }).ShouldContain(error => error.Property == nameof(RootSettingsInput.TopWallpapersTotalPages));
+        ErrorsFor(ValidInput with { HotWallpapersStartingPageNumber = -1 }).ShouldContain(error => error.Property == nameof(RootSettingsInput.HotWallpapersStartingPageNumber));
+        ErrorsFor(ValidInput with { HotWallpapersTotalPages = -1 }).ShouldContain(error => error.Property == nameof(RootSettingsInput.HotWallpapersTotalPages));
     }
 
     [Fact]
@@ -100,6 +106,7 @@ public sealed class GivenARootSettingsInput
         ErrorsFor(ValidInput with { StartingPageNumber = 21 }).ShouldContain(error => error.Property == nameof(RootSettingsInput.StartingPageNumber));
         ErrorsFor(ValidInput with { SubscriptionsStartingPageNumber = 31 }).ShouldContain(error => error.Property == nameof(RootSettingsInput.SubscriptionsStartingPageNumber));
         ErrorsFor(ValidInput with { TopWallpapersStartingPageNumber = 41 }).ShouldContain(error => error.Property == nameof(RootSettingsInput.TopWallpapersStartingPageNumber));
+        ErrorsFor(ValidInput with { HotWallpapersStartingPageNumber = 51 }).ShouldContain(error => error.Property == nameof(RootSettingsInput.HotWallpapersStartingPageNumber));
     }
 
     [Fact]
