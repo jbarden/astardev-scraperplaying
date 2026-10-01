@@ -9,15 +9,15 @@ namespace AStarDev.ScraperPlaying.Scraping;
 public sealed class WallhavenPageFetcher(IJsonResponseProcessor jsonResponseProcessor, ILogger<WallhavenPageFetcher> logger) : IWallhavenPageFetcher
 {
     /// <inheritdoc/>
-    public async Task<SearchResponse> FetchPageAsync(string logLabel, Uri pageUrl, int page, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
+    public async Task<SearchResponse> FetchPageAsync(PageFetchRequest request, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
     {
-        var pageName = $"{logLabel} page {page}";
+        var pageName = $"{request.LogLabel} page {request.Page}";
         progress.Report($"Fetching {pageName}.");
         LogMessage.PageView(logger, pageName);
 
-        return (await jsonResponseProcessor.GetFromJsonAsync<SearchResponse>(pageUrl, client, cancellationToken))
+        return (await jsonResponseProcessor.GetFromJsonAsync<SearchResponse>(request.PageUrl, client, cancellationToken))
             .Match(
-                option => option.Match(value => value, () => throw new InvalidOperationException($"No response body received for {pageUrl}.")),
+                option => option.Match(value => value, () => throw new InvalidOperationException($"No response body received for {request.PageUrl}.")),
                 exception => throw exception);
     }
 }

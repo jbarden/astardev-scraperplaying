@@ -62,7 +62,7 @@ public sealed class GivenAWallhavenPageFetcher
     {
         using var client = new HttpClient();
 
-        return await fetcher.FetchPageAsync("top wallpapers", PageUrl, 2, client, progress, CancellationToken.None);
+        return await fetcher.FetchPageAsync(new PageFetchRequest("top wallpapers", PageUrl, 2), client, progress, CancellationToken.None);
     }
 
     private sealed class FakeJsonResponseProcessor : IJsonResponseProcessor
