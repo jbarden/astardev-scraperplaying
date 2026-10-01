@@ -53,6 +53,7 @@ public static class ScrapeConfigurationImportMapper
             ApiKey = document.ApiKey,
             SearchString = document.SearchString,
             TopWallpapers = document.TopWallpapers,
+            HotWallpapers = document.HotWallpapers,
             SearchStringPrefix = document.SearchStringPrefix,
             SearchStringSuffix = document.SearchStringSuffix,
             Subscriptions = document.Subscriptions,
@@ -63,6 +64,8 @@ public static class ScrapeConfigurationImportMapper
             SubscriptionsTotalPages = document.SubscriptionsTotalPages,
             TopWallpapersStartingPageNumber = document.TopWallpapersStartingPageNumber,
             TopWallpapersTotalPages = document.TopWallpapersTotalPages,
+            HotWallpapersStartingPageNumber = document.HotWallpapersStartingPageNumber,
+            HotWallpapersTotalPages = document.HotWallpapersTotalPages,
             LoginUrl = document.LoginUrl,
             UseHeadless = document.UseHeadless,
             SlowMotionDelay = document.SlowMotionDelay

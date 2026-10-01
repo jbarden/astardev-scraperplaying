@@ -27,6 +27,7 @@ internal sealed class ScrapeSettingsSearchConfiguration
     public List<SearchCategoryImportDocument> SearchCategories { get; init; } = [];
     public string SearchString { get; init; } = string.Empty;
     public string TopWallpapers { get; init; } = string.Empty;
+    public string HotWallpapers { get; init; } = "HotWallpapers";
     public string SearchStringPrefix { get; init; } = string.Empty;
     public string SearchStringSuffix { get; init; } = string.Empty;
     public string Subscriptions { get; init; } = string.Empty;
@@ -39,6 +40,8 @@ internal sealed class ScrapeSettingsSearchConfiguration
     public int SubscriptionsTotalPages { get; init; }
     public int TopWallpapersTotalPages { get; init; }
     public int TopWallpapersStartingPageNumber { get; init; }
+    public int HotWallpapersTotalPages { get; init; }
+    public int HotWallpapersStartingPageNumber { get; init; }
 }
 
 internal sealed class ScrapeSettingsDirectories

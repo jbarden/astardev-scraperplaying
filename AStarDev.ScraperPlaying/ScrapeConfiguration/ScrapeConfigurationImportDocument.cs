@@ -14,6 +14,7 @@ public sealed class ScrapeConfigurationImportDocument
     public string ApiKey { get; init; } = string.Empty;
     public string SearchString { get; init; } = string.Empty;
     public string TopWallpapers { get; init; } = string.Empty;
+    public string HotWallpapers { get; init; } = "HotWallpapers";
     public string SearchStringPrefix { get; init; } = string.Empty;
     public string SearchStringSuffix { get; init; } = string.Empty;
     public string Subscriptions { get; init; } = string.Empty;
@@ -24,6 +25,8 @@ public sealed class ScrapeConfigurationImportDocument
     public int SubscriptionsTotalPages { get; init; }
     public int TopWallpapersStartingPageNumber { get; init; }
     public int TopWallpapersTotalPages { get; init; }
+    public int HotWallpapersStartingPageNumber { get; init; }
+    public int HotWallpapersTotalPages { get; init; }
     [SuppressMessage("Design", "CA1056:URI properties should not be strings", Justification = "The login page is free text and is not required to be a valid URL.")]
     public string LoginUrl { get; init; } = "https://example.com/login";
     public bool UseHeadless { get; init; }

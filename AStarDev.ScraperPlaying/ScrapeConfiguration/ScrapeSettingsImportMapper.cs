@@ -37,6 +37,7 @@ internal static class ScrapeSettingsImportMapper
             LoginUrl = searchConfiguration.LoginUrl,
             SearchString = searchConfiguration.SearchString,
             TopWallpapers = searchConfiguration.TopWallpapers,
+            HotWallpapers = searchConfiguration.HotWallpapers,
             SearchStringPrefix = searchConfiguration.SearchStringPrefix,
             SearchStringSuffix = searchConfiguration.SearchStringSuffix,
             Subscriptions = searchConfiguration.Subscriptions,
@@ -48,7 +49,9 @@ internal static class ScrapeSettingsImportMapper
             SubscriptionsStartingPageNumber = searchConfiguration.SubscriptionsStartingPageNumber,
             SubscriptionsTotalPages = searchConfiguration.SubscriptionsTotalPages,
             TopWallpapersTotalPages = searchConfiguration.TopWallpapersTotalPages,
-            TopWallpapersStartingPageNumber = searchConfiguration.TopWallpapersStartingPageNumber
+            TopWallpapersStartingPageNumber = searchConfiguration.TopWallpapersStartingPageNumber,
+            HotWallpapersTotalPages = searchConfiguration.HotWallpapersTotalPages,
+            HotWallpapersStartingPageNumber = searchConfiguration.HotWallpapersStartingPageNumber
         };
     }
 }
