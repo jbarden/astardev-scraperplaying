@@ -10,6 +10,8 @@ namespace AStarDev.ScraperPlaying.TestsUnit.Scraping;
 
 public sealed class GivenATagsProcessor
 {
+    private static readonly string[] PersonCategories = ["Celebrities"];
+
     private readonly FakeJsonResponseProcessor jsonResponseProcessor = new();
     private readonly FakeTagsQuery tagsQuery = new();
     private readonly FakeUnitOfWork unitOfWork = new();
@@ -129,7 +131,7 @@ public sealed class GivenATagsProcessor
 
         using var client = new HttpClient();
 
-        var result = await processor.FetchTagsAsync("wallpaper-1", client, progress, CancellationToken.None);
+        var result = await processor.FetchTagsAsync("wallpaper-1", client, PersonCategories, progress, CancellationToken.None);
 
         result.Match(tags => tags, ex => throw ex).ShouldBe([new Tag(9, "Max Verstappen", "max-verstappen", 51, "Other Figures", "sfw")]);
         tagRepository.Added.ShouldBeEmpty();
@@ -142,7 +144,7 @@ public sealed class GivenATagsProcessor
         tagsQuery.Ignored.Add(20);
 
         using var client = new HttpClient();
-        var result = await processor.FetchTagsAsync("wallpaper-1", client, progress, CancellationToken.None);
+        var result = await processor.FetchTagsAsync("wallpaper-1", client, PersonCategories, progress, CancellationToken.None);
 
         result.Match(tags => tags.Select(tag => (tag.Id, tag.IgnoreImage)).ToList(), ex => throw ex).ShouldBe([(20, true), (21, false)]);
     }
@@ -154,7 +156,7 @@ public sealed class GivenATagsProcessor
         tagsQuery.Names.Add(24);
 
         using var client = new HttpClient();
-        var result = await processor.FetchTagsAsync("wallpaper-1", client, progress, CancellationToken.None);
+        var result = await processor.FetchTagsAsync("wallpaper-1", client, PersonCategories, progress, CancellationToken.None);
 
         result.Match(tags => tags.Select(tag => (tag.Id, tag.IsName)).ToList(), ex => throw ex).ShouldBe([(24, true), (25, false)]);
     }
@@ -166,10 +168,68 @@ public sealed class GivenATagsProcessor
         jsonResponseProcessor.Responses["wallpaper-b"] = CreateDetailResponse(CreateTag(wallhavenTagId: 27, name: "two"));
 
         using var client = new HttpClient();
-        _ = await processor.FetchTagsAsync("wallpaper-a", client, progress, CancellationToken.None);
-        _ = await processor.FetchTagsAsync("wallpaper-b", client, progress, CancellationToken.None);
+        _ = await processor.FetchTagsAsync("wallpaper-a", client, PersonCategories, progress, CancellationToken.None);
+        _ = await processor.FetchTagsAsync("wallpaper-b", client, PersonCategories, progress, CancellationToken.None);
 
         tagsQuery.NamesQueryCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task when_a_stored_tag_is_flagged_famous_then_it_is_returned_famous_whatever_its_category()
+    {
+        tagsQuery.Existing[30] = new TagEntity { WallhavenTagId = 30, Name = "plain", Category = "Nature", IsFamous = true };
+        SetUpDetailResponse(new Tag(30, "plain", "plain", 1, "Nature", "sfw"));
+
+        using var client = new HttpClient();
+        var result = await processor.FetchTagsAsync("wallpaper-1", client, PersonCategories, progress, CancellationToken.None);
+
+        result.Match(tags => tags.Single().IsFamous, ex => throw ex).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task when_a_stored_tag_is_not_flagged_famous_then_it_stays_not_famous_even_if_it_looks_like_a_person()
+    {
+        tagsQuery.Existing[31] = new TagEntity { WallhavenTagId = 31, Name = "Emma Watson", Category = "Celebrities", IsFamous = false };
+        SetUpDetailResponse(new Tag(31, "Emma Watson", "emma-watson", 1, "Celebrities", "sfw"));
+
+        using var client = new HttpClient();
+        var result = await processor.FetchTagsAsync("wallpaper-1", client, PersonCategories, progress, CancellationToken.None);
+
+        result.Match(tags => tags.Single().IsFamous, ex => throw ex).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task when_a_tag_is_not_stored_yet_then_it_is_seeded_famous_from_its_person_category()
+    {
+        SetUpDetailResponse(new Tag(32, "Emma Watson", "emma-watson", 1, "Celebrities", "sfw"), new Tag(33, "outside", "outside", 1, "Nature", "sfw"));
+
+        using var client = new HttpClient();
+        var result = await processor.FetchTagsAsync("wallpaper-1", client, PersonCategories, progress, CancellationToken.None);
+
+        result.Match(tags => tags.Select(tag => (tag.Id, tag.IsFamous)).ToList(), ex => throw ex).ShouldBe([(32, true), (33, false)]);
+    }
+
+    [Fact]
+    public async Task when_a_new_famous_tag_is_linked_then_it_is_stored_famous()
+    {
+        SetUpDetailResponse(new Tag(34, "Emma Watson", "emma-watson", 1, "Celebrities", "sfw"));
+
+        _ = await Run();
+
+        tagRepository.Added.Single().IsFamous.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task when_tags_are_fetched_for_several_wallpapers_then_the_famous_and_stored_tags_are_only_loaded_once()
+    {
+        jsonResponseProcessor.Responses["wallpaper-a"] = CreateDetailResponse(CreateTag(wallhavenTagId: 35, name: "one"));
+        jsonResponseProcessor.Responses["wallpaper-b"] = CreateDetailResponse(CreateTag(wallhavenTagId: 36, name: "two"));
+
+        using var client = new HttpClient();
+        _ = await processor.FetchTagsAsync("wallpaper-a", client, PersonCategories, progress, CancellationToken.None);
+        _ = await processor.FetchTagsAsync("wallpaper-b", client, PersonCategories, progress, CancellationToken.None);
+
+        (tagsQuery.FamousQueryCount, tagsQuery.StoredQueryCount).ShouldBe((1, 1));
     }
 
     [Fact]
@@ -179,8 +239,8 @@ public sealed class GivenATagsProcessor
         jsonResponseProcessor.Responses["wallpaper-b"] = CreateDetailResponse(CreateTag(wallhavenTagId: 23, name: "two"));
 
         using var client = new HttpClient();
-        _ = await processor.FetchTagsAsync("wallpaper-a", client, progress, CancellationToken.None);
-        _ = await processor.FetchTagsAsync("wallpaper-b", client, progress, CancellationToken.None);
+        _ = await processor.FetchTagsAsync("wallpaper-a", client, PersonCategories, progress, CancellationToken.None);
+        _ = await processor.FetchTagsAsync("wallpaper-b", client, PersonCategories, progress, CancellationToken.None);
 
         tagsQuery.IgnoredQueryCount.ShouldBe(1);
     }
@@ -217,7 +277,7 @@ public sealed class GivenATagsProcessor
     {
         using var client = new HttpClient();
 
-        return await (await processor.FetchTagsAsync(wallpaperId, client, progress, CancellationToken.None))
+        return await (await processor.FetchTagsAsync(wallpaperId, client, PersonCategories, progress, CancellationToken.None))
             .Match(tags => processor.LinkTagsAsync(fileId, tags, CancellationToken.None), exception => Task.FromResult((Exceptional<Unit>)exception));
     }
 
@@ -258,6 +318,24 @@ public sealed class GivenATagsProcessor
         public int IgnoredQueryCount { get; private set; }
 
         public HashSet<int> Names { get; } = [];
+
+        public int FamousQueryCount { get; private set; }
+
+        public int StoredQueryCount { get; private set; }
+
+        public Task<Exceptional<IReadOnlyCollection<int>>> GetFamousWallhavenIdsAsync(CancellationToken cancellationToken = default)
+        {
+            FamousQueryCount++;
+
+            return Task.FromResult<Exceptional<IReadOnlyCollection<int>>>(Existing.Values.Where(tag => tag.IsFamous).Select(tag => tag.WallhavenTagId).ToList());
+        }
+
+        public Task<Exceptional<IReadOnlyCollection<int>>> GetStoredWallhavenIdsAsync(CancellationToken cancellationToken = default)
+        {
+            StoredQueryCount++;
+
+            return Task.FromResult<Exceptional<IReadOnlyCollection<int>>>(Existing.Keys.ToList());
+        }
 
         public int NamesQueryCount { get; private set; }
 

@@ -93,6 +93,41 @@ public sealed class GivenATagsQuery : IDisposable
     }
 
     [Fact]
+    public async Task when_some_tags_are_flagged_famous_then_only_their_wallhaven_ids_are_returned()
+    {
+        var famous = TagEntityFactory.CreateTagEntity(wallhavenTagId: 40, name: "Famous Person");
+        famous.IsFamous = true;
+        await context.Tags.AddRangeAsync([famous, TagEntityFactory.CreateTagEntity(wallhavenTagId: 41, name: "outside")], TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var query = new TagsQuery(context);
+
+        var result = await query.GetFamousWallhavenIdsAsync(TestContext.Current.CancellationToken);
+
+        result.Match(ids => ids.ToList(), exception => throw exception).ShouldBe([40]);
+    }
+
+    [Fact]
+    public async Task when_tags_are_stored_then_the_stored_wallhaven_ids_are_all_returned()
+    {
+        await context.Tags.AddRangeAsync([TagEntityFactory.CreateTagEntity(wallhavenTagId: 50, name: "one"), TagEntityFactory.CreateTagEntity(wallhavenTagId: 51, name: "two")], TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var query = new TagsQuery(context);
+
+        var result = await query.GetStoredWallhavenIdsAsync(TestContext.Current.CancellationToken);
+
+        result.Match(ids => ids.Order().ToList(), exception => throw exception).ShouldBe([50, 51]);
+    }
+
+    [Fact]
+    public async Task when_a_tag_is_stored_then_it_is_not_famous_by_default()
+    {
+        await context.Tags.AddAsync(TagEntityFactory.CreateTagEntity(wallhavenTagId: 42, name: "default"), TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        context.Tags.Single().IsFamous.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task when_a_tag_is_stored_then_it_does_not_ignore_images_by_default()
     {
         await context.Tags.AddAsync(TagEntityFactory.CreateTagEntity(wallhavenTagId: 12, name: "default"), TestContext.Current.CancellationToken);

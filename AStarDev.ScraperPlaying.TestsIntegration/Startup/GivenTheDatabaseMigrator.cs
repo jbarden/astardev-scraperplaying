@@ -103,6 +103,24 @@ public sealed class GivenTheDatabaseMigrator : IDisposable
         (passwordColumns, user.EmailAddress, user.Username).ShouldBe((0, "user@example.com", "user"));
     }
 
+    [Fact]
+    public async Task when_tags_exist_before_the_famous_column_is_added_then_person_name_tags_are_flagged_famous_and_the_rest_are_not()
+    {
+        var factory = serviceProvider.GetRequiredService<IDbContextFactory<ControlDbContext>>();
+        await using (var older = await factory.CreateDbContextAsync(TestContext.Current.CancellationToken))
+        {
+            await MigrateWithoutSeedingAsync(older, "20261001140613_AddTagIsName", TestContext.Current.CancellationToken);
+            await Seeder.SeedAsync(older, TestContext.Current.CancellationToken);
+            await older.Database.ExecuteSqlRawAsync("INSERT INTO Tags (Id, WallhavenTagId, Name, Alias, CategoryId, Category, Purity, IgnoreImage, IsName) VALUES ('a1', 1, 'Emma Watson', 'emma', 1, 'celebrities', 'sfw', 0, 0), ('a2', 2, 'finger pointing', 'finger', 1, 'Celebrities', 'sfw', 0, 0), ('a3', 3, 'Formula 1', 'f1', 1, 'Sports', 'sfw', 0, 0)", TestContext.Current.CancellationToken);
+        }
+
+        await DatabaseMigrator.MigrateAsync(factory, NullLogger.Instance);
+
+        await using var context = await factory.CreateDbContextAsync(TestContext.Current.CancellationToken);
+        var famous = await context.Database.SqlQueryRaw<string>("SELECT Name AS Value FROM Tags WHERE IsFamous = 1 ORDER BY Name").ToListAsync(TestContext.Current.CancellationToken);
+        string.Join(",", famous).ShouldBe("Emma Watson");
+    }
+
     [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "The text is the migrator's own generated script for a fixed migration name; no user input.")]
     private static async Task MigrateWithoutSeedingAsync(ControlDbContext context, string targetMigration, CancellationToken cancellationToken)
     {

@@ -10,5 +10,6 @@
   "purity": "sfw",
   "ignoreImage": false,
   "isName": false,
+  "isFamous": false,
   "fileTags": []
 }
