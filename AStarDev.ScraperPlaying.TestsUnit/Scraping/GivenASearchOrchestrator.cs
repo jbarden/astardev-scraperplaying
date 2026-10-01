@@ -164,7 +164,7 @@ public sealed class GivenASearchOrchestrator
 
     private Task Run(ScrapeConfigurationEntity configuration, ScrapeLimits limits)
     {
-        var pagesProcessor = new PagesProcessor(new FakeClientFactory(), pageFetcher, unitOfWork, new FakeSaveDirectoryResolver(), new FakeIngestionService(), limits);
+        var pagesProcessor = new PagesProcessor(new WallpaperIngestionContextFactory(new FakeClientFactory(), unitOfWork, new FakeSaveDirectoryResolver()), pageFetcher, unitOfWork, new FakeIngestionService(), new ScrapeResumePolicy(limits));
 
         return new SearchOrchestrator(pagesProcessor, unitOfWork, limits).RunSearchesAsync(configuration, progress, CancellationToken.None);
     }
