@@ -108,8 +108,17 @@ public static class StringExtensions
         {
             if (string.IsNullOrEmpty(value) || truncateLength <= 0) return value;
 
-            return value.Length > truncateLength ? value[..truncateLength] : value;
+            if (value.Length <= truncateLength) return value;
+
+            var length = char.IsHighSurrogate(value[truncateLength - 1]) ? truncateLength - 1 : truncateLength;
+
+            return value[..length];
         }
+
+        /// <summary>The RemoveInvalidFileNameCharacters method removes the characters that are not allowed in file or directory names on any supported platform, along with control characters.</summary>
+        /// <returns>The string without the invalid characters, or an empty string when the value is null or empty</returns>
+        public string RemoveInvalidFileNameCharacters()
+            => string.IsNullOrEmpty(value) ? string.Empty : string.Concat(value.Where(character => !"\\/:*?\"<>|".Contains(character, StringComparison.Ordinal) && !char.IsControl(character)));
 
         /// <summary>The RemoveTrailing method will, as the name suggests, remove the specified character from the end if it exists</summary>
         /// <param name="removeTrailing">The character to remove from the end if it exists</param>

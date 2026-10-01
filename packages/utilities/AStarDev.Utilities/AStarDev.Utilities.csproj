@@ -22,6 +22,7 @@
     <PackageProjectUrl>https://github.com/astar-development/astar-dev-mono/tree/main/packages/core</PackageProjectUrl>
     <DocumentationFile>$(AssemblyName).xml</DocumentationFile>
     <PackageReleaseNotes>
+        v0.2.4 chore: hygiene — DI validation, shared sanitiser, safe truncation, dispose cleanup (#456)
         v0.2.3 fix: report the whole exception chain so database update causes are visible
         v0.2.2 chore: promote private-field naming rule to warning (camelCase)
         v0.2.1 chore: solution cleanup - namespaces, XML doc formatting, test folder alignment
