@@ -3,7 +3,7 @@ using AStarDev.FunctionalParadigm;
 namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 public sealed class ScrapeConfigurationImportService(
-    IScrapeConfigurationImporter repository,
+    IScrapeConfigurationImporter importer,
     IScrapeConfigurationFileReader fileReader) : IScrapeConfigurationImportService
 {
     public async Task ImportAsync(string filePath, CancellationToken cancellationToken = default)

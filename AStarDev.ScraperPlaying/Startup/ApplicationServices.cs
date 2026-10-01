@@ -48,14 +48,12 @@ public static class ApplicationServices
     public static IServiceCollection AddScrapeConfigurationServices(this IServiceCollection services)
         => services
             .AddSingleton<IRootDirectoryCheck, RootDirectoryCheck>()
-            .AddSingleton<IConfigurationFilePicker, ConfigurationFilePicker>()
             .AddSingleton<IScrapeConfigurationFileReader, ScrapeConfigurationFileReader>()
             .AddSingleton<IScrapeConfigurationImportService, ScrapeConfigurationImportService>()
             .AddSingleton<IScrapeConfigurationImporter, ScrapeConfigurationImporter>()
             .AddSingleton<IScrapeConfigurationFileWriter, ScrapeConfigurationFileWriter>()
             .AddSingleton<IScrapeConfigurationExportService, ScrapeConfigurationExportService>()
             .AddSingleton<IScrapeConfigurationExporter, ScrapeConfigurationExporter>()
-            .AddSingleton<IScrapeConfigurationFileService, ScrapeConfigurationFileService>()
             .AddSingleton<IScrapeConfigurationCatalogue, ScrapeConfigurationCatalogue>()
             .AddSingleton<IScrapeConfigurationUpdater, ScrapeConfigurationUpdater>()
             .AddSingleton<ConfigurationEditSaver>();

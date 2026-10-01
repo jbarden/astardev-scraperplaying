@@ -11,8 +11,8 @@ public sealed class GivenConfigurationTransferMessages
         => ConfigurationTransferMessages.ForImport(Option.Some(Unit.Instance)).ShouldBe("Scrape configuration imported.");
 
     [Fact]
-    public void when_an_import_was_not_completed_then_the_could_not_be_completed_message_is_returned()
-        => ConfigurationTransferMessages.ForImport(Option.None<Unit>()).ShouldBe("Scrape configuration import could not be completed.");
+    public void when_no_file_was_picked_to_import_then_the_cancelled_message_is_returned()
+        => ConfigurationTransferMessages.ForImport(Option.None<Unit>()).ShouldBe("Scrape configuration import cancelled.");
 
     [Fact]
     public void when_an_export_wrote_a_configuration_then_the_exported_message_is_returned()
@@ -27,6 +27,6 @@ public sealed class GivenConfigurationTransferMessages
         => ConfigurationTransferMessages.ForExport(Option.Some(false), ApiKeyExport.Exclude).ShouldBe("No scrape configuration was found to export.");
 
     [Fact]
-    public void when_an_export_was_not_completed_then_the_could_not_be_completed_message_is_returned()
-        => ConfigurationTransferMessages.ForExport(Option.None<bool>(), ApiKeyExport.Exclude).ShouldBe("Scrape configuration export could not be completed.");
+    public void when_no_file_was_picked_to_export_then_the_cancelled_message_is_returned()
+        => ConfigurationTransferMessages.ForExport(Option.None<bool>(), ApiKeyExport.Exclude).ShouldBe("Scrape configuration export cancelled.");
 }

@@ -17,7 +17,8 @@ public sealed class GivenMainWindowActions : IDisposable
     private readonly OperationCoordinator coordinator = new();
     private readonly StatusReporter status = new(NullLogger<StatusReporter>.Instance);
     private readonly FakeDialogHost dialogs = new();
-    private readonly FakeFileService files = new();
+    private readonly FakeImportService importService = new();
+    private readonly FakeExportService exportService = new();
     private readonly FakeConfigurationCatalogue configurationCatalogue = new();
     private readonly FakeTagCatalogue tagCatalogue = new();
     private readonly FakeDownloadsClearer downloadsClearer = new();
@@ -30,7 +31,8 @@ public sealed class GivenMainWindowActions : IDisposable
         actions = new(
             operations,
             status,
-            files,
+            importService,
+            exportService,
             new ConfigurationBrowser(configurationCatalogue, new ConfigurationEditorWindowFactory(new ConfigurationEditSaver(new FakeUpdater()), new MockFileSystem()), status, NullLogger<ConfigurationBrowser>.Instance),
             new TagsBrowser(tagCatalogue, status),
             new ClearDownloadsRunner(downloadsClearer, operations, status),
@@ -42,27 +44,30 @@ public sealed class GivenMainWindowActions : IDisposable
     [Fact]
     public async Task when_a_configuration_is_imported_then_the_user_is_told()
     {
-        dialogs.ImportResult = Option.Some(Unit.Instance);
+        dialogs.PickedImportPath = Option.Some("path/to/import.json");
 
         await actions.ImportConfigurationAsync(dialogs);
 
         status.Text.ShouldBe("Scrape configuration imported.");
+        importService.ImportedPaths.ShouldBe(["path/to/import.json"]);
     }
 
     [Fact]
-    public async Task when_the_import_is_not_completed_then_the_user_is_told()
+    public async Task when_no_file_is_picked_to_import_then_the_user_is_told_it_was_cancelled()
     {
-        dialogs.ImportResult = Option.None<Unit>();
+        dialogs.PickedImportPath = Option.None<string>();
 
         await actions.ImportConfigurationAsync(dialogs);
 
-        status.Text.ShouldBe("Scrape configuration import could not be completed.");
+        status.Text.ShouldBe("Scrape configuration import cancelled.");
+        importService.ImportedPaths.ShouldBeEmpty();
     }
 
     [Fact]
     public async Task when_the_import_fails_then_the_failure_is_reported_and_not_thrown()
     {
-        dialogs.ImportFailure = new InvalidOperationException("import failed");
+        dialogs.PickedImportPath = Option.Some("path/to/import.json");
+        importService.Failure = new InvalidOperationException("import failed");
 
         await Should.NotThrowAsync(() => actions.ImportConfigurationAsync(dialogs));
 
@@ -72,7 +77,8 @@ public sealed class GivenMainWindowActions : IDisposable
     [Fact]
     public async Task when_the_import_is_cancelled_then_the_user_is_told()
     {
-        dialogs.ImportFailure = new OperationCanceledException(new CancellationToken(true));
+        dialogs.PickedImportPath = Option.Some("path/to/import.json");
+        importService.Failure = new OperationCanceledException(new CancellationToken(true));
         dialogs.OnPick = () => coordinator.Cancel();
 
         await actions.ImportConfigurationAsync(dialogs);
@@ -95,17 +101,21 @@ public sealed class GivenMainWindowActions : IDisposable
     [InlineData(ApiKeyExport.Include, "Scrape configuration exported including its API keys.")]
     public async Task when_a_configuration_is_exported_then_the_user_is_told_whether_the_api_keys_were_included(ApiKeyExport apiKeys, string expected)
     {
-        dialogs.ExportResult = Option.Some(true);
+        dialogs.PickedExportPath = Option.Some("path/to/export.json");
+        exportService.ConfigurationExists = true;
 
         await actions.ExportConfigurationAsync(dialogs, apiKeys);
 
         status.Text.ShouldBe(expected);
+        exportService.ExportedPaths.ShouldBe(["path/to/export.json"]);
+        exportService.ExportedModes.ShouldBe([apiKeys]);
     }
 
     [Fact]
     public async Task when_there_is_no_configuration_to_export_then_the_user_is_told()
     {
-        dialogs.ExportResult = Option.Some(false);
+        dialogs.PickedExportPath = Option.Some("path/to/export.json");
+        exportService.ConfigurationExists = false;
 
         await actions.ExportConfigurationAsync(dialogs, ApiKeyExport.Exclude);
 
@@ -113,19 +123,21 @@ public sealed class GivenMainWindowActions : IDisposable
     }
 
     [Fact]
-    public async Task when_the_export_is_not_completed_then_the_user_is_told()
+    public async Task when_no_file_is_picked_to_export_then_the_user_is_told_it_was_cancelled()
     {
-        dialogs.ExportResult = Option.None<bool>();
+        dialogs.PickedExportPath = Option.None<string>();
 
         await actions.ExportConfigurationAsync(dialogs, ApiKeyExport.Exclude);
 
-        status.Text.ShouldBe("Scrape configuration export could not be completed.");
+        status.Text.ShouldBe("Scrape configuration export cancelled.");
+        exportService.ExportedPaths.ShouldBeEmpty();
     }
 
     [Fact]
     public async Task when_the_export_fails_then_the_failure_is_reported_and_not_thrown()
     {
-        dialogs.ExportFailure = new InvalidOperationException("export failed");
+        dialogs.PickedExportPath = Option.Some("path/to/export.json");
+        exportService.Failure = new InvalidOperationException("export failed");
 
         await Should.NotThrowAsync(() => actions.ExportConfigurationAsync(dialogs, ApiKeyExport.Exclude));
 
@@ -135,7 +147,8 @@ public sealed class GivenMainWindowActions : IDisposable
     [Fact]
     public async Task when_the_export_is_cancelled_then_the_user_is_told()
     {
-        dialogs.ExportFailure = new OperationCanceledException(new CancellationToken(true));
+        dialogs.PickedExportPath = Option.Some("path/to/export.json");
+        exportService.Failure = new OperationCanceledException(new CancellationToken(true));
         dialogs.OnPick = () => coordinator.Cancel();
 
         await actions.ExportConfigurationAsync(dialogs, ApiKeyExport.Exclude);
@@ -236,13 +249,9 @@ public sealed class GivenMainWindowActions : IDisposable
 
     private sealed class FakeDialogHost : IDialogHost
     {
-        public Option<Unit> ImportResult { get; set; } = Option.None<Unit>();
+        public Option<string> PickedImportPath { get; set; } = Option.None<string>();
 
-        public Option<bool> ExportResult { get; set; } = Option.None<bool>();
-
-        public Exception? ImportFailure { get; set; }
-
-        public Exception? ExportFailure { get; set; }
+        public Option<string> PickedExportPath { get; set; } = Option.None<string>();
 
         public Exception? ConfirmFailure { get; set; }
 
@@ -254,20 +263,20 @@ public sealed class GivenMainWindowActions : IDisposable
 
         public int ShownCount { get; private set; }
 
-        public Task<Option<Unit>> ImportConfigurationAsync(IScrapeConfigurationFileService service, CancellationToken cancellationToken)
+        public Task<Option<string>> PickImportFileAsync()
         {
             PickCount++;
             OnPick();
 
-            return ImportFailure is null ? Task.FromResult(ImportResult) : Task.FromException<Option<Unit>>(ImportFailure);
+            return Task.FromResult(PickedImportPath);
         }
 
-        public Task<Option<bool>> ExportConfigurationAsync(IScrapeConfigurationFileService service, ApiKeyExport apiKeys, CancellationToken cancellationToken)
+        public Task<Option<string>> PickExportFileAsync()
         {
             PickCount++;
             OnPick();
 
-            return ExportFailure is null ? Task.FromResult(ExportResult) : Task.FromException<Option<bool>>(ExportFailure);
+            return Task.FromResult(PickedExportPath);
         }
 
         public Task ShowAsync(Window dialog)
@@ -281,11 +290,41 @@ public sealed class GivenMainWindowActions : IDisposable
             => ConfirmFailure is null ? Task.FromResult(Confirmed) : Task.FromException<bool>(ConfirmFailure);
     }
 
-    private sealed class FakeFileService : IScrapeConfigurationFileService
+    private sealed class FakeImportService : IScrapeConfigurationImportService
     {
-        public Task<Option<Unit>> ImportViaPickerAsync(Window owner, CancellationToken cancellationToken) => Task.FromResult(Option.None<Unit>());
+        public Exception? Failure { get; set; }
 
-        public Task<Option<bool>> ExportViaPickerAsync(Window owner, ApiKeyExport apiKeys, CancellationToken cancellationToken) => Task.FromResult(Option.None<bool>());
+        public List<string> ImportedPaths { get; } = [];
+
+        public Task ImportAsync(string filePath, CancellationToken cancellationToken = default)
+        {
+            if (Failure is not null) return Task.FromException(Failure);
+
+            ImportedPaths.Add(filePath);
+
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeExportService : IScrapeConfigurationExportService
+    {
+        public Exception? Failure { get; set; }
+
+        public bool ConfigurationExists { get; set; }
+
+        public List<string> ExportedPaths { get; } = [];
+
+        public List<ApiKeyExport> ExportedModes { get; } = [];
+
+        public Task<bool> ExportAsync(string filePath, ApiKeyExport apiKeys, CancellationToken cancellationToken = default)
+        {
+            if (Failure is not null) return Task.FromException<bool>(Failure);
+
+            ExportedPaths.Add(filePath);
+            ExportedModes.Add(apiKeys);
+
+            return Task.FromResult(ConfigurationExists);
+        }
     }
 
     private sealed class FakeUpdater : IScrapeConfigurationUpdater
