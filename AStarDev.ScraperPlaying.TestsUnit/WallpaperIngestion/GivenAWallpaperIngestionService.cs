@@ -1,5 +1,6 @@
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
+using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 using AStarDev.ScraperPlaying.TestsUnit.Fakes;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
@@ -149,6 +150,16 @@ public sealed class GivenAWallpaperIngestionService
     }
 
     [Fact]
+    public async Task when_a_wallpapers_tags_cannot_be_fetched_then_it_is_not_ingested_but_the_rest_of_the_page_still_is()
+    {
+        newWallpaperIngestor.FailedFetches.Add("b");
+
+        await Ingest(CreateWallpaper("a"), CreateWallpaper("b"), CreateWallpaper("c"));
+
+        string.Join(",", newWallpaperIngestor.Ingested.Select(call => call.Wallpaper.Id)).ShouldBe("a,c");
+    }
+
+    [Fact]
     public async Task when_the_operation_is_cancelled_while_a_wallpaper_is_ingesting_then_the_cancellation_propagates_and_the_prefetch_is_not_left_running()
     {
         using var cancellationTokenSource = new CancellationTokenSource();
@@ -232,6 +243,8 @@ public sealed class GivenAWallpaperIngestionService
             }
         }
 
+        public HashSet<string> FailedFetches { get; } = [];
+
         public int MaximumConcurrentFetches { get; private set; }
 
         public int MaximumConcurrentIngests { get; private set; }
@@ -242,7 +255,7 @@ public sealed class GivenAWallpaperIngestionService
 
         public static Tag TagFor(Data wallpaper) => new(1, wallpaper.Id, wallpaper.Id, 1, "Other Figures", "sfw");
 
-        public async Task<IReadOnlyList<Tag>> FetchTagsAsync(Data wallpaper, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+        public async Task<Option<IReadOnlyList<Tag>>> FetchTagsAsync(Data wallpaper, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
         {
             lock (gate)
             {
@@ -254,7 +267,7 @@ public sealed class GivenAWallpaperIngestionService
             {
                 await OnFetch(wallpaper, cancellationToken);
 
-                return [TagFor(wallpaper)];
+                return FailedFetches.Contains(wallpaper.Id) ? Option.None<IReadOnlyList<Tag>>() : Option.Some<IReadOnlyList<Tag>>([TagFor(wallpaper)]);
             }
             finally
             {

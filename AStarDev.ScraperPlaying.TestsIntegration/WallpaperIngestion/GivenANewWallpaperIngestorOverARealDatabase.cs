@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text.Json;
 using AStarDev.ControlDb;
+using AStarDev.FunctionalParadigm;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.ControlDb.TagDetail;
 using AStarDev.ScraperPlaying.Scraping;
@@ -104,7 +105,7 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
         var context = new WallpaperIngestionContext(new SaveDirectories("save-directory", "famous-save-directory", ""), client, unitOfWork.GetRepository<FileEntity, FileId>(), "category", PersonCategories);
 
         var fetchedTags = await ingestor.FetchTagsAsync(wallpaper, context, progress, cancellationToken);
-        await ingestor.IngestAsync(new WallpaperCandidate(wallpaper, ".jpg"), fetchedTags, context, progress, cancellationToken);
+        if (fetchedTags.TryGetValue(out var tagsToLink)) await ingestor.IngestAsync(new WallpaperCandidate(wallpaper, ".jpg"), tagsToLink, context, progress, cancellationToken);
         _ = await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 

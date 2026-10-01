@@ -61,9 +61,9 @@ public sealed class WallpaperIngestionService(IFilesQuery filesQuery, INewWallpa
             for (var i = 0; i < newWallpapers.Count; i++)
             {
                 var tags = await prefetch;
-                prefetch = i + 1 < newWallpapers.Count ? newWallpaperIngestor.FetchTagsAsync(newWallpapers[i + 1].Wallpaper, context, progress, cancellationToken) : Task.FromResult<IReadOnlyList<Tag>>([]);
+                prefetch = i + 1 < newWallpapers.Count ? newWallpaperIngestor.FetchTagsAsync(newWallpapers[i + 1].Wallpaper, context, progress, cancellationToken) : Task.FromResult(Option.None<IReadOnlyList<Tag>>());
 
-                await newWallpaperIngestor.IngestAsync(newWallpapers[i], tags, context, progress, cancellationToken);
+                if (tags.TryGetValue(out var fetchedTags)) await newWallpaperIngestor.IngestAsync(newWallpapers[i], fetchedTags, context, progress, cancellationToken);
             }
         }
         finally

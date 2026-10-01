@@ -53,14 +53,14 @@ public sealed class GivenAWallpaperIngestionServiceWithPersonTags
     }
 
     [Fact]
-    public async Task when_fetching_the_tags_fails_then_the_image_is_still_saved_under_the_wallpaper_id()
+    public async Task when_fetching_the_tags_fails_then_the_image_is_not_saved_so_the_wallpaper_is_retried_on_the_next_scrape()
     {
         tagsProcessor.FetchFailure = new HttpRequestException("tag fetch failed");
 
         await Ingest("abc123");
 
-        fileSystem.File.Exists(fileSystem.Path.Combine("some-directory", "abc123.jpg")).ShouldBeTrue();
-        fileRepository.Added.Select(file => file.FileName.Value).ShouldBe(["abc123.jpg"]);
+        fileSystem.File.Exists(fileSystem.Path.Combine("some-directory", "abc123.jpg")).ShouldBeFalse();
+        fileRepository.Added.ShouldBeEmpty();
         tagsProcessor.LinkedTags.ShouldBeEmpty();
     }
 

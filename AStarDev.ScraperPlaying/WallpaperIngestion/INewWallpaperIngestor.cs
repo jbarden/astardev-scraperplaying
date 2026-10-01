@@ -1,3 +1,4 @@
+using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 using Tag = AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse.Tag;
 
@@ -10,13 +11,13 @@ namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 /// </summary>
 public interface INewWallpaperIngestor
 {
-    /// <summary>Fetches the wallpaper's tags. A failure to fetch them is reported and gives no tags rather than throwing; a cancellation is not swallowed.</summary>
+    /// <summary>Fetches the wallpaper's tags. A failure to fetch them is reported and gives none rather than throwing, so the caller can leave the wallpaper to be retried on a later scrape; a cancellation is not swallowed.</summary>
     /// <param name="wallpaper">The wallpaper whose tags to fetch.</param>
     /// <param name="context">The per-page state, supplying the HTTP client.</param>
     /// <param name="progress">The progress reporter to report progress.</param>
     /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
-    /// <returns>The wallpaper's tags, or none if they could not be fetched.</returns>
-    Task<IReadOnlyList<Tag>> FetchTagsAsync(Data wallpaper, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken);
+    /// <returns>The wallpaper's tags, or <see cref="Option{T}.None"/> if they could not be fetched.</returns>
+    Task<Option<IReadOnlyList<Tag>>> FetchTagsAsync(Data wallpaper, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken);
 
     /// <summary>
     /// Downloads the wallpaper into <paramref name="context"/>'s directory, records it and links <paramref name="tags"/> (or, if any tag is flagged to ignore images, does nothing), reporting a failure at any step without throwing so the
