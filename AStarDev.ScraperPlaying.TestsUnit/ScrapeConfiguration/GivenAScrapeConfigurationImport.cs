@@ -246,7 +246,7 @@ public sealed class GivenAScrapeConfigurationImport
 
     private sealed class FakeImporter : IScrapeConfigurationImporter
     {
-        public Exception? Failure { get; set; }
+        public Exception? Failure { get; init; }
 
         public List<ScrapeConfigurationImportDocument> Imported { get; } = [];
 

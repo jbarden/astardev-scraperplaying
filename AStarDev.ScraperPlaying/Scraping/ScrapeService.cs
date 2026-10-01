@@ -23,13 +23,7 @@ public sealed class ScrapeService(OperationCoordinator operationCoordinator, ISc
         {
             progress.Report("Starting scrape operation.");
             LogMessage.Information(logger, "Scrape started");
-            _ = await scopedRunner.RunAsync<IUnitOfWork, ISearchOrchestrator, Unit>(async (unitOfWork, searchOrchestrator) =>
-            {
-                var configuration = await unitOfWork.LoadScrapeConfigurationAsync(cancellationToken);
-                await searchOrchestrator.RunSearchesAsync(configuration, progress, cancellationToken);
-
-                return Unit.Instance;
-            });
+            await RunWithinScopeAsync(progress, cancellationToken);
 
             var duration = Stopwatch.GetElapsedTime(startTime).ToDurationString();
             progress.Report($"Search completed in: {duration}.");
@@ -51,4 +45,13 @@ public sealed class ScrapeService(OperationCoordinator operationCoordinator, ISc
             operationCoordinator.Complete();
         }
     }
+
+    private async Task RunWithinScopeAsync(IProgress<string> progress, CancellationToken cancellationToken)
+        => _ = await scopedRunner.RunAsync<IUnitOfWork, ISearchOrchestrator, Unit>(async (unitOfWork, searchOrchestrator) =>
+        {
+            var configuration = await unitOfWork.LoadScrapeConfigurationAsync(cancellationToken);
+            await searchOrchestrator.RunSearchesAsync(configuration, progress, cancellationToken);
+
+            return Unit.Instance;
+        });
 }

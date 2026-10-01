@@ -1,15 +1,12 @@
-using AStarDev.ControlDb;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
-using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
 using AStarDev.Utilities;
-using Microsoft.EntityFrameworkCore;
 
 namespace AStarDev.ScraperPlaying.Scraping;
 
 /// <inheritdoc/>
-public sealed class PagesProcessor(IWallpaperIngestionContextFactory contextFactory, IWallhavenPageFetcher pageFetcher, IUnitOfWork unitOfWork, IWallpaperIngestionService wallpaperIngestionService, ScrapeResumePolicy resumePolicy) : IPagesProcessor
+public sealed class PagesProcessor(IWallpaperIngestionContextFactory contextFactory, IWallhavenPageFetcher pageFetcher, PageIngestionStep ingestionStep, ScrapeResumePolicy resumePolicy) : IPagesProcessor
 {
     /// <inheritdoc/>
     public async Task<Option<SearchCategoryProgress>> FetchAndProcessPagesAsync(PageScrapeRequest request, IProgress<string> progress, CancellationToken cancellationToken)
@@ -20,7 +17,7 @@ public sealed class PagesProcessor(IWallpaperIngestionContextFactory contextFact
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            await SavePartiallyIngestedPageAsync(progress);
+            await ingestionStep.SavePartiallyIngestedPageAsync(progress);
 
             throw;
         }
@@ -33,8 +30,8 @@ public sealed class PagesProcessor(IWallpaperIngestionContextFactory contextFact
 
     private async Task<Option<SearchCategoryProgress>> ScrapeAsync(PageScrapeRequest request, IProgress<string> progress, CancellationToken cancellationToken)
     {
-        var ingestionContext = await contextFactory.CreateAsync(request, cancellationToken);
-        var startPage = await ResolveStartPageAsync(request, ingestionContext.Client, progress, cancellationToken);
+        var run = new IngestionRun(request, await contextFactory.CreateAsync(request, cancellationToken), progress, cancellationToken);
+        var startPage = await ResolveStartPageAsync(run);
         if (resumePolicy.IsUnchangedSincePreviousScrape(request.PreviousProgress, startPage.Response.Meta))
         {
             progress.Report($"Skipping {request.Label.LogLabel} - nothing has changed since the last scrape.");
@@ -42,52 +39,31 @@ public sealed class PagesProcessor(IWallpaperIngestionContextFactory contextFact
             return Option.None<SearchCategoryProgress>();
         }
 
-        return Option.Some(await IngestPagesAsync(request, ingestionContext, startPage, progress, cancellationToken));
+        return Option.Some(await IngestPagesAsync(run, startPage));
     }
 
-    private async Task<FetchedPage> ResolveStartPageAsync(PageScrapeRequest request, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
+    private async Task<FetchedPage> ResolveStartPageAsync(IngestionRun run)
     {
-        var resumePage = resumePolicy.ResumePage(request.PreviousProgress);
-        var fetched = await FetchPageAsync(request, client, resumePage, progress, cancellationToken);
-        if (resumePage > 1 && !ScrapeResumePolicy.IsSameCategoryAsPreviousScrape(request.PreviousProgress, fetched.Response.Meta)) fetched = await FetchPageAsync(request, client, 1, progress, cancellationToken);
+        var previousProgress = run.Request.PreviousProgress;
+        var resumePage = resumePolicy.ResumePage(previousProgress);
+        var fetched = await FetchPageAsync(run, resumePage);
+        if (resumePage > 1 && !ScrapeResumePolicy.IsSameCategoryAsPreviousScrape(previousProgress, fetched.Response.Meta)) fetched = await FetchPageAsync(run, 1);
 
         return fetched;
     }
 
-    private async Task<SearchCategoryProgress> IngestPagesAsync(PageScrapeRequest request, WallpaperIngestionContext ingestionContext, FetchedPage startPage, IProgress<string> progress, CancellationToken cancellationToken)
+    private async Task<SearchCategoryProgress> IngestPagesAsync(IngestionRun run, FetchedPage startPage)
     {
         var current = startPage;
         while (true)
         {
-            await IngestPageAsync(request, ingestionContext, current, progress, cancellationToken);
+            await ingestionStep.IngestPageAsync(run, current);
             if (resumePolicy.IsLastPageToVisit(current.Number, current.Response.Meta)) return new SearchCategoryProgress(current.Response.Meta.Total, current.Number, current.Response.Meta.LastPage);
 
-            current = await FetchPageAsync(request, ingestionContext.Client, current.Number + 1, progress, cancellationToken);
+            current = await FetchPageAsync(run, current.Number + 1);
         }
     }
 
-    private async Task IngestPageAsync(PageScrapeRequest request, WallpaperIngestionContext ingestionContext, FetchedPage page, IProgress<string> progress, CancellationToken cancellationToken)
-    {
-        await wallpaperIngestionService.IngestPageAsync(page.Response.Data, ingestionContext, progress, cancellationToken);
-        request.Hooks.OnPageCompleted(new SearchCategoryProgress(page.Response.Meta.Total, page.Number, page.Response.Meta.LastPage));
-        _ = await unitOfWork.SaveChangesAsync(cancellationToken);
-    }
-
-    private async Task<FetchedPage> FetchPageAsync(PageScrapeRequest request, HttpClient client, int page, IProgress<string> progress, CancellationToken cancellationToken)
-        => new(page, await pageFetcher.FetchPageAsync(new PageFetchRequest(request.Label.LogLabel, request.Hooks.PageUrlFactory(page), page), client, progress, cancellationToken));
-
-    private async Task SavePartiallyIngestedPageAsync(IProgress<string> progress)
-    {
-        try
-        {
-            _ = await unitOfWork.SaveChangesAsync(CancellationToken.None);
-            progress.Report("Scrape cancelled - saved wallpapers downloaded so far this page.");
-        }
-        catch (DbUpdateException ex)
-        {
-            progress.Report($"Scrape cancelled - failed to save wallpapers downloaded so far this page: {ex.ToMessageChain()}");
-        }
-    }
-
-    private readonly record struct FetchedPage(int Number, SearchResponse Response);
+    private async Task<FetchedPage> FetchPageAsync(IngestionRun run, int page)
+        => new(page, await pageFetcher.FetchPageAsync(new PageFetchRequest(run.Request.Label.LogLabel, run.Request.Hooks.PageUrlFactory(page), page), run.Context.Client, run.Progress, run.CancellationToken));
 }
