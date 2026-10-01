@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Tags;
 using Avalonia.Controls;
@@ -32,12 +33,32 @@ public sealed partial class TagsEditorWindow : Window
     {
         ErrorText.Text = string.Empty;
         SetSaving(true);
-        var changes = rows.Where(row => row.IsChanged).ToDictionary(row => row.WallhavenTagId, row => row.Flags);
-        var result = await catalogue.SaveFlagsAsync(changes);
-        SetSaving(false);
-        var failure = result.Match(_ => Option.None<string>(), exception => Option.Some($"Unable to save the tags. {exception.Message}"));
-        if (failure is Option<string>.Some some) ErrorText.Text = some.Value;
-        else Close(true);
+        try
+        {
+            var failure = await TrySaveAsync();
+            if (failure is Option<string>.Some some) ErrorText.Text = some.Value;
+            else Close(true);
+        }
+        finally
+        {
+            SetSaving(false);
+        }
+    }
+
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Called from an async void handler: any exception escaping it would crash the application, so the failure is shown in the editor instead.")]
+    private async Task<Option<string>> TrySaveAsync()
+    {
+        try
+        {
+            var changes = rows.Where(row => row.IsChanged).ToDictionary(row => row.WallhavenTagId, row => row.Flags);
+            var result = await catalogue.SaveFlagsAsync(changes);
+
+            return result.Match(_ => Option.None<string>(), exception => Option.Some($"Unable to save the tags. {exception.Message}"));
+        }
+        catch (Exception exception)
+        {
+            return Option.Some($"Unable to save the tags. {exception.Message}");
+        }
     }
 
     public void Cancel(object? sender, RoutedEventArgs eventArgs) => Close(false);

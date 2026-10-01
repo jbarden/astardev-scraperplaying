@@ -1,3 +1,5 @@
+using AStarDev.ControlDb.ScrapeConfiguration;
+
 namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 /// <summary>The unvalidated contents of every section of the configuration editor.</summary>
@@ -13,4 +15,15 @@ public sealed record ConfigurationEditInputs(
     DirectorySettingsInput Directories,
     SearchSettingsInput Search,
     SearchCategoriesInput SearchCategories,
-    PersonCategoriesInput PersonCategories);
+    PersonCategoriesInput PersonCategories)
+{
+    /// <summary>Reads every section of <paramref name="entity"/> into editor inputs.</summary>
+    /// <param name="entity">The scrape configuration to edit.</param>
+    public static ConfigurationEditInputs From(ScrapeConfigurationEntity entity) => new(
+        RootSettingsInput.From(entity),
+        UserSettingsInput.From(entity),
+        DirectorySettingsInput.From(entity),
+        SearchSettingsInput.From(entity),
+        SearchCategoriesInput.From(entity),
+        PersonCategoriesInput.From(entity));
+}

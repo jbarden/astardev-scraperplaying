@@ -91,6 +91,29 @@ public sealed class GivenAConfigurationBrowser
     }
 
     [Fact]
+    public async Task when_a_configuration_is_loaded_for_editing_then_its_id_and_inputs_are_returned()
+    {
+        var entity = ScrapeConfiguration.GivenAConfigurationEditInputs.CreateEntity();
+        catalogue.Found = Exceptional.Success(Option.Some(entity));
+
+        var loaded = await browser.LoadAsync(Summary);
+
+        var configuration = loaded.ShouldBeOfType<Option<LoadedConfiguration>.Some>().Value;
+        configuration.Id.ShouldBe(entity.Id);
+        ScrapeConfiguration.GivenAConfigurationEditInputs.ShouldMatchEntity(configuration.Inputs, entity);
+    }
+
+    [Fact]
+    public async Task when_a_configuration_to_load_for_editing_cannot_be_found_then_none_is_returned_and_the_user_is_told()
+    {
+        catalogue.Found = Exceptional.Success(Option.None<ScrapeConfigurationEntity>());
+
+        var loaded = await browser.LoadAsync(Summary);
+
+        (loaded is Option<LoadedConfiguration>.None, status.Text).ShouldBe((true, "The selected scrape configuration could not be found."));
+    }
+
+    [Fact]
     public async Task when_there_are_no_configurations_to_edit_then_no_editor_is_created_and_the_user_is_told()
     {
         catalogue.Summaries = Exceptional.Success<IReadOnlyList<ScrapeConfigurationSummary>>([]);
