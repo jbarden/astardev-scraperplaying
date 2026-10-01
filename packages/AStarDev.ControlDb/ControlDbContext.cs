@@ -23,8 +23,8 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
     => (IRepository<TAggregate, TKey>)this;
 
     /// <inheritdoc/>
-    Task<Exceptional<Option<ScrapeConfigurationEntity>>> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.TryFindAsync(ScrapeConfigurationId key) =>
-        Try.RunAsync(async () => (Option<ScrapeConfigurationEntity>)await scrapeConfigurationQuery.Apply(ScrapeConfigurations).FirstOrDefaultAsync(scrapeConfiguration => scrapeConfiguration.Id == key).ConfigureAwait(false));
+    Task<Exceptional<Option<ScrapeConfigurationEntity>>> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.TryFindAsync(ScrapeConfigurationId key, CancellationToken cancellationToken) =>
+        Try.RunAsync(async () => (Option<ScrapeConfigurationEntity>)await scrapeConfigurationQuery.Apply(ScrapeConfigurations).FirstOrDefaultAsync(scrapeConfiguration => scrapeConfiguration.Id == key, cancellationToken).ConfigureAwait(false));
 
     /// <inheritdoc/>
     Exceptional<ScrapeConfigurationEntity> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.Add(ScrapeConfigurationEntity aggregate) =>
@@ -34,11 +34,11 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
             return aggregate;
         });
 
-    Task<Exceptional<Option<IEnumerable<ScrapeConfigurationEntity>>>> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.TryGetAllAsync()
-    => Try.RunAsync(async () => (Option<IEnumerable<ScrapeConfigurationEntity>>)await scrapeConfigurationQuery.Apply(ScrapeConfigurations).ToListAsync().ConfigureAwait(false));
+    Task<Exceptional<Option<IEnumerable<ScrapeConfigurationEntity>>>> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.TryGetAllAsync(CancellationToken cancellationToken)
+    => Try.RunAsync(async () => (Option<IEnumerable<ScrapeConfigurationEntity>>)await scrapeConfigurationQuery.Apply(ScrapeConfigurations).ToListAsync(cancellationToken).ConfigureAwait(false));
 
-    Task<Exceptional<Option<ScrapeConfigurationEntity>>> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.TryGetFirstAsync()
-    => Try.RunAsync(async () => (Option<ScrapeConfigurationEntity>)await scrapeConfigurationQuery.Apply(ScrapeConfigurations).FirstOrDefaultAsync().ConfigureAwait(false));
+    Task<Exceptional<Option<ScrapeConfigurationEntity>>> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.TryGetFirstAsync(CancellationToken cancellationToken)
+    => Try.RunAsync(async () => (Option<ScrapeConfigurationEntity>)await scrapeConfigurationQuery.Apply(ScrapeConfigurations).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false));
 
     /// <inheritdoc/>
     Exceptional<Unit> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.Delete(ScrapeConfigurationEntity aggregate) =>
@@ -49,16 +49,16 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
         });
 
     /// <inheritdoc/>
-    Task<Exceptional<Option<FileEntity>>> IRepository<FileEntity, FileId>.TryFindAsync(FileId key) =>
-        Try.RunAsync(async () => (Option<FileEntity>)await filesQuery.Apply(Files).FirstOrDefaultAsync(file => file.Id == key).ConfigureAwait(false));
+    Task<Exceptional<Option<FileEntity>>> IRepository<FileEntity, FileId>.TryFindAsync(FileId key, CancellationToken cancellationToken) =>
+        Try.RunAsync(async () => (Option<FileEntity>)await filesQuery.Apply(Files).FirstOrDefaultAsync(file => file.Id == key, cancellationToken).ConfigureAwait(false));
 
     /// <inheritdoc/>
-    Task<Exceptional<Option<IEnumerable<FileEntity>>>> IRepository<FileEntity, FileId>.TryGetAllAsync()
-    => Try.RunAsync(async () => (Option<IEnumerable<FileEntity>>)await filesQuery.Apply(Files).ToListAsync().ConfigureAwait(false));
+    Task<Exceptional<Option<IEnumerable<FileEntity>>>> IRepository<FileEntity, FileId>.TryGetAllAsync(CancellationToken cancellationToken)
+    => Try.RunAsync(async () => (Option<IEnumerable<FileEntity>>)await filesQuery.Apply(Files).ToListAsync(cancellationToken).ConfigureAwait(false));
 
     /// <inheritdoc/>
-    Task<Exceptional<Option<FileEntity>>> IRepository<FileEntity, FileId>.TryGetFirstAsync()
-    => Try.RunAsync(async () => (Option<FileEntity>)await filesQuery.Apply(Files).FirstOrDefaultAsync().ConfigureAwait(false));
+    Task<Exceptional<Option<FileEntity>>> IRepository<FileEntity, FileId>.TryGetFirstAsync(CancellationToken cancellationToken)
+    => Try.RunAsync(async () => (Option<FileEntity>)await filesQuery.Apply(Files).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false));
 
     /// <inheritdoc/>
     Exceptional<FileEntity> IRepository<FileEntity, FileId>.Add(FileEntity aggregate) =>
@@ -77,16 +77,16 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
         });
 
     /// <inheritdoc/>
-    Task<Exceptional<Option<TagEntity>>> IRepository<TagEntity, TagId>.TryFindAsync(TagId key) =>
-        Try.RunAsync(async () => (Option<TagEntity>)await Tags.FirstOrDefaultAsync(tag => tag.Id == key).ConfigureAwait(false));
+    Task<Exceptional<Option<TagEntity>>> IRepository<TagEntity, TagId>.TryFindAsync(TagId key, CancellationToken cancellationToken) =>
+        Try.RunAsync(async () => (Option<TagEntity>)await Tags.FirstOrDefaultAsync(tag => tag.Id == key, cancellationToken).ConfigureAwait(false));
 
     /// <inheritdoc/>
-    Task<Exceptional<Option<IEnumerable<TagEntity>>>> IRepository<TagEntity, TagId>.TryGetAllAsync()
-    => Try.RunAsync(async () => (Option<IEnumerable<TagEntity>>)await Tags.ToListAsync().ConfigureAwait(false));
+    Task<Exceptional<Option<IEnumerable<TagEntity>>>> IRepository<TagEntity, TagId>.TryGetAllAsync(CancellationToken cancellationToken)
+    => Try.RunAsync(async () => (Option<IEnumerable<TagEntity>>)await Tags.ToListAsync(cancellationToken).ConfigureAwait(false));
 
     /// <inheritdoc/>
-    Task<Exceptional<Option<TagEntity>>> IRepository<TagEntity, TagId>.TryGetFirstAsync()
-    => Try.RunAsync(async () => (Option<TagEntity>)await Tags.FirstOrDefaultAsync().ConfigureAwait(false));
+    Task<Exceptional<Option<TagEntity>>> IRepository<TagEntity, TagId>.TryGetFirstAsync(CancellationToken cancellationToken)
+    => Try.RunAsync(async () => (Option<TagEntity>)await Tags.FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false));
 
     /// <inheritdoc/>
     Exceptional<TagEntity> IRepository<TagEntity, TagId>.Add(TagEntity aggregate) =>

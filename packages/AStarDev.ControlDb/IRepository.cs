@@ -7,16 +7,19 @@ public interface IRepository<TAggregate, TKey> where TAggregate : IAggregateRoot
 {
     /// <summary>Tries to find an aggregate by its key. Returns an exceptional result containing an option of the aggregate if found, or an empty option if not found.</summary>
     /// <param name="key">The key of the aggregate to find.</param>
+    /// <param name="cancellationToken">A cancellation token for the asynchronous operation.</param>
     /// <returns>An exceptional result containing an option of the aggregate if found, or an empty option if not found.</returns>
-    Task<Exceptional<Option<TAggregate>>> TryFindAsync(TKey key);
+    Task<Exceptional<Option<TAggregate>>> TryFindAsync(TKey key, CancellationToken cancellationToken = default);
 
     /// <summary>Tries to get all aggregates from the repository. Returns an exceptional result containing an option of the aggregates if found, or an empty option if not found.</summary>
+    /// <param name="cancellationToken">A cancellation token for the asynchronous operation.</param>
     /// <returns>An exceptional result containing an option of the aggregates if found, or an empty option if not found.</returns>
-    Task<Exceptional<Option<IEnumerable<TAggregate>>>> TryGetAllAsync();
+    Task<Exceptional<Option<IEnumerable<TAggregate>>>> TryGetAllAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Tries to get the first aggregate from the repository. Returns an exceptional result containing an option of the aggregate if found, or an empty option if not found.</summary>
+    /// <param name="cancellationToken">A cancellation token for the asynchronous operation.</param>
     /// <returns>An exceptional result containing an option of the aggregate if found, or an empty option if not found.</returns>
-    Task<Exceptional<Option<TAggregate>>> TryGetFirstAsync();
+    Task<Exceptional<Option<TAggregate>>> TryGetFirstAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Adds a new aggregate to the repository. Returns an exceptional result containing the added aggregate if successful.</summary>
     /// <param name="aggregate">The aggregate to add.</param>
@@ -30,9 +33,10 @@ public interface IRepository<TAggregate, TKey> where TAggregate : IAggregateRoot
 
     /// <summary>Deletes an aggregate by its key from the repository. Returns an exceptional result indicating the success or failure of the operation.</summary>
     /// <param name="key">The key of the aggregate to delete.</param>
+    /// <param name="cancellationToken">A cancellation token for the asynchronous operation.</param>
     /// <returns>An exceptional result indicating the success or failure of the operation.</returns>
-    public async Task<Exceptional<Unit>> DeleteAsync(TKey key)
-        => (await TryFindAsync(key).ConfigureAwait(false)).Match(
+    public async Task<Exceptional<Unit>> DeleteAsync(TKey key, CancellationToken cancellationToken = default)
+        => (await TryFindAsync(key, cancellationToken).ConfigureAwait(false)).Match(
             findById => findById.Match(
                 aggregate => Delete(aggregate),
                 () => Unit.Instance

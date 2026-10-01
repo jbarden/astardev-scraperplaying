@@ -41,6 +41,20 @@ public sealed class GivenAFilesQuery : IDisposable
     }
 
     [Fact]
+    public async Task when_a_file_is_found_by_name_then_it_is_not_tracked_by_the_context()
+    {
+        var fileEntity = FileEntityFactory.CreateFileEntity();
+        await context.Files.AddAsync(fileEntity, TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        context.ChangeTracker.Clear();
+        var query = new FilesQuery(context);
+
+        _ = await query.TryGetByNameAsync(fileEntity.FileName, TestContext.Current.CancellationToken);
+
+        context.ChangeTracker.Entries().ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task when_no_file_with_a_matching_name_exists_then_try_get_by_name_returns_none()
     {
         var query = new FilesQuery(context);

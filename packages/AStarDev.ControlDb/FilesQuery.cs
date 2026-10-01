@@ -12,6 +12,7 @@ public class FilesQuery(ControlDbContext context) : IFilesQuery
     /// <inheritdoc/>
     public async Task<Exceptional<Option<FileEntity>>> TryGetByNameAsync(FileName name, CancellationToken cancellationToken = default)
             => await context.Files
+                            .AsNoTracking()
                             .Include(file => file.DeletionStatus)
                             .Include(file => file.FileAccessDetail)
                             .Include(file => file.ImageDetail)
@@ -27,16 +28,12 @@ public class FilesQuery(ControlDbContext context) : IFilesQuery
 
     /// <inheritdoc/>
     public Task<Exceptional<IReadOnlyList<FileHandle>>> GetExistingHandlesAsync(IReadOnlyCollection<FileHandle> fileHandles, CancellationToken cancellationToken = default)
-            => Try.RunAsync<IReadOnlyList<FileHandle>>(async () =>
-            {
-                var wanted = fileHandles.ToList();
-
-                return await context.Files
-                                    .Where(file => wanted.Contains(file.FileHandle))
-                                    .Select(file => file.FileHandle)
-                                    .ToListAsync(cancellationToken)
-                                    .ConfigureAwait(false);
-            });
+            => Try.RunAsync<IReadOnlyList<FileHandle>>(async () => await context.Files
+                                                                                 .AsNoTracking()
+                                                                                 .Where(file => fileHandles.Contains(file.FileHandle))
+                                                                                 .Select(file => file.FileHandle)
+                                                                                 .ToListAsync(cancellationToken)
+                                                                                 .ConfigureAwait(false));
 
     private static Expression<Func<FileEntity, bool>> HasName(FileName name) => file => file.FileName.Value == name.Value;
 }
