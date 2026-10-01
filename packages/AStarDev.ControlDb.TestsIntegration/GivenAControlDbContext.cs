@@ -57,6 +57,7 @@ public sealed class GivenAControlDbContext : IDisposable
         reloaded.ApiKey.ShouldBe(scrapeConfigurationEntity.ApiKey);
         reloaded.SearchString.ShouldBe(scrapeConfigurationEntity.SearchString);
         reloaded.TopWallpapers.ShouldBe(scrapeConfigurationEntity.TopWallpapers);
+        reloaded.HotWallpapers.ShouldBe(scrapeConfigurationEntity.HotWallpapers);
         reloaded.SearchStringPrefix.ShouldBe(scrapeConfigurationEntity.SearchStringPrefix);
         reloaded.SearchStringSuffix.ShouldBe(scrapeConfigurationEntity.SearchStringSuffix);
         reloaded.Subscriptions.ShouldBe(scrapeConfigurationEntity.Subscriptions);
@@ -67,6 +68,8 @@ public sealed class GivenAControlDbContext : IDisposable
         reloaded.SubscriptionsTotalPages.ShouldBe(scrapeConfigurationEntity.SubscriptionsTotalPages);
         reloaded.TopWallpapersStartingPageNumber.ShouldBe(scrapeConfigurationEntity.TopWallpapersStartingPageNumber);
         reloaded.TopWallpapersTotalPages.ShouldBe(scrapeConfigurationEntity.TopWallpapersTotalPages);
+        reloaded.HotWallpapersStartingPageNumber.ShouldBe(scrapeConfigurationEntity.HotWallpapersStartingPageNumber);
+        reloaded.HotWallpapersTotalPages.ShouldBe(scrapeConfigurationEntity.HotWallpapersTotalPages);
         reloaded.LoginUrl.ShouldBe(scrapeConfigurationEntity.LoginUrl);
         reloaded.UseHeadless.ShouldBe(scrapeConfigurationEntity.UseHeadless);
         reloaded.SlowMotionDelay.ShouldBe(scrapeConfigurationEntity.SlowMotionDelay);

@@ -27,6 +27,9 @@ public record ScrapeConfigurationEntity(ScrapeConfigurationId Id) : IAggregateRo
     /// <summary>The category or section featuring the most popular content.</summary>
     public string TopWallpapers { get; set; } = string.Empty;
 
+    /// <summary>The section featuring the hottest content, scraped before the top wallpapers.</summary>
+    public string HotWallpapers { get; set; } = "HotWallpapers";
+
     /// <summary>A prefix applied before the search string.</summary>
     public string SearchStringPrefix { get; set; } = string.Empty;
 
@@ -56,6 +59,12 @@ public record ScrapeConfigurationEntity(ScrapeConfigurationId Id) : IAggregateRo
 
     /// <summary>The total number of pages available for top wallpapers.</summary>
     public int TopWallpapersTotalPages { get; set; }
+
+    /// <summary>The page number to resume hot wallpapers from.</summary>
+    public int HotWallpapersStartingPageNumber { get; set; }
+
+    /// <summary>The total number of pages available for hot wallpapers.</summary>
+    public int HotWallpapersTotalPages { get; set; }
 
     /// <summary>The login page on the target website. Free text: it is not required to be a valid URL.</summary>
     [SuppressMessage("Design", "CA1056:URI properties should not be strings", Justification = "The login page is free text and is not required to be a valid URL.")]

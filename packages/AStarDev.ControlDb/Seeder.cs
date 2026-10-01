@@ -54,6 +54,7 @@ public static class Seeder
             ApiKey = "your-api-key",
             SearchString = "search string",
             TopWallpapers = "top wallpapers",
+            HotWallpapers = "HotWallpapers",
             SearchStringPrefix = "/search?q=id:",
             SearchStringSuffix = "&categories=001&purity=111&sorting=date_added&order=desc&ai_art_filter=0&page=",
             SlowMotionDelay = 500,
