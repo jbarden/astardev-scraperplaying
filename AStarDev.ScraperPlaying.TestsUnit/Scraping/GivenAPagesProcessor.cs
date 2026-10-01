@@ -22,7 +22,7 @@ public sealed class GivenAPagesProcessor
     public GivenAPagesProcessor()
     {
         _ = unitOfWork.Register<FileEntity, FileId>();
-        processor = new(new FakeClientFactory(), new FakePageFetcher(jsonResponseProcessor), unitOfWork, new FakeSaveDirectoryResolver(), wallpaperIngestionService, new ScrapeLimits(3, 4));
+        processor = CreateProcessor(new ScrapeLimits(3, 4));
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public sealed class GivenAPagesProcessor
     public async Task when_the_page_limit_is_lower_than_the_reported_last_page_then_paging_stops_at_the_limit()
     {
         SetUpPage(page: null, CreateSearchResponse(lastPage: 10));
-        var limitedProcessor = new PagesProcessor(new FakeClientFactory(), new FakePageFetcher(jsonResponseProcessor), unitOfWork, new FakeSaveDirectoryResolver(), wallpaperIngestionService, new ScrapeLimits(3, 2));
+        var limitedProcessor = CreateProcessor(new ScrapeLimits(3, 2));
 
         _ = await limitedProcessor.FetchAndProcessPagesAsync(CreateRequest("wallpapers", Option.None<string>(), Option.None<SearchCategoryProgress>(), _ => { }), progress, CancellationToken.None);
 
@@ -270,6 +270,9 @@ public sealed class GivenAPagesProcessor
         thrown.ShouldBeSameAs(exception);
         progress.Messages.ShouldContain("An error occurred during the fetching and processing of pages: page fetch failed");
     }
+
+    private PagesProcessor CreateProcessor(ScrapeLimits limits)
+        => new(new WallpaperIngestionContextFactory(new FakeClientFactory(), unitOfWork, new FakeSaveDirectoryResolver()), new FakePageFetcher(jsonResponseProcessor), unitOfWork, wallpaperIngestionService, new ScrapeResumePolicy(limits));
 
     private Task FetchWithCancellation(CancellationToken cancellationToken)
         => Fetch(Option.None<SearchCategoryProgress>(), cancellationToken);

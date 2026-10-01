@@ -80,6 +80,8 @@ public static class ApplicationServices
             .AddTransient<WallhavenRateLimitingHandler>()
             .AddTransient<WallhavenApiKeyHandler>()
             .AddScoped<IWallhavenPageFetcher, WallhavenPageFetcher>()
+            .AddSingleton<ScrapeResumePolicy>()
+            .AddScoped<IWallpaperIngestionContextFactory, WallpaperIngestionContextFactory>()
             .AddScoped<IPagesProcessor, PagesProcessor>()
             .AddScoped<ISearchOrchestrator, SearchOrchestrator>()
             .AddScoped<IJsonResponseProcessor, JsonResponseProcessor>()
