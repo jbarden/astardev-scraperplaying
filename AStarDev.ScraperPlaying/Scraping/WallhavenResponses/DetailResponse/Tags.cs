@@ -8,5 +8,6 @@ public record Tag(
     string Alias,
     [property: JsonPropertyName("category_id")] int CategoryId,
     string Category,
-    string Purity
+    string Purity,
+    bool IgnoreImage = false
 );

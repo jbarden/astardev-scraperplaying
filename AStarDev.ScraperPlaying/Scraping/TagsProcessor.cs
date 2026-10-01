@@ -19,6 +19,14 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
     /// </summary>
     private readonly Dictionary<int, TagEntity> resolvedTags = [];
 
+    /// <summary>
+    /// The Wallhaven ids of the tags flagged <see cref="TagEntity.IgnoreImage"/>. Loaded on the first fetch, and then reused for the rest of the run: the flags do not change during a scrape.
+    /// The first fetch always completes before any other database work starts, so the load never overlaps another use of the database context.
+    /// </summary>
+    private HashSet<int> ignoredTagIds = [];
+
+    private bool ignoredTagIdsLoaded;
+
     /// <inheritdoc/>
     public Task<Exceptional<IReadOnlyList<Tag>>> FetchTagsAsync(string wallpaperId, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
         => Try.RunAsync<IReadOnlyList<Tag>>(async () =>
@@ -30,8 +38,18 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
                     option => option.Match(value => value, () => throw new InvalidOperationException($"No response body received for wallpaper {wallpaperId} detail.")),
                     exception => throw exception);
 
-            return detailResponse.Data.Tags;
+            await LoadIgnoredTagIdsAsync(cancellationToken);
+
+            return [.. detailResponse.Data.Tags.Select(tag => tag with { IgnoreImage = ignoredTagIds.Contains(tag.Id) })];
         });
+
+    private async Task LoadIgnoredTagIdsAsync(CancellationToken cancellationToken)
+    {
+        if (ignoredTagIdsLoaded) return;
+
+        ignoredTagIds = [.. (await tagsQuery.GetIgnoredWallhavenIdsAsync(cancellationToken)).Match(found => found, exception => throw exception)];
+        ignoredTagIdsLoaded = true;
+    }
 
     /// <inheritdoc/>
     public Task<Exceptional<Unit>> LinkTagsAsync(FileId fileId, IReadOnlyList<Tag> tags, CancellationToken cancellationToken)

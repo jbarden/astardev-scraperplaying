@@ -19,7 +19,7 @@ public interface INewWallpaperIngestor
     Task<IReadOnlyList<Tag>> FetchTagsAsync(Data wallpaper, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Downloads the wallpaper into <paramref name="context"/>'s directory, records it and links <paramref name="tags"/>, reporting a failure at any step without throwing so the
+    /// Downloads the wallpaper into <paramref name="context"/>'s directory, records it and links <paramref name="tags"/> (or, if any tag is flagged to ignore images, does nothing), reporting a failure at any step without throwing so the
     /// caller can continue with the rest of the page. A cancellation is not swallowed.
     /// </summary>
     /// <param name="wallpaper">The wallpaper data to ingest.</param>

@@ -136,6 +136,31 @@ public sealed class GivenATagsProcessor
     }
 
     [Fact]
+    public async Task when_a_fetched_tag_is_flagged_to_ignore_images_then_it_is_returned_flagged()
+    {
+        SetUpDetailResponse(CreateTag(wallhavenTagId: 20, name: "unwanted"), CreateTag(wallhavenTagId: 21, name: "wanted"));
+        tagsQuery.Ignored.Add(20);
+
+        using var client = new HttpClient();
+        var result = await processor.FetchTagsAsync("wallpaper-1", client, progress, CancellationToken.None);
+
+        result.Match(tags => tags.Select(tag => (tag.Id, tag.IgnoreImage)).ToList(), ex => throw ex).ShouldBe([(20, true), (21, false)]);
+    }
+
+    [Fact]
+    public async Task when_tags_are_fetched_for_several_wallpapers_then_the_ignored_tags_are_only_loaded_once()
+    {
+        jsonResponseProcessor.Responses["wallpaper-a"] = CreateDetailResponse(CreateTag(wallhavenTagId: 22, name: "one"));
+        jsonResponseProcessor.Responses["wallpaper-b"] = CreateDetailResponse(CreateTag(wallhavenTagId: 23, name: "two"));
+
+        using var client = new HttpClient();
+        _ = await processor.FetchTagsAsync("wallpaper-a", client, progress, CancellationToken.None);
+        _ = await processor.FetchTagsAsync("wallpaper-b", client, progress, CancellationToken.None);
+
+        tagsQuery.IgnoredQueryCount.ShouldBe(1);
+    }
+
+    [Fact]
     public async Task when_the_detail_fetch_fails_then_the_failure_is_returned_not_thrown()
     {
         var exception = new HttpRequestException("boom");
@@ -202,6 +227,17 @@ public sealed class GivenATagsProcessor
         public Dictionary<int, TagEntity> Existing { get; } = [];
 
         public List<IReadOnlyCollection<int>> Queries { get; } = [];
+
+        public HashSet<int> Ignored { get; } = [];
+
+        public int IgnoredQueryCount { get; private set; }
+
+        public Task<Exceptional<IReadOnlyCollection<int>>> GetIgnoredWallhavenIdsAsync(CancellationToken cancellationToken = default)
+        {
+            IgnoredQueryCount++;
+
+            return Task.FromResult<Exceptional<IReadOnlyCollection<int>>>(Ignored.ToList());
+        }
 
         public Task<Exceptional<IReadOnlyList<TagEntity>>> FindByWallhavenIdsAsync(IReadOnlyCollection<int> wallhavenTagIds, CancellationToken cancellationToken = default)
         {

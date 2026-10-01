@@ -43,6 +43,17 @@ public sealed class GivenANewWallpaperIngestor
     }
 
     [Fact]
+    public async Task when_a_wallpaper_has_a_tag_flagged_to_ignore_images_then_it_is_not_downloaded_recorded_or_linked()
+    {
+        tagsProcessor.FetchResult = Exceptional.Success<IReadOnlyList<Tag>>([new Tag(1, "kept", "kept", 1, "Nature", "sfw"), new Tag(2, "unwanted", "unwanted", 1, "Nature", "sfw", IgnoreImage: true)]);
+
+        await Ingest(CreateWallpaper("ignored-wallpaper"), ".jpg");
+
+        progress.Messages.ShouldContain("Ignoring wallpaper ignored-wallpaper: it has a tag flagged to ignore images.");
+        (imageDownloader.Requests.Count, fileRecorder.Recorded.Count, tagsProcessor.Linked.Count, notifications.Count).ShouldBe((0, 0, 0, 0));
+    }
+
+    [Fact]
     public async Task when_a_wallpaper_is_downloaded_then_the_download_is_announced_with_the_saved_path_and_details()
     {
         var wallpaper = new Data("wallpaper-3", 1920, 1080, 5, "image/jpeg", "https://example.test/image.jpg");
