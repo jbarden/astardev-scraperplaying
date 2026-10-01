@@ -3,13 +3,13 @@ using AStarDev.FunctionalParadigm;
 namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 public sealed class ScrapeConfigurationExportService(
-    IScrapeConfigurationExporter repository,
+    IScrapeConfigurationExporter exporter,
     IScrapeConfigurationFileWriter fileWriter) : IScrapeConfigurationExportService
 {
     public async Task<bool> ExportAsync(string filePath, ApiKeyExport apiKeys, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var result = (await repository.ExportScrapeConfigurationAsync(apiKeys, cancellationToken)).Match(option => option, exception => throw exception);
+        var result = (await exporter.ExportScrapeConfigurationAsync(apiKeys, cancellationToken)).Match(option => option, exception => throw exception);
 
         return await result.MatchAsync(
             async document =>
