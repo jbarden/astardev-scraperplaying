@@ -28,7 +28,7 @@ public sealed class SearchOrchestrator(IPagesProcessor pagesProcessor, IUnitOfWo
         _ = await pagesProcessor.FetchAndProcessPagesAsync("top wallpapers", Option.None<string>(), Option.None<SearchCategoryProgress>(), _ => { }, page => WallhavenUrlBuilder.BuildTopWallpapersPageUrl(topWallpapersUrl, page), connection, personCategories, progress, cancellationToken);
 
         progress.Report("Fetching categories.");
-        foreach (var category in configuration.SearchConfiguration.SearchCategories.Take(limits.MaximumSearchCategories))
+        foreach (var category in configuration.SearchConfiguration.SearchCategories.Where(category => category.IncludeInSearch).Take(limits.MaximumSearchCategories))
         {
             var scrapedProgress = await pagesProcessor.FetchAndProcessPagesAsync($"search category {category.Name}", Option.Some(category.Name), Option.Some(new SearchCategoryProgress(category.LastKnownImageCount, category.LastPageVisited, category.TotalPages)), pageProgress => category.RecordScrapeProgress(pageProgress.LastKnownImageCount, pageProgress.LastPageVisited, pageProgress.TotalPages), page => WallhavenUrlBuilder.BuildCategoryPageUrl(searchCategoriesUrl, searchCategoriesSuffix, category, page), connection, personCategories, progress, cancellationToken);
             if (scrapedProgress.TryGetValue(out var scraped))

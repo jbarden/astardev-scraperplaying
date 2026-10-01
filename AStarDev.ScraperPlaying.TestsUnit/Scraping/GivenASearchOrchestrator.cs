@@ -33,6 +33,17 @@ public sealed class GivenASearchOrchestrator
     }
 
     [Fact]
+    public async Task when_a_category_is_excluded_from_the_search_then_it_is_not_processed_and_the_limit_applies_to_the_included_categories()
+    {
+        var configuration = ScrapeConfigurationTestData.CreateConfiguration(categoryCount: 5);
+        configuration.SearchConfiguration.SearchCategories.First().IncludeInSearch = false;
+
+        await Run(configuration);
+
+        pagesProcessor.Calls.Select(call => call.LogLabel).ShouldBe(["hot wallpapers", "top wallpapers", "search category category two", "search category category three", "search category category four"]);
+    }
+
+    [Fact]
     public async Task when_the_default_limits_are_used_then_every_category_is_processed()
     {
         var unlimitedOrchestrator = new SearchOrchestrator(pagesProcessor, unitOfWork, ScrapeLimits.Default);
