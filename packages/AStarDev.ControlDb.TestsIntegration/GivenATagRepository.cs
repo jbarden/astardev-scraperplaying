@@ -31,7 +31,7 @@ public sealed class GivenATagRepository : IDisposable
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         using var untrackedContext = new ControlDbContext(new DbContextOptionsBuilder<ControlDbContext>().UseSqlite($"Data Source={databasePath}").Options);
-        var result = await untrackedContext.GetRepository<TagEntity, TagId>().TryFindAsync(tagEntity.Id);
+        var result = await untrackedContext.GetRepository<TagEntity, TagId>().TryFindAsync(tagEntity.Id, TestContext.Current.CancellationToken);
 
         var reloaded = result.Match(option => option, exception => throw exception).Match(entity => entity, () => null!);
 
@@ -45,7 +45,7 @@ public sealed class GivenATagRepository : IDisposable
     {
         var repository = context.GetRepository<TagEntity, TagId>();
 
-        var result = await repository.TryFindAsync(TagId.Create());
+        var result = await repository.TryFindAsync(TagId.Create(), TestContext.Current.CancellationToken);
 
         var found = result.Match(option => option, exception => throw exception).Match(_ => true, () => false);
 
@@ -60,11 +60,21 @@ public sealed class GivenATagRepository : IDisposable
         repository.Add(TagEntityFactory.CreateTagEntity(wallhavenTagId: 2, name: "space")).Match(entity => entity, exception => throw exception);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var result = await repository.TryGetAllAsync();
+        var result = await repository.TryGetAllAsync(TestContext.Current.CancellationToken);
 
         var all = result.Match(option => option, exception => throw exception).Match(entities => entities.ToList(), () => []);
 
         all.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task when_the_cancellation_token_is_already_cancelled_then_get_all_throws_an_operation_cancelled_exception()
+    {
+        var repository = context.GetRepository<TagEntity, TagId>();
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        await Should.ThrowAsync<OperationCanceledException>(() => repository.TryGetAllAsync(cancellation.Token));
     }
 
     [Fact]
@@ -86,10 +96,10 @@ public sealed class GivenATagRepository : IDisposable
         repository.Add(tagEntity).Match(entity => entity, exception => throw exception);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        (await repository.DeleteAsync(tagEntity.Id)).Match(unit => unit, exception => throw exception);
+        (await repository.DeleteAsync(tagEntity.Id, TestContext.Current.CancellationToken)).Match(unit => unit, exception => throw exception);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var result = await repository.TryFindAsync(tagEntity.Id);
+        var result = await repository.TryFindAsync(tagEntity.Id, TestContext.Current.CancellationToken);
         var found = result.Match(option => option, exception => throw exception).Match(_ => true, () => false);
 
         found.ShouldBeFalse();

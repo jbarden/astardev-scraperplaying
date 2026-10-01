@@ -123,7 +123,7 @@ public sealed class GivenAControlDbContext : IDisposable
         using var untrackedContext = new ControlDbContext(options);
         var repository = untrackedContext.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>();
 
-        var result = await repository.TryGetFirstAsync();
+        var result = await repository.TryGetFirstAsync(TestContext.Current.CancellationToken);
 
         var reloaded = result.Match(option => option, exception => throw exception).Match(entity => entity, () => null!);
 

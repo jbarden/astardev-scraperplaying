@@ -31,7 +31,7 @@ public sealed class GivenAFileRepository : IDisposable
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         using var untrackedContext = new ControlDbContext(new DbContextOptionsBuilder<ControlDbContext>().UseSqlite($"Data Source={databasePath}").Options);
-        var result = await untrackedContext.GetRepository<FileEntity, FileId>().TryFindAsync(fileEntity.Id);
+        var result = await untrackedContext.GetRepository<FileEntity, FileId>().TryFindAsync(fileEntity.Id, TestContext.Current.CancellationToken);
 
         var reloaded = result.Match(option => option, exception => throw exception).Match(entity => entity, () => null!);
 
@@ -51,7 +51,7 @@ public sealed class GivenAFileRepository : IDisposable
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         using var untrackedContext = new ControlDbContext(new DbContextOptionsBuilder<ControlDbContext>().UseSqlite($"Data Source={databasePath}").Options);
-        var reloaded = (await untrackedContext.GetRepository<FileEntity, FileId>().TryFindAsync(fileEntity.Id)).Match(option => option, exception => throw exception).Match(entity => entity, () => null!);
+        var reloaded = (await untrackedContext.GetRepository<FileEntity, FileId>().TryFindAsync(fileEntity.Id, TestContext.Current.CancellationToken)).Match(option => option, exception => throw exception).Match(entity => entity, () => null!);
 
         reloaded.LastUpdated.ShouldBe(lastUpdated);
     }
@@ -61,7 +61,7 @@ public sealed class GivenAFileRepository : IDisposable
     {
         var repository = context.GetRepository<FileEntity, FileId>();
 
-        var result = await repository.TryFindAsync(FileId.Create());
+        var result = await repository.TryFindAsync(FileId.Create(), TestContext.Current.CancellationToken);
 
         var found = result.Match(option => option, exception => throw exception).Match(_ => true, () => false);
 
@@ -87,7 +87,7 @@ public sealed class GivenAFileRepository : IDisposable
         repository.Add(second).Match(entity => entity, exception => throw exception);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var result = await repository.TryGetAllAsync();
+        var result = await repository.TryGetAllAsync(TestContext.Current.CancellationToken);
 
         var all = result.Match(option => option, exception => throw exception).Match(entities => entities.ToList(), () => []);
 
@@ -102,10 +102,10 @@ public sealed class GivenAFileRepository : IDisposable
         repository.Add(fileEntity).Match(entity => entity, exception => throw exception);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        (await repository.DeleteAsync(fileEntity.Id)).Match(unit => unit, exception => throw exception);
+        (await repository.DeleteAsync(fileEntity.Id, TestContext.Current.CancellationToken)).Match(unit => unit, exception => throw exception);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var result = await repository.TryFindAsync(fileEntity.Id);
+        var result = await repository.TryFindAsync(fileEntity.Id, TestContext.Current.CancellationToken);
         var found = result.Match(option => option, exception => throw exception).Match(_ => true, () => false);
 
         found.ShouldBeFalse();
@@ -116,7 +116,7 @@ public sealed class GivenAFileRepository : IDisposable
     {
         var repository = context.GetRepository<FileEntity, FileId>();
 
-        var result = await repository.DeleteAsync(FileId.Create());
+        var result = await repository.DeleteAsync(FileId.Create(), TestContext.Current.CancellationToken);
 
         result.Match(_ => true, exception => throw exception).ShouldBeTrue();
     }
