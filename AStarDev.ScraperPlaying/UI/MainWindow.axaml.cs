@@ -1,4 +1,3 @@
-using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using Avalonia.Controls;
@@ -39,29 +38,17 @@ public partial class MainWindow : Window
 
     public async void ImportConfiguration(object? sender, RoutedEventArgs eventArgs) =>
         await operations.RunAsync("Scrape configuration import cancelled.", "Unable to import scrape configuration.", async cancellationToken =>
-        {
-            status.Append(ConfigurationTransferMessages.ForImport(await scrapeConfigurationFileService.ImportViaPickerAsync(this, cancellationToken)));
-            await RefreshConfigurationPickerAsync();
-        });
+            status.Append(ConfigurationTransferMessages.ForImport(await scrapeConfigurationFileService.ImportViaPickerAsync(this, cancellationToken))));
 
     public void ExportConfiguration(object? sender, RoutedEventArgs eventArgs) => Export(ApiKeyExport.Exclude);
 
     public void ExportConfigurationWithApiKeys(object? sender, RoutedEventArgs eventArgs) => Export(ApiKeyExport.Include);
 
-    public void ConfigurationSelected(object? sender, SelectionChangedEventArgs eventArgs) => UpdateControls();
-
-    public async void EditConfiguration(object? sender, RoutedEventArgs eventArgs)
-    {
-        if (ConfigurationPicker.SelectedItem is not ScrapeConfigurationSummary summary) return;
-
+    public async void EditConfiguration(object? sender, RoutedEventArgs eventArgs) =>
         await operations.ReportFailuresAsync("Unable to edit scrape configuration.", async () =>
         {
-            if (await configurationBrowser.FindAsync(summary) is not Option<ScrapeConfigurationEntity>.Some found) return;
-
-            var saved = await configurationBrowser.CreateEditor(found.Value).ShowDialog<bool>(this);
-            if (saved) await RefreshConfigurationPickerAsync();
+            if (await configurationBrowser.CreateEditorAsync() is Option<ConfigurationEditorWindow>.Some editor) _ = await editor.Value.ShowDialog<bool>(this);
         });
-    }
 
     public async void RunScraper(object? sender, RoutedEventArgs eventArgs) => await scrapeRunner.RunAsync();
 
@@ -85,27 +72,14 @@ public partial class MainWindow : Window
         await operations.RunAsync("Scrape configuration export cancelled.", "Unable to export scrape configuration.", async cancellationToken =>
             status.Append(ConfigurationTransferMessages.ForExport(await scrapeConfigurationFileService.ExportViaPickerAsync(this, apiKeys, cancellationToken), apiKeys)));
 
-    private async Task InitialiseAsync()
-    {
-        if (await readiness.InitialiseAsync()) await RefreshConfigurationPickerAsync();
-    }
-
-    private async Task RefreshConfigurationPickerAsync()
-    {
-        var selectedId = (ConfigurationPicker.SelectedItem as ScrapeConfigurationSummary)?.Id;
-        var summaries = await configurationBrowser.ListAsync();
-        ConfigurationPicker.ItemsSource = summaries;
-        ConfigurationPicker.SelectedItem = summaries.FirstOrDefault(summary => summary.Id == selectedId) ?? (summaries.Count > 0 ? summaries[0] : null);
-        UpdateControls();
-    }
+    private async Task InitialiseAsync() => await readiness.InitialiseAsync();
 
     private void UpdateControls()
     {
         ImportConfigurationMenuItem.IsEnabled = readiness.CanOperate;
         ExportConfigurationMenuItem.IsEnabled = readiness.CanOperate;
         ExportConfigurationWithApiKeysMenuItem.IsEnabled = readiness.CanOperate;
-        ConfigurationPicker.IsEnabled = readiness.CanOperate;
-        EditConfigurationButton.IsEnabled = readiness.CanOperate && ConfigurationPicker.SelectedItem is ScrapeConfigurationSummary;
+        EditConfigurationMenuItem.IsEnabled = readiness.CanOperate;
         RunScraperButton.IsEnabled = readiness.CanRunScraper;
         CancelButton.IsEnabled = readiness.IsOperationRunning;
     }
