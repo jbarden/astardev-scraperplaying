@@ -8,13 +8,13 @@ namespace AStarDev.ScraperPlaying.UI;
 /// <param name="status">Where progress and failures are reported.</param>
 public sealed class ScrapeRunner(IScrapeService scrapeService, StatusReporter status)
 {
-    /// <summary>Runs the scraper.</summary>
+    /// <summary>Runs the scraper on the thread pool so its continuations never resume on the UI thread; progress reaches the UI through the status dispatch.</summary>
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Called from an async void UI handler: any exception escaping it would crash the application, so every failure is reported in the status instead.")]
     public async Task RunAsync()
     {
         try
         {
-            await scrapeService.RunScraperAsync(new StatusProgress(status));
+            await Task.Run(() => scrapeService.RunScraperAsync(new StatusProgress(status)));
         }
         catch (Exception exception)
         {

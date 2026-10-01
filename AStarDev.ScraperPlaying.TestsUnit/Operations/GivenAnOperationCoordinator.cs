@@ -65,4 +65,26 @@ public sealed class GivenAnOperationCoordinator
         Should.NotThrow(coordinator.Dispose);
         Should.NotThrow(coordinator.Dispose);
     }
+
+    [Fact]
+    public void when_cancel_is_called_after_the_operation_completed_then_no_exception_is_thrown()
+    {
+        using var coordinator = new OperationCoordinator();
+        coordinator.TryStart(out _);
+        coordinator.Complete();
+
+        Should.NotThrow(coordinator.Cancel);
+    }
+
+    [Fact]
+    public async Task when_cancel_and_complete_race_then_no_exception_is_thrown()
+    {
+        using var coordinator = new OperationCoordinator();
+
+        await Should.NotThrowAsync(() => Task.Run(() => Parallel.For(0, 20_000, iteration =>
+        {
+            coordinator.TryStart(out _);
+            Parallel.Invoke(coordinator.Cancel, coordinator.Complete);
+        })));
+    }
 }

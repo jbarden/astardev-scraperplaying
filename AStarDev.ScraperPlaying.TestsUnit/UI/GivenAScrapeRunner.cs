@@ -36,6 +36,27 @@ public sealed class GivenAScrapeRunner
         status.Text.ShouldBe("The scrape failed. Scrape configuration not found");
     }
 
+    [Fact]
+    public async Task when_run_from_a_thread_with_a_synchronisation_context_then_the_scrape_runs_without_it()
+    {
+        var originalContext = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(new SynchronizationContext());
+
+        try
+        {
+            var scrapeContext = new SynchronizationContext();
+            scrapeService.OnRun = _ => scrapeContext = SynchronizationContext.Current!;
+
+            await runner.RunAsync();
+
+            scrapeContext.ShouldBeNull();
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(originalContext);
+        }
+    }
+
     private sealed class FakeScrapeService : IScrapeService
     {
         public Action<IProgress<string>> OnRun { get; set; } = _ => { };

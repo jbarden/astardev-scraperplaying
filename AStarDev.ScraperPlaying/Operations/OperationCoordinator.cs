@@ -2,33 +2,52 @@ namespace AStarDev.ScraperPlaying.Operations;
 
 public sealed class OperationCoordinator : IDisposable
 {
+    private readonly Lock gate = new();
     private CancellationTokenSource? cancellationTokenSource;
     private bool isDisposing;
 
-    public bool IsOperationRunning => cancellationTokenSource is not null;
+    public bool IsOperationRunning
+    {
+        get
+        {
+            lock (gate) return cancellationTokenSource is not null;
+        }
+    }
 
     public event EventHandler? StateChanged;
 
     public bool TryStart(out CancellationToken cancellationToken)
     {
-        if (cancellationTokenSource is not null)
+        lock (gate)
         {
-            cancellationToken = default;
-            return false;
+            if (cancellationTokenSource is not null)
+            {
+                cancellationToken = default;
+
+                return false;
+            }
+
+            cancellationTokenSource = new CancellationTokenSource();
+            cancellationToken = cancellationTokenSource.Token;
         }
 
-        cancellationTokenSource = new CancellationTokenSource();
-        cancellationToken = cancellationTokenSource.Token;
         StateChanged?.Invoke(this, EventArgs.Empty);
         return true;
     }
 
-    public void Cancel() => cancellationTokenSource?.Cancel();
+    public void Cancel()
+    {
+        lock (gate) cancellationTokenSource?.Cancel();
+    }
 
     public void Complete()
     {
-        cancellationTokenSource?.Dispose();
-        cancellationTokenSource = null;
+        lock (gate)
+        {
+            cancellationTokenSource?.Dispose();
+            cancellationTokenSource = null;
+        }
+
         StateChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -40,14 +59,17 @@ public sealed class OperationCoordinator : IDisposable
 
     private void Dispose(bool disposing)
     {
-        if (isDisposing) return;
-
-        if (disposing)
+        lock (gate)
         {
-            cancellationTokenSource?.Dispose();
-            cancellationTokenSource = null;
-        }
+            if (isDisposing) return;
 
-        isDisposing = true;
+            if (disposing)
+            {
+                cancellationTokenSource?.Dispose();
+                cancellationTokenSource = null;
+            }
+
+            isDisposing = true;
+        }
     }
 }
