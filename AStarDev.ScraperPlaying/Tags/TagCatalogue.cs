@@ -18,9 +18,9 @@ public sealed class TagCatalogue(IServiceScopeFactory scopeFactory) : ITagCatalo
     }
 
     /// <inheritdoc/>
-    public async Task<Exceptional<Unit>> SaveIgnoreImageAsync(IReadOnlyDictionary<int, bool> ignoreImageByWallhavenId, CancellationToken cancellationToken = default)
+    public async Task<Exceptional<Unit>> SaveFlagsAsync(IReadOnlyDictionary<int, TagFlags> flagsByWallhavenId, CancellationToken cancellationToken = default)
     {
-        if (ignoreImageByWallhavenId.Count == 0) return Unit.Instance;
+        if (flagsByWallhavenId.Count == 0) return Unit.Instance;
 
         using var scope = scopeFactory.CreateScope();
         var query = scope.ServiceProvider.GetRequiredService<ITagsQuery>();
@@ -28,8 +28,13 @@ public sealed class TagCatalogue(IServiceScopeFactory scopeFactory) : ITagCatalo
 
         return await Try.RunAsync(async () =>
         {
-            var tags = (await query.FindByWallhavenIdsAsync([.. ignoreImageByWallhavenId.Keys], cancellationToken)).Match(found => found, exception => throw exception);
-            foreach (var tag in tags) tag.IgnoreImage = ignoreImageByWallhavenId[tag.WallhavenTagId];
+            var tags = (await query.FindByWallhavenIdsAsync([.. flagsByWallhavenId.Keys], cancellationToken)).Match(found => found, exception => throw exception);
+            foreach (var tag in tags)
+            {
+                var flags = flagsByWallhavenId[tag.WallhavenTagId];
+                tag.IgnoreImage = flags.IgnoreImage;
+                tag.IsName = flags.IsName;
+            }
 
             _ = await unitOfWork.SaveChangesAsync(cancellationToken);
 

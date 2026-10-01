@@ -5,7 +5,7 @@ namespace AStarDev.ScraperPlaying.TestsUnit.Tags;
 
 public sealed class GivenATagRow
 {
-    private static readonly TagSummary Summary = new(7, "cats", "Nature", "sfw", false);
+    private static readonly TagSummary Summary = new(7, "cats", "Nature", "sfw", false, false);
 
     [Fact]
     public void when_the_flag_is_untouched_then_the_row_is_not_changed()
@@ -30,6 +30,22 @@ public sealed class GivenATagRow
         row.IgnoreImage = false;
 
         row.IsChanged.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void when_the_name_flag_is_toggled_then_the_row_is_changed()
+    {
+        var row = new TagRow(Summary) { IsName = true };
+
+        row.IsChanged.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void when_flags_are_changed_then_the_row_reports_both_flags()
+    {
+        var row = new TagRow(Summary) { IgnoreImage = true, IsName = true };
+
+        row.Flags.ShouldBe(new TagFlags(true, true));
     }
 
     [Fact]

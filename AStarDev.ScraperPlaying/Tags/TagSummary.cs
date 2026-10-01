@@ -8,9 +8,10 @@ namespace AStarDev.ScraperPlaying.Tags;
 /// <param name="Category">The tag's category name.</param>
 /// <param name="Purity">The tag's purity rating.</param>
 /// <param name="IgnoreImage">Whether any image carrying the tag is ignored.</param>
-public sealed record TagSummary(int WallhavenTagId, string Name, string Category, string Purity, bool IgnoreImage)
+/// <param name="IsName">Whether the tag is a name.</param>
+public sealed record TagSummary(int WallhavenTagId, string Name, string Category, string Purity, bool IgnoreImage, bool IsName)
 {
     /// <summary>Creates a summary of the specified tag.</summary>
     /// <param name="entity">The tag to summarise.</param>
-    public static TagSummary From(TagEntity entity) => new(entity.WallhavenTagId, entity.Name, entity.Category, entity.Purity, entity.IgnoreImage);
+    public static TagSummary From(TagEntity entity) => new(entity.WallhavenTagId, entity.Name, entity.Category, entity.Purity, entity.IgnoreImage, entity.IsName);
 }

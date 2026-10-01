@@ -5,7 +5,7 @@ using Avalonia.Interactivity;
 
 namespace AStarDev.ScraperPlaying.UI;
 
-/// <summary>Lists the stored tags so the ignore flag of each can be changed. Save writes the changed flags and closes with <c>true</c>, Cancel closes with <c>false</c>.</summary>
+/// <summary>Lists the stored tags so the flags of each can be changed. Save writes the changed flags and closes with <c>true</c>, Cancel closes with <c>false</c>.</summary>
 public partial class TagsEditorWindow : Window
 {
     private readonly IReadOnlyList<TagRow> rows = [];
@@ -32,8 +32,8 @@ public partial class TagsEditorWindow : Window
     {
         ErrorText.Text = string.Empty;
         SetSaving(true);
-        var changes = rows.Where(row => row.IsChanged).ToDictionary(row => row.WallhavenTagId, row => row.IgnoreImage);
-        var result = await catalogue.SaveIgnoreImageAsync(changes);
+        var changes = rows.Where(row => row.IsChanged).ToDictionary(row => row.WallhavenTagId, row => row.Flags);
+        var result = await catalogue.SaveFlagsAsync(changes);
         SetSaving(false);
         var failure = result.Match(_ => Option.None<string>(), exception => Option.Some($"Unable to save the tags. {exception.Message}"));
         if (failure is Option<string>.Some some) ErrorText.Text = some.Value;

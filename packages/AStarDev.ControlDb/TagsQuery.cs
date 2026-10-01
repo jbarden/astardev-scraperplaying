@@ -18,6 +18,10 @@ public interface ITagsQuery
     /// <summary>Gets the Wallhaven ids of every tag flagged <see cref="TagEntity.IgnoreImage"/>.</summary>
     /// <param name="cancellationToken">A cancellation token for the asynchronous operation.</param>
     Task<Exceptional<IReadOnlyCollection<int>>> GetIgnoredWallhavenIdsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Gets the Wallhaven ids of every tag flagged <see cref="TagEntity.IsName"/>.</summary>
+    /// <param name="cancellationToken">A cancellation token for the asynchronous operation.</param>
+    Task<Exceptional<IReadOnlyCollection<int>>> GetNameWallhavenIdsAsync(CancellationToken cancellationToken = default);
 }
 
 public class TagsQuery(ControlDbContext context) : ITagsQuery
@@ -37,6 +41,13 @@ public class TagsQuery(ControlDbContext context) : ITagsQuery
     public Task<Exceptional<IReadOnlyCollection<int>>> GetIgnoredWallhavenIdsAsync(CancellationToken cancellationToken = default)
             => Try.RunAsync<IReadOnlyCollection<int>>(async () => await context.Tags
                             .Where(tag => tag.IgnoreImage)
+                            .Select(tag => tag.WallhavenTagId)
+                            .ToListAsync(cancellationToken)
+                            .ConfigureAwait(false));
+
+    public Task<Exceptional<IReadOnlyCollection<int>>> GetNameWallhavenIdsAsync(CancellationToken cancellationToken = default)
+            => Try.RunAsync<IReadOnlyCollection<int>>(async () => await context.Tags
+                            .Where(tag => tag.IsName)
                             .Select(tag => tag.WallhavenTagId)
                             .ToListAsync(cancellationToken)
                             .ConfigureAwait(false));

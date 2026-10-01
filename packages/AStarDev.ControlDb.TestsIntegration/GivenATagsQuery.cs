@@ -70,6 +70,29 @@ public sealed class GivenATagsQuery : IDisposable
     }
 
     [Fact]
+    public async Task when_some_tags_are_flagged_as_names_then_only_their_wallhaven_ids_are_returned()
+    {
+        var name = TagEntityFactory.CreateTagEntity(wallhavenTagId: 30, name: "some name");
+        name.IsName = true;
+        await context.Tags.AddRangeAsync([name, TagEntityFactory.CreateTagEntity(wallhavenTagId: 31, name: "not a name")], TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var query = new TagsQuery(context);
+
+        var result = await query.GetNameWallhavenIdsAsync(TestContext.Current.CancellationToken);
+
+        result.Match(ids => ids.ToList(), exception => throw exception).ShouldBe([30]);
+    }
+
+    [Fact]
+    public async Task when_a_tag_is_stored_then_it_is_not_a_name_by_default()
+    {
+        await context.Tags.AddAsync(TagEntityFactory.CreateTagEntity(wallhavenTagId: 32, name: "default"), TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        context.Tags.Single().IsName.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task when_a_tag_is_stored_then_it_does_not_ignore_images_by_default()
     {
         await context.Tags.AddAsync(TagEntityFactory.CreateTagEntity(wallhavenTagId: 12, name: "default"), TestContext.Current.CancellationToken);
