@@ -16,23 +16,12 @@ public sealed class WallpaperIngestionService(IFilesQuery filesQuery, INewWallpa
     {
         if (wallpapers.Count == 0) return;
 
-        IReadOnlyList<WallpaperCandidate> candidates = [.. wallpapers.Select(wallpaper => new WallpaperCandidate(wallpaper, wallpaper.Path.ToFileExtension()))];
-        var handles = candidates.Select(candidate => FileHandle.Create(candidate.Wallpaper.Id)).ToList();
+        var candidates = BuildCandidates(wallpapers);
+        IReadOnlyCollection<FileHandle> handles = [.. candidates.Select(candidate => FileHandle.Create(candidate.Wallpaper.Id))];
 
         await (await filesQuery.GetExistingHandlesAsync(handles, cancellationToken))
         .Match(
-            async existingHandles =>
-            {
-                var existing = existingHandles.Select(handle => handle.Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                List<WallpaperCandidate> newWallpapers = [];
-                foreach (var candidate in candidates)
-                {
-                    if (existing.Contains(candidate.Wallpaper.Id)) progress.Report($"The file details already exist for wallpaper {candidate.Wallpaper.Id} - no need to fetch again.");
-                    else newWallpapers.Add(candidate);
-                }
-
-                await IngestNewWallpapersAsync(newWallpapers, context, progress, cancellationToken);
-            },
+            existingHandles => IngestNewWallpapersAsync(SplitNewCandidates(candidates, existingHandles, progress), context, progress, cancellationToken),
             exception =>
             {
                 progress.Report($"Failed to check whether the file details already exist for this page of wallpapers: {exception.Message}");
@@ -40,6 +29,22 @@ public sealed class WallpaperIngestionService(IFilesQuery filesQuery, INewWallpa
                 return Task.CompletedTask;
             }
         );
+    }
+
+    private static IReadOnlyList<WallpaperCandidate> BuildCandidates(IReadOnlyList<Data> wallpapers)
+        => [.. wallpapers.Select(wallpaper => new WallpaperCandidate(wallpaper, wallpaper.Path.ToFileExtension()))];
+
+    private static List<WallpaperCandidate> SplitNewCandidates(IReadOnlyList<WallpaperCandidate> candidates, IEnumerable<FileHandle> existingHandles, IProgress<string> progress)
+    {
+        var existing = existingHandles.Select(handle => handle.Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        List<WallpaperCandidate> newWallpapers = [];
+        foreach (var candidate in candidates)
+        {
+            if (existing.Contains(candidate.Wallpaper.Id)) progress.Report($"The file details already exist for wallpaper {candidate.Wallpaper.Id} - no need to fetch again.");
+            else newWallpapers.Add(candidate);
+        }
+
+        return newWallpapers;
     }
 
     /// <summary>
