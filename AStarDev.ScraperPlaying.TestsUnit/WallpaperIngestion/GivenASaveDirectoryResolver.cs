@@ -9,7 +9,7 @@ namespace AStarDev.ScraperPlaying.TestsUnit.WallpaperIngestion;
 
 public sealed class GivenASaveDirectoryResolver
 {
-    private static readonly Tag FamousTag = new(1, "Famous", "famous", 1, "Celebrities", "sfw", IsFamous: true);
+    private static readonly Tag FamousTag = new(1, "Famous Person", "famous-person", 1, "Celebrities", "sfw", IsFamous: true);
     private readonly FakeUnitOfWork unitOfWork = new();
     private readonly FakeRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> scrapeConfigurationRepository;
     private readonly SaveDirectoryResolver resolver;
@@ -50,7 +50,7 @@ public sealed class GivenASaveDirectoryResolver
     {
         var directories = await resolver.ResolveSaveDirectoriesAsync(Option.Some("My Category"), CancellationToken.None);
 
-        directories.For([FamousTag]).ShouldBe(Path.Combine("famous-root-directory", "my-category"));
+        directories.For([FamousTag]).ShouldBe(Path.Combine("famous-root-directory", "famous-person", "my-category"));
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public sealed class GivenASaveDirectoryResolver
     {
         var directories = await resolver.ResolveSaveDirectoriesAsync(Option.None<string>(), CancellationToken.None);
 
-        directories.For([FamousTag]).ShouldBe(Path.Combine("famous-root-directory", "top-wallpapers"));
+        directories.For([FamousTag]).ShouldBe(Path.Combine("famous-root-directory", "famous-person", "top-wallpapers"));
     }
 
     [Fact]

@@ -17,7 +17,7 @@ public sealed class GivenASaveDirectories
 
     [Fact]
     public void when_any_tag_is_famous_then_the_famous_root_is_used()
-        => Directories.For([Tag("one"), Tag("two", famous: true)]).ShouldBe(Path.Combine("famous", "outside"));
+        => Directories.For([Tag("one"), Tag("two", famous: true)]).ShouldBe(Path.Combine("famous", "two", "outside"));
 
     [Fact]
     public void when_a_tag_is_a_name_then_its_slug_is_prepended_to_the_category()
@@ -32,8 +32,16 @@ public sealed class GivenASaveDirectories
         => Directories.For([Tag("Some Name", famous: true, isName: true)]).ShouldBe(Path.Combine("famous", "some-name", "outside"));
 
     [Fact]
-    public void when_a_tag_is_famous_but_not_a_name_then_no_name_is_prepended()
-        => Directories.For([Tag("Some Name", famous: true)]).ShouldBe(Path.Combine("famous", "outside"));
+    public void when_a_tag_is_famous_but_not_flagged_as_a_name_then_its_name_is_still_prepended()
+        => Directories.For([Tag("Emma Stone", famous: true)]).ShouldBe(Path.Combine("famous", "emma-stone", "outside"));
+
+    [Fact]
+    public void when_a_famous_tag_and_a_name_tag_are_present_then_both_are_prepended_in_tag_order()
+        => Directories.For([Tag("Emma Stone", famous: true), Tag("Other Name", isName: true)]).ShouldBe(Path.Combine("famous", "emma-stone_other-name", "outside"));
+
+    [Fact]
+    public void when_a_tag_is_both_famous_and_a_name_then_its_name_is_prepended_once()
+        => Directories.For([Tag("Emma Stone", famous: true, isName: true)]).ShouldBe(Path.Combine("famous", "emma-stone", "outside"));
 
     [Fact]
     public void when_a_name_has_invalid_path_characters_then_they_are_removed()

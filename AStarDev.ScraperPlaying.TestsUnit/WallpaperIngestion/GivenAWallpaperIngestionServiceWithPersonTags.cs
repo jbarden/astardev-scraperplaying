@@ -34,10 +34,10 @@ public sealed class GivenAWallpaperIngestionServiceWithPersonTags
 
         await Ingest("abc123");
 
-        fileSystem.File.Exists(fileSystem.Path.Combine("famous-some-directory", "Max_Verstappen_abc123.jpg")).ShouldBeTrue();
-        fileSystem.File.Exists(fileSystem.Path.Combine("famous-some-directory", "abc123.jpg")).ShouldBeFalse();
+        fileSystem.File.Exists(fileSystem.Path.Combine("famous-some-directory", "max-verstappen", "", "Max_Verstappen_abc123.jpg")).ShouldBeTrue();
+        fileSystem.File.Exists(fileSystem.Path.Combine("famous-some-directory", "max-verstappen", "", "abc123.jpg")).ShouldBeFalse();
         fileRepository.Added.Select(file => file.FileName.Value).ShouldBe(["Max_Verstappen_abc123.jpg"]);
-        fileRepository.Added.Select(file => file.DirectoryName.Value).ShouldBe(["famous-some-directory"]);
+        fileRepository.Added.Select(file => file.DirectoryName.Value).ShouldBe([Path.Combine("famous-some-directory", "max-verstappen", "")]);
         fileRepository.Added.Select(file => file.FileHandle.Value).ShouldBe(["abc123"]);
     }
 
