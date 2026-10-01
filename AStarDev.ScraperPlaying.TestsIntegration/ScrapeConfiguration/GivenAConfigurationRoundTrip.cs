@@ -1,3 +1,4 @@
+using AStarDev.ScraperPlaying.Scoping;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
@@ -159,7 +160,7 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
         {
             databasePath = Path.Combine(Path.GetTempPath(), $"astardev-scraperplaying-roundtrip-{name}-{Guid.CreateVersion7():N}.db");
             serviceProvider = new ServiceCollection().AddDataServices(databasePath).BuildServiceProvider();
-            Updater = new ScrapeConfigurationUpdater(serviceProvider.GetRequiredService<IServiceScopeFactory>());
+            Updater = new ScrapeConfigurationUpdater(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()));
         }
 
         public ScrapeConfigurationUpdater Updater { get; }
@@ -183,7 +184,7 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
 
         public async Task<bool> ExportAsync(string path, ApiKeyExport apiKeys = ApiKeyExport.Include)
         {
-            var exporter = new ScrapeConfigurationExporter(serviceProvider.GetRequiredService<IServiceScopeFactory>());
+            var exporter = new ScrapeConfigurationExporter(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()));
 
             return await new ScrapeConfigurationExportService(exporter, new ScrapeConfigurationFileWriter()).ExportAsync(path, apiKeys, TestContext.Current.CancellationToken);
         }
@@ -192,7 +193,7 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
         {
             using var scope = serviceProvider.CreateScope();
             await scope.ServiceProvider.GetRequiredService<ControlDbContext>().Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
-            var importer = new ScrapeConfigurationImporter(serviceProvider.GetRequiredService<IServiceScopeFactory>());
+            var importer = new ScrapeConfigurationImporter(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()));
 
             await new ScrapeConfigurationImportService(importer, new ScrapeConfigurationFileReader()).ImportAsync(path, TestContext.Current.CancellationToken);
         }

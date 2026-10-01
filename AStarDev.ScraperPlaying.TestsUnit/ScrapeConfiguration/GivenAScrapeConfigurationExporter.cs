@@ -1,3 +1,4 @@
+using AStarDev.ScraperPlaying.Scoping;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
@@ -38,7 +39,7 @@ public sealed class GivenAScrapeConfigurationExporter : IDisposable
         unitOfWorkResolutions.ShouldBe(2);
     }
 
-    private ScrapeConfigurationExporter CreateExporter() => new(serviceProvider.GetRequiredService<IServiceScopeFactory>());
+    private ScrapeConfigurationExporter CreateExporter() => new(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()));
 
     [Fact]
     public async Task when_a_configuration_exists_then_it_is_returned_as_a_document()

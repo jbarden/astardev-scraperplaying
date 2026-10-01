@@ -1,3 +1,4 @@
+using AStarDev.ScraperPlaying.Scoping;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.TagDetail;
 using AStarDev.FunctionalParadigm;
@@ -17,7 +18,7 @@ public sealed class GivenATagCatalogue : IDisposable
     public GivenATagCatalogue()
     {
         serviceProvider = new ServiceCollection().AddScoped<ITagsQuery>(_ => query).AddScoped<IUnitOfWork>(_ => unitOfWork).BuildServiceProvider();
-        catalogue = new TagCatalogue(serviceProvider.GetRequiredService<IServiceScopeFactory>());
+        catalogue = new TagCatalogue(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()));
     }
 
     [Fact]

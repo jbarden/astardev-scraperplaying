@@ -1,3 +1,4 @@
+using AStarDev.ScraperPlaying.Scoping;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,7 +25,7 @@ public sealed class GivenAScrapeConfigurationImporter : IDisposable
 
             return unitOfWork;
         }).BuildServiceProvider();
-        importer = new ScrapeConfigurationImporter(serviceProvider.GetRequiredService<IServiceScopeFactory>());
+        importer = new ScrapeConfigurationImporter(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()));
     }
 
     public void Dispose() => serviceProvider.Dispose();

@@ -1,3 +1,4 @@
+using AStarDev.ScraperPlaying.Scoping;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
@@ -24,7 +25,7 @@ public sealed class GivenAConfigurationImportThatFails : IDisposable
     public async Task when_saving_the_replacement_fails_then_the_original_configuration_is_still_stored()
     {
         var originalId = await CreateOriginalAsync();
-        var importer = new ScrapeConfigurationImporter(serviceProvider.GetRequiredService<IServiceScopeFactory>());
+        var importer = new ScrapeConfigurationImporter(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()));
 
         var result = await importer.ImportScrapeConfigurationAsync(DocumentWithDuplicateCategoryIds());
 
@@ -36,7 +37,7 @@ public sealed class GivenAConfigurationImportThatFails : IDisposable
     public async Task when_the_replacement_saves_then_it_replaces_the_original()
     {
         var originalId = await CreateOriginalAsync();
-        var importer = new ScrapeConfigurationImporter(serviceProvider.GetRequiredService<IServiceScopeFactory>());
+        var importer = new ScrapeConfigurationImporter(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()));
         var replacementId = Guid.CreateVersion7();
 
         var result = await importer.ImportScrapeConfigurationAsync(new ScrapeConfigurationImportDocument { Id = replacementId, SearchConfiguration = new SearchConfigurationImportDocument { Id = Guid.CreateVersion7() }, UserConfiguration = new UserConfigurationImportDocument { Id = Guid.CreateVersion7() }, ScrapeDirectories = new ScrapeDirectoriesImportDocument { Id = Guid.CreateVersion7() } });

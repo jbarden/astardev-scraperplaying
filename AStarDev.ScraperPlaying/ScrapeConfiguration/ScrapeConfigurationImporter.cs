@@ -2,23 +2,21 @@
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
-using Microsoft.Extensions.DependencyInjection;
+using AStarDev.ScraperPlaying.Scoping;
 
 namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 /// <summary>Represents a repository for scrape configuration settings repository.</summary>
 /// <param name="dbContextFactory">The factory for creating instances of the ControlDbContext.</param>
-public sealed class ScrapeConfigurationImporter(IServiceScopeFactory scopeFactory) : IScrapeConfigurationImporter
+public sealed class ScrapeConfigurationImporter(IScopedRunner scopedRunner) : IScrapeConfigurationImporter
 {
     /// <inheritdoc/>
     public async Task<Exceptional<Unit>> ImportScrapeConfigurationAsync(ScrapeConfigurationImportDocument document)
     {
-        using var scope = scopeFactory.CreateScope();
-        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-        var dbContext = unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>();
-
-        return await Try.RunAsync(async () =>
+        return await scopedRunner.RunAsync<IUnitOfWork, Exceptional<Unit>>(unitOfWork => Try.RunAsync(async () =>
         {
+            var dbContext = unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>();
+
             // Map first: an unmappable document must not cost the user their current configuration.
             var replacement = document.ToEntity();
             var current = (await dbContext.TryGetFirstAsync()).Match(option => option, exception => throw exception);
@@ -42,7 +40,7 @@ public sealed class ScrapeConfigurationImporter(IServiceScopeFactory scopeFactor
 
                 return Unit.Instance;
             });
-        });
+        }));
     }
 
     private static Unit KeepStoredApiKeysWhereFileHasNone(ScrapeConfigurationEntity replacement, ScrapeConfigurationEntity existing)

@@ -1,3 +1,4 @@
+using AStarDev.ScraperPlaying.Scoping;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
@@ -21,7 +22,7 @@ public sealed class GivenAScrapeConfigurationUpdater : IDisposable
     public GivenAScrapeConfigurationUpdater()
     {
         serviceProvider = new ServiceCollection().AddDataServices(databasePath).BuildServiceProvider();
-        updater = new ScrapeConfigurationUpdater(serviceProvider.GetRequiredService<IServiceScopeFactory>());
+        updater = new ScrapeConfigurationUpdater(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()));
     }
 
     [Fact]

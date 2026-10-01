@@ -2,24 +2,22 @@ using System.IO.Abstractions;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
-using Microsoft.Extensions.DependencyInjection;
+using AStarDev.ScraperPlaying.Scoping;
 
 namespace AStarDev.ScraperPlaying.Downloads;
 
 /// <inheritdoc/>
-public sealed class DownloadsClearer(IServiceScopeFactory scopeFactory, IFileSystem fileSystem) : IDownloadsClearer
+public sealed class DownloadsClearer(IScopedRunner scopedRunner, IFileSystem fileSystem) : IDownloadsClearer
 {
     /// <inheritdoc/>
     public async Task<Exceptional<ClearedDownloads>> ClearAsync(CancellationToken cancellationToken = default)
     {
-        using var scope = scopeFactory.CreateScope();
-
-        return await Try.RunAsync(async () =>
+        return await scopedRunner.RunAsync<IScrapeConfigurationLookup, IFileDetailsClearer, Exceptional<ClearedDownloads>>((lookup, detailsClearer) => Try.RunAsync(async () =>
         {
-            var directories = (await scope.ServiceProvider.GetRequiredService<IScrapeConfigurationLookup>().TryGetRootDirectoriesAsync(cancellationToken))
+            var directories = (await lookup.TryGetRootDirectoriesAsync(cancellationToken))
                 .Match(found => found, exception => throw exception)
                 .Match(found => found, () => throw new InvalidOperationException("No scrape configuration exists."));
-            var fileRecords = (await scope.ServiceProvider.GetRequiredService<IFileDetailsClearer>().ClearAsync(cancellationToken)).Match(count => count, exception => throw exception);
+            var fileRecords = (await detailsClearer.ClearAsync(cancellationToken)).Match(count => count, exception => throw exception);
 
             fileSystem.EmptyDirectory(directories.Root);
             fileSystem.EmptyDirectory(directories.FamousRoot);
@@ -27,6 +25,6 @@ public sealed class DownloadsClearer(IServiceScopeFactory scopeFactory, IFileSys
             _ = fileSystem.Directory.CreateDirectory(directories.FamousRoot);
 
             return new ClearedDownloads(fileRecords);
-        });
+        }));
     }
 }
