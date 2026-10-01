@@ -98,9 +98,7 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
         var ingestor = new NewWallpaperIngestor(
             new TagFetcher(new JsonResponseProcessor(), tagsQuery, flagStore),
             new TagLinker(tagsQuery, unitOfWork, scope.ServiceProvider.GetRequiredService<IFileTagRepository>(), flagStore),
-            new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None),
-            new WallpaperFileRecorder(System.TimeProvider.System),
-            notifier);
+            new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None), new WallpaperFileRecorder(System.TimeProvider.System), notifier));
         using var client = CreateClient(imageStatus, tags);
         var wallpaper = new Data(wallpaperId, 0, 0, 0, "", "https://example.test/image.jpg");
         var context = new WallpaperIngestionContext(new SaveDirectories("save-directory", "famous-save-directory", ""), client, unitOfWork.GetRepository<FileEntity, FileId>(), "category", PersonCategories);

@@ -17,7 +17,7 @@ public sealed class GivenAConfigurationBrowser
     private readonly CapturingLogger<ConfigurationBrowser> logger = new();
     private readonly ConfigurationBrowser browser;
 
-    public GivenAConfigurationBrowser() => browser = new(catalogue, new ConfigurationEditSaver(new FakeUpdater()), new MockFileSystem(), status, logger);
+    public GivenAConfigurationBrowser() => browser = new(catalogue, new ConfigurationEditorWindowFactory(new ConfigurationEditSaver(new FakeUpdater()), new MockFileSystem()), status, logger);
 
     [Fact]
     public async Task when_the_configurations_are_listed_then_the_summaries_are_returned_without_any_status()

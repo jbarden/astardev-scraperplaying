@@ -7,7 +7,7 @@ using Tag = AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse.T
 namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 
 /// <inheritdoc/>
-public sealed class NewWallpaperIngestor(ITagFetcher tagFetcher, ITagLinker tagLinker, IImageDownloader imageDownloader, IWallpaperFileRecorder fileRecorder, IImageDownloadNotifier imageDownloadNotifier) : INewWallpaperIngestor
+public sealed class NewWallpaperIngestor(ITagFetcher tagFetcher, ITagLinker tagLinker, WallpaperSaver wallpaperSaver) : INewWallpaperIngestor
 {
     /// <inheritdoc/>
     public async Task<IReadOnlyList<Tag>> FetchTagsAsync(Data wallpaper, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
@@ -50,25 +50,10 @@ public sealed class NewWallpaperIngestor(ITagFetcher tagFetcher, ITagLinker tagL
     {
         var request = new WallpaperFileRequest(candidate.Wallpaper, context.Directories.For(tags), WallpaperFileNamer.Create(candidate.Wallpaper.Id, candidate.Extension, tags), context.CategoryLabel);
 
-        await DownloadAsync(request, context.Client, progress, cancellationToken);
-        var fileEntity = Record(request, context, cancellationToken);
+        var fileEntity = await wallpaperSaver.SaveAsync(request, context, progress, cancellationToken);
         await LinkTagsAsync(candidate.Wallpaper.Id, fileEntity.Id, tags, progress, cancellationToken);
 
         return Unit.Instance;
-    }
-
-    private async Task DownloadAsync(WallpaperFileRequest request, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
-    {
-        var savedPath = await imageDownloader.DownloadAsync(request, progress, client, cancellationToken);
-        progress.Report($"Downloaded image data for wallpaper {request.Wallpaper.Id}");
-        imageDownloadNotifier.NotifyImageDownloaded(new WallpaperDownloadDetails(savedPath, new WallpaperInfo(request.FileName.Value, request.CategoryLabel, request.Wallpaper.FileSize, request.Wallpaper.DimensionX, request.Wallpaper.DimensionY)));
-    }
-
-    private FileEntity Record(WallpaperFileRequest request, WallpaperIngestionContext context, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        return fileRecorder.Record(context.FileRepository, request).Match(entity => entity, exception => throw exception);
     }
 
     private async Task LinkTagsAsync(string wallpaperId, FileId fileId, IReadOnlyList<Tag> tags, IProgress<string> progress, CancellationToken cancellationToken)

@@ -99,6 +99,7 @@ public static class ApplicationServices
             .AddSingleton(DownloadPacing.Default)
             .AddScoped<IImageDownloader, ImageDownloader>()
             .AddScoped<IWallpaperFileRecorder, WallpaperFileRecorder>()
+            .AddScoped<WallpaperSaver>()
             .AddScoped<INewWallpaperIngestor, NewWallpaperIngestor>()
             .AddScoped<ISaveDirectoryResolver, SaveDirectoryResolver>()
             .AddScoped<IWallpaperIngestionService, WallpaperIngestionService>();
@@ -123,6 +124,7 @@ public static class ApplicationServices
             .AddSingleton<OperationCoordinator>()
             .AddSingleton<StatusReporter>()
             .AddSingleton<UserOperationRunner>()
+            .AddSingleton<ConfigurationEditorWindowFactory>()
             .AddSingleton<ConfigurationBrowser>()
             .AddSingleton<TagsBrowser>()
             .AddSingleton<ClearDownloadsRunner>()

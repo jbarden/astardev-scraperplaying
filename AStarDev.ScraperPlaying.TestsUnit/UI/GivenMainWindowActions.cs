@@ -31,7 +31,7 @@ public sealed class GivenMainWindowActions : IDisposable
             operations,
             status,
             files,
-            new ConfigurationBrowser(configurationCatalogue, new ConfigurationEditSaver(new FakeUpdater()), new MockFileSystem(), status, NullLogger<ConfigurationBrowser>.Instance),
+            new ConfigurationBrowser(configurationCatalogue, new ConfigurationEditorWindowFactory(new ConfigurationEditSaver(new FakeUpdater()), new MockFileSystem()), status, NullLogger<ConfigurationBrowser>.Instance),
             new TagsBrowser(tagCatalogue, status),
             new ClearDownloadsRunner(downloadsClearer, operations, status),
             new ScrapeRunner(scrapeService, status));
