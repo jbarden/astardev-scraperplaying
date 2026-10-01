@@ -13,7 +13,6 @@ public sealed class GivenAPagesProcessor
 {
     private static readonly string[] personCategories = ["Celebrities"];
     private readonly FakeUnitOfWork unitOfWork = new();
-    private readonly FakeRepository<FileEntity, FileId> fileRepository;
     private readonly FakeJsonResponseProcessor jsonResponseProcessor = new();
     private readonly FakeIngestionService wallpaperIngestionService = new();
     private readonly CapturingProgress progress = new();
@@ -22,7 +21,7 @@ public sealed class GivenAPagesProcessor
 
     public GivenAPagesProcessor()
     {
-        fileRepository = unitOfWork.Register<FileEntity, FileId>();
+        _ = unitOfWork.Register<FileEntity, FileId>();
         processor = new(new FakeClientFactory(), new FakePageFetcher(jsonResponseProcessor), unitOfWork, new FakeSaveDirectoryResolver(), wallpaperIngestionService, new ScrapeLimits(3, 4));
     }
 
@@ -33,7 +32,7 @@ public sealed class GivenAPagesProcessor
 
         await Run();
 
-        wallpaperIngestionService.PageSizes.ShouldBe([3]);
+        IngestedPages.ShouldBe(["Ingested page of 3."]);
     }
 
     [Fact]
@@ -44,13 +43,7 @@ public sealed class GivenAPagesProcessor
 
         await Run();
 
-        var ingested = wallpaperIngestionService.Calls.Single();
-        ingested.Wallpaper.ShouldBe(wallpaper);
-        ingested.Context.Directories.ShouldBe(new SaveDirectories("resolved-directory", "resolved-famous-directory", "resolved-category-segment"));
-        ingested.Context.FileRepository.ShouldBeSameAs(fileRepository);
-        ingested.Context.CategoryLabel.ShouldBe("Top Wallpapers");
-        ingested.Context.PersonCategories.ShouldBe(personCategories);
-        ingested.Progress.ShouldBeSameAs(progress);
+        progress.Messages.ShouldContain("Ingested wallpaper-1 into resolved-directory|resolved-famous-directory|resolved-category-segment as Top Wallpapers with people Celebrities.");
         unitOfWork.SaveCount.ShouldBe(1);
     }
 
@@ -60,20 +53,9 @@ public sealed class GivenAPagesProcessor
         var wallpaper = CreateWallpaper("wallpaper-category");
         SetUpPage(1, CreateSearchResponse(lastPage: 1, wallpaper));
 
-        _ = await processor.FetchAndProcessPagesAsync(
-            "search category Cars",
-            Option.Some("Cars"),
-            Option.None<SearchCategoryProgress>(),
-            _ => { },
-            page => new Uri($"https://example.test/page/{page}"),
-            new WallhavenConnection("api-key", new Uri("https://example.test")),
-            personCategories,
-            progress,
-            CancellationToken.None);
+        _ = await processor.FetchAndProcessPagesAsync(CreateRequest("search category Cars", Option.Some("Cars"), Option.None<SearchCategoryProgress>(), _ => { }), progress, CancellationToken.None);
 
-        var ingested = wallpaperIngestionService.Calls.Single();
-        ingested.Wallpaper.ShouldBe(wallpaper);
-        ingested.Context.CategoryLabel.ShouldBe("Cars");
+        progress.Messages.ShouldContain(message => message.StartsWith("Ingested wallpaper-category ", StringComparison.Ordinal) && message.Contains(" as Cars ", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -119,7 +101,7 @@ public sealed class GivenAPagesProcessor
         SetUpPage(page: null, CreateSearchResponse(lastPage: 10));
         var limitedProcessor = new PagesProcessor(new FakeClientFactory(), new FakePageFetcher(jsonResponseProcessor), unitOfWork, new FakeSaveDirectoryResolver(), wallpaperIngestionService, new ScrapeLimits(3, 2));
 
-        _ = await limitedProcessor.FetchAndProcessPagesAsync("wallpapers", Option.None<string>(), Option.None<SearchCategoryProgress>(), _ => { }, page => new Uri($"https://example.test/page/{page}"), new WallhavenConnection("api-key", new Uri("https://example.test")), personCategories, progress, CancellationToken.None);
+        _ = await limitedProcessor.FetchAndProcessPagesAsync(CreateRequest("wallpapers", Option.None<string>(), Option.None<SearchCategoryProgress>(), _ => { }), progress, CancellationToken.None);
 
         (unitOfWork.SaveCount, progress.Messages.Any(message => message.Contains("page 3", StringComparison.Ordinal))).ShouldBe((2, false));
     }
@@ -152,7 +134,7 @@ public sealed class GivenAPagesProcessor
         var result = await Fetch(Option.Some(new SearchCategoryProgress(50, 2, 2)), CancellationToken.None);
 
         (result, unitOfWork.SaveCount).ShouldBe((Option.None<SearchCategoryProgress>(), 0));
-        wallpaperIngestionService.PageSizes.ShouldBeEmpty();
+        IngestedPages.ShouldBeEmpty();
         progress.Messages.ShouldContain("Skipping wallpapers - nothing has changed since the last scrape.");
     }
 
@@ -167,7 +149,7 @@ public sealed class GivenAPagesProcessor
         var result = await Fetch(Option.Some(new SearchCategoryProgress(previousCount, previousPageVisited, previousTotalPages)), CancellationToken.None);
 
         result.ShouldBe(Option.Some(new SearchCategoryProgress(50, 2, 2)));
-        wallpaperIngestionService.PageSizes.ShouldBe([1, 1]);
+        IngestedPages.ShouldBe(["Ingested page of 1.", "Ingested page of 1."]);
     }
 
     [Fact]
@@ -190,7 +172,7 @@ public sealed class GivenAPagesProcessor
         result.ShouldBe(Option.Some(new SearchCategoryProgress(50, 3, 3)));
         progress.Messages.ShouldNotContain("Fetching wallpapers page 1.");
         progress.Messages.ShouldContain("Fetching wallpapers page 2.");
-        wallpaperIngestionService.PageSizes.ShouldBe([1, 1]);
+        IngestedPages.ShouldBe(["Ingested page of 1.", "Ingested page of 1."]);
     }
 
     [Fact]
@@ -202,7 +184,7 @@ public sealed class GivenAPagesProcessor
 
         result.ShouldBe(Option.Some(new SearchCategoryProgress(60, 3, 3)));
         progress.Messages.ShouldContain("Fetching wallpapers page 1.");
-        wallpaperIngestionService.PageSizes.ShouldBe([1, 1, 1]);
+        IngestedPages.ShouldBe(["Ingested page of 1.", "Ingested page of 1.", "Ingested page of 1."]);
     }
 
     [Fact]
@@ -293,16 +275,12 @@ public sealed class GivenAPagesProcessor
         => Fetch(Option.None<SearchCategoryProgress>(), cancellationToken);
 
     private Task<Option<SearchCategoryProgress>> Fetch(Option<SearchCategoryProgress> previousProgress, CancellationToken cancellationToken)
-        => processor.FetchAndProcessPagesAsync(
-            "wallpapers",
-            Option.None<string>(),
-            previousProgress,
-            completedProgress.Add,
-            page => new Uri($"https://example.test/page/{page}"),
-            new WallhavenConnection("api-key", new Uri("https://example.test")),
-            personCategories,
-            progress,
-            cancellationToken);
+        => processor.FetchAndProcessPagesAsync(CreateRequest("wallpapers", Option.None<string>(), previousProgress, completedProgress.Add), progress, cancellationToken);
+
+    private static PageScrapeRequest CreateRequest(string logLabel, Option<string> categoryName, Option<SearchCategoryProgress> previousProgress, Action<SearchCategoryProgress> onPageCompleted)
+        => new(logLabel, categoryName, previousProgress, onPageCompleted, page => new Uri($"https://example.test/page/{page}"), new WallhavenConnection("api-key", new Uri("https://example.test")), personCategories);
+
+    private IEnumerable<string> IngestedPages => progress.Messages.Where(message => message.StartsWith("Ingested page of ", StringComparison.Ordinal));
 
     private Task Run()
         => FetchWithCancellation(CancellationToken.None);
@@ -371,20 +349,15 @@ public sealed class GivenAPagesProcessor
         }
     }
 
-    private sealed record IngestCall(Data Wallpaper, WallpaperIngestionContext Context, IProgress<string> Progress);
-
     private sealed class FakeIngestionService : IWallpaperIngestionService
     {
-        public List<IngestCall> Calls { get; } = [];
-
         public Action OnIngest { get; set; } = () => { };
-
-        public List<int> PageSizes { get; } = [];
 
         public Task IngestPageAsync(IReadOnlyList<Data> wallpapers, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
         {
-            PageSizes.Add(wallpapers.Count);
-            Calls.AddRange(wallpapers.Select(wallpaper => new IngestCall(wallpaper, context, progress)));
+            progress.Report($"Ingested page of {wallpapers.Count}.");
+            foreach (var wallpaper in wallpapers) progress.Report($"Ingested {wallpaper.Id} into {context.Directories.Root}|{context.Directories.FamousRoot}|{context.Directories.CategorySegment} as {context.CategoryLabel} with people {string.Join(",", context.PersonCategories)}.");
+
             OnIngest();
 
             return Task.CompletedTask;
