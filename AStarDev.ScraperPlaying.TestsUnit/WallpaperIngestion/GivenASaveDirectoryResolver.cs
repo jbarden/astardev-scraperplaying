@@ -1,24 +1,24 @@
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
+using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse;
 using AStarDev.ScraperPlaying.TestsUnit.Fakes;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
-using Testably.Abstractions.Testing;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.WallpaperIngestion;
 
 public sealed class GivenASaveDirectoryResolver
 {
+    private static readonly Tag FamousTag = new(1, "Famous", "famous", 1, "Celebrities", "sfw", IsFamous: true);
     private readonly FakeUnitOfWork unitOfWork = new();
     private readonly FakeRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> scrapeConfigurationRepository;
-    private readonly MockFileSystem fileSystem = new();
     private readonly SaveDirectoryResolver resolver;
 
     public GivenASaveDirectoryResolver()
     {
         scrapeConfigurationRepository = unitOfWork.Register<ScrapeConfigurationEntity, ScrapeConfigurationId>();
         scrapeConfigurationRepository.First = (Option<ScrapeConfigurationEntity>)CreateConfiguration("root-directory");
-        resolver = new(fileSystem, unitOfWork);
+        resolver = new(unitOfWork);
     }
 
     [Fact]
@@ -26,7 +26,7 @@ public sealed class GivenASaveDirectoryResolver
     {
         var directories = await resolver.ResolveSaveDirectoriesAsync(Option.None<string>(), CancellationToken.None);
 
-        directories.Directory.ShouldBe(fileSystem.Path.Combine("root-directory", "top-wallpapers"));
+        directories.For([]).ShouldBe(Path.Combine("root-directory", "top-wallpapers"));
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public sealed class GivenASaveDirectoryResolver
     {
         var directories = await resolver.ResolveSaveDirectoriesAsync(Option.Some("My Category"), CancellationToken.None);
 
-        directories.Directory.ShouldBe(fileSystem.Path.Combine("root-directory", "my-category"));
+        directories.For([]).ShouldBe(Path.Combine("root-directory", "my-category"));
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class GivenASaveDirectoryResolver
     {
         var directories = await resolver.ResolveSaveDirectoriesAsync(Option.Some("My Category"), CancellationToken.None);
 
-        directories.FamousDirectory.ShouldBe(fileSystem.Path.Combine("famous-root-directory", "my-category"));
+        directories.For([FamousTag]).ShouldBe(Path.Combine("famous-root-directory", "my-category"));
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public sealed class GivenASaveDirectoryResolver
     {
         var directories = await resolver.ResolveSaveDirectoriesAsync(Option.None<string>(), CancellationToken.None);
 
-        directories.FamousDirectory.ShouldBe(fileSystem.Path.Combine("famous-root-directory", "top-wallpapers"));
+        directories.For([FamousTag]).ShouldBe(Path.Combine("famous-root-directory", "top-wallpapers"));
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public sealed class GivenASaveDirectoryResolver
 
         var directories = await resolver.ResolveSaveDirectoriesAsync(Option.Some("My Category"), CancellationToken.None);
 
-        directories.Directory.ShouldBe(fileSystem.Path.Combine("root-directory", "my-category"));
+        directories.For([]).ShouldBe(Path.Combine("root-directory", "my-category"));
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public sealed class GivenASaveDirectoryResolver
 
         var directories = await resolver.ResolveSaveDirectoriesAsync(Option.None<string>(), CancellationToken.None);
 
-        directories.Directory.ShouldBe(fileSystem.Path.Combine("recovered-root-directory", "top-wallpapers"));
+        directories.For([]).ShouldBe(Path.Combine("recovered-root-directory", "top-wallpapers"));
     }
 
     [Fact]
