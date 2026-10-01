@@ -1,25 +1,22 @@
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
-using Microsoft.Extensions.DependencyInjection;
+using AStarDev.ScraperPlaying.Scoping;
 
 namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 /// <summary>Represents a repository for reading the scrape configuration settings aggregate for export.</summary>
 /// <param name="unitOfWork">The unit of work used to obtain the scrape configuration repository.</param>
-public sealed class ScrapeConfigurationExporter(IServiceScopeFactory scopeFactory) : IScrapeConfigurationExporter
+public sealed class ScrapeConfigurationExporter(IScopedRunner scopedRunner) : IScrapeConfigurationExporter
 {
     /// <inheritdoc/>
     public async Task<Exceptional<Option<ScrapeConfigurationImportDocument>>> ExportScrapeConfigurationAsync(ApiKeyExport apiKeys)
-    {
-        using var scope = scopeFactory.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<IUnitOfWork>().GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>();
-
-        return await Try.RunAsync(async () =>
+        =>
+        await scopedRunner.RunAsync<IUnitOfWork, Exceptional<Option<ScrapeConfigurationImportDocument>>>(unitOfWork => Try.RunAsync(async () =>
         {
+            var dbContext = unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>();
             var current = (await dbContext.TryGetFirstAsync()).Match(option => option, exception => throw exception);
 
             return current.Match(entity => (Option<ScrapeConfigurationImportDocument>)entity.ToImportDocument(apiKeys), () => Option<ScrapeConfigurationImportDocument>.None.Instance);
-        });
-    }
+        }));
 }

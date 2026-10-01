@@ -1,3 +1,4 @@
+using AStarDev.ScraperPlaying.Scoping;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
@@ -28,7 +29,7 @@ public sealed class GivenAScrapeService : IDisposable
             .AddSingleton<ISearchOrchestrator>(searchOrchestrator)
             .BuildServiceProvider();
 
-        service = new(operationCoordinator, serviceProvider.GetRequiredService<IServiceScopeFactory>(), logger);
+        service = new(operationCoordinator, new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()), logger);
     }
 
     [Fact]

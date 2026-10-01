@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using AStarDev.ScraperPlaying.Downloads;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
+using AStarDev.ScraperPlaying.Scoping;
 using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.Tags;
 using AStarDev.ScraperPlaying.UI;
@@ -22,6 +23,7 @@ public static class ApplicationServices
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration) =>
         services
             .AddSingleton<IApplicationDirectories, ApplicationDirectories>()
+            .AddSingleton<IScopedRunner, ScopedRunner>()
             .AddSingleton<IScrapeService, ScrapeService>()
             .AddSingleton<IRootDirectoryCheck, RootDirectoryCheck>()
             .AddSingleton<IConfigurationFilePicker, ConfigurationFilePicker>()

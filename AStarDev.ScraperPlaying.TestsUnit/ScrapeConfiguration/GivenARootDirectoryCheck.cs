@@ -1,3 +1,4 @@
+using AStarDev.ScraperPlaying.Scoping;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
@@ -17,7 +18,7 @@ public sealed class GivenARootDirectoryCheck : IDisposable
     public GivenARootDirectoryCheck()
     {
         serviceProvider = new ServiceCollection().AddScoped<IScrapeConfigurationLookup>(_ => lookup).BuildServiceProvider();
-        check = new(serviceProvider.GetRequiredService<IServiceScopeFactory>(), fileSystem);
+        check = new(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()), fileSystem);
     }
 
     public void Dispose() => serviceProvider.Dispose();

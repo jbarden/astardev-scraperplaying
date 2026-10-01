@@ -1,3 +1,4 @@
+using AStarDev.ScraperPlaying.Scoping;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
@@ -19,7 +20,7 @@ public sealed class GivenAScrapeConfigurationCatalogue : IDisposable
         var unitOfWork = new FakeUnitOfWork();
         repository = unitOfWork.Register<ScrapeConfigurationEntity, ScrapeConfigurationId>();
         serviceProvider = new ServiceCollection().AddScoped<IUnitOfWork>(_ => unitOfWork).AddScoped<IScrapeConfigurationLookup>(_ => lookup).BuildServiceProvider();
-        catalogue = new ScrapeConfigurationCatalogue(serviceProvider.GetRequiredService<IServiceScopeFactory>());
+        catalogue = new ScrapeConfigurationCatalogue(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()));
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using AStarDev.ScraperPlaying.Scoping;
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
@@ -23,7 +24,7 @@ public sealed class GivenADownloadsClearer : IDisposable
             .AddScoped<IScrapeConfigurationLookup>(_ => lookup)
             .AddScoped<IFileDetailsClearer>(_ => fileDetailsClearer)
             .BuildServiceProvider();
-        clearer = new DownloadsClearer(serviceProvider.GetRequiredService<IServiceScopeFactory>(), fileSystem);
+        clearer = new DownloadsClearer(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()), fileSystem);
     }
 
     [Fact]
