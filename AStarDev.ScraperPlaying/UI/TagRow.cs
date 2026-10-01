@@ -2,7 +2,7 @@ using AStarDev.ScraperPlaying.Tags;
 
 namespace AStarDev.ScraperPlaying.UI;
 
-/// <summary>The editable state of one tag row in <see cref="TagsEditorWindow"/>; only the ignore flag can be changed.</summary>
+/// <summary>The editable state of one tag row in <see cref="TagsEditorWindow"/>; only the flags can be changed.</summary>
 /// <param name="summary">The stored tag the row starts from.</param>
 public sealed class TagRow(TagSummary summary)
 {
@@ -21,8 +21,14 @@ public sealed class TagRow(TagSummary summary)
     /// <summary>Whether any image carrying the tag is ignored.</summary>
     public bool IgnoreImage { get; set; } = summary.IgnoreImage;
 
-    /// <summary>Whether the ignore flag differs from the stored tag.</summary>
-    public bool IsChanged => IgnoreImage != summary.IgnoreImage;
+    /// <summary>Whether the tag is a name, used to prefix the directory a wallpaper is saved under.</summary>
+    public bool IsName { get; set; } = summary.IsName;
+
+    /// <summary>The flags currently set on the row.</summary>
+    public TagFlags Flags => new(IgnoreImage, IsName);
+
+    /// <summary>Whether any flag differs from the stored tag.</summary>
+    public bool IsChanged => IgnoreImage != summary.IgnoreImage || IsName != summary.IsName;
 
     /// <summary>Whether the row's name or category contains <paramref name="filter"/>, ignoring case; every row matches an empty filter.</summary>
     /// <param name="filter">The text to look for.</param>

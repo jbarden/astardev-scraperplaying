@@ -27,6 +27,9 @@ public sealed class TagEntity : IAggregateRoot
     /// <summary>When true, any image carrying this tag is ignored (not downloaded or recorded).</summary>
     public bool IgnoreImage { get; set; }
 
+    /// <summary>When true, the tag is a name (for example a person's), used to prefix the directory a wallpaper is saved under.</summary>
+    public bool IsName { get; set; }
+
     /// <summary>Navigation property to the files this tag is linked to.</summary>
     public ICollection<FileTagEntity> FileTags { get; } = [];
 }

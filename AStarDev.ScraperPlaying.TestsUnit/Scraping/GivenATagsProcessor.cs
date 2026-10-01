@@ -148,6 +148,31 @@ public sealed class GivenATagsProcessor
     }
 
     [Fact]
+    public async Task when_a_fetched_tag_is_flagged_as_a_name_then_it_is_returned_flagged()
+    {
+        SetUpDetailResponse(CreateTag(wallhavenTagId: 24, name: "some name"), CreateTag(wallhavenTagId: 25, name: "outside"));
+        tagsQuery.Names.Add(24);
+
+        using var client = new HttpClient();
+        var result = await processor.FetchTagsAsync("wallpaper-1", client, progress, CancellationToken.None);
+
+        result.Match(tags => tags.Select(tag => (tag.Id, tag.IsName)).ToList(), ex => throw ex).ShouldBe([(24, true), (25, false)]);
+    }
+
+    [Fact]
+    public async Task when_tags_are_fetched_for_several_wallpapers_then_the_name_tags_are_only_loaded_once()
+    {
+        jsonResponseProcessor.Responses["wallpaper-a"] = CreateDetailResponse(CreateTag(wallhavenTagId: 26, name: "one"));
+        jsonResponseProcessor.Responses["wallpaper-b"] = CreateDetailResponse(CreateTag(wallhavenTagId: 27, name: "two"));
+
+        using var client = new HttpClient();
+        _ = await processor.FetchTagsAsync("wallpaper-a", client, progress, CancellationToken.None);
+        _ = await processor.FetchTagsAsync("wallpaper-b", client, progress, CancellationToken.None);
+
+        tagsQuery.NamesQueryCount.ShouldBe(1);
+    }
+
+    [Fact]
     public async Task when_tags_are_fetched_for_several_wallpapers_then_the_ignored_tags_are_only_loaded_once()
     {
         jsonResponseProcessor.Responses["wallpaper-a"] = CreateDetailResponse(CreateTag(wallhavenTagId: 22, name: "one"));
@@ -231,6 +256,17 @@ public sealed class GivenATagsProcessor
         public HashSet<int> Ignored { get; } = [];
 
         public int IgnoredQueryCount { get; private set; }
+
+        public HashSet<int> Names { get; } = [];
+
+        public int NamesQueryCount { get; private set; }
+
+        public Task<Exceptional<IReadOnlyCollection<int>>> GetNameWallhavenIdsAsync(CancellationToken cancellationToken = default)
+        {
+            NamesQueryCount++;
+
+            return Task.FromResult<Exceptional<IReadOnlyCollection<int>>>(Names.ToList());
+        }
 
         public Task<Exceptional<IReadOnlyList<TagEntity>>> ListAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult<Exceptional<IReadOnlyList<TagEntity>>>(Existing.Values.ToList());

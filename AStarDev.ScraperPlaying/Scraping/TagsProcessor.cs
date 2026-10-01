@@ -27,6 +27,9 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
 
     private bool ignoredTagIdsLoaded;
 
+    /// <summary>The Wallhaven ids of the tags flagged <see cref="TagEntity.IsName"/>. Loaded with <see cref="ignoredTagIds"/> on the first fetch and reused for the rest of the run for the same reason.</summary>
+    private HashSet<int> nameTagIds = [];
+
     /// <inheritdoc/>
     public Task<Exceptional<IReadOnlyList<Tag>>> FetchTagsAsync(string wallpaperId, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
         => Try.RunAsync<IReadOnlyList<Tag>>(async () =>
@@ -38,16 +41,17 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
                     option => option.Match(value => value, () => throw new InvalidOperationException($"No response body received for wallpaper {wallpaperId} detail.")),
                     exception => throw exception);
 
-            await LoadIgnoredTagIdsAsync(cancellationToken);
+            await LoadTagFlagsAsync(cancellationToken);
 
-            return [.. detailResponse.Data.Tags.Select(tag => tag with { IgnoreImage = ignoredTagIds.Contains(tag.Id) })];
+            return [.. detailResponse.Data.Tags.Select(tag => tag with { IgnoreImage = ignoredTagIds.Contains(tag.Id), IsName = nameTagIds.Contains(tag.Id) })];
         });
 
-    private async Task LoadIgnoredTagIdsAsync(CancellationToken cancellationToken)
+    private async Task LoadTagFlagsAsync(CancellationToken cancellationToken)
     {
         if (ignoredTagIdsLoaded) return;
 
         ignoredTagIds = [.. (await tagsQuery.GetIgnoredWallhavenIdsAsync(cancellationToken)).Match(found => found, exception => throw exception)];
+        nameTagIds = [.. (await tagsQuery.GetNameWallhavenIdsAsync(cancellationToken)).Match(found => found, exception => throw exception)];
         ignoredTagIdsLoaded = true;
     }
 

@@ -9,5 +9,6 @@
   "category": "Nature",
   "purity": "sfw",
   "ignoreImage": false,
+  "isName": false,
   "fileTags": []
 }

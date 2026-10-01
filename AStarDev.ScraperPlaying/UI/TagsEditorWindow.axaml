@@ -12,20 +12,22 @@
              Watermark="Filter by name or category"
              Margin="0,0,0,12"
              TextChanged="FilterChanged" />
-    <Grid Grid.Row="1" ColumnDefinitions="*,160,80,Auto" ColumnSpacing="8" Margin="12,0,12,6">
+    <Grid Grid.Row="1" ColumnDefinitions="*,160,80,Auto,Auto" ColumnSpacing="8" Margin="12,0,12,6">
       <TextBlock Grid.Column="0" Text="Name" FontWeight="SemiBold" />
       <TextBlock Grid.Column="1" Text="Category" FontWeight="SemiBold" />
       <TextBlock Grid.Column="2" Text="Purity" FontWeight="SemiBold" />
       <TextBlock Grid.Column="3" Text="Ignore images" FontWeight="SemiBold" />
+      <TextBlock Grid.Column="4" Text="Is name" FontWeight="SemiBold" />
     </Grid>
     <ListBox x:Name="TagsList" Grid.Row="2" SelectionMode="Single">
       <ListBox.ItemTemplate>
         <DataTemplate x:DataType="ui:TagRow">
-          <Grid ColumnDefinitions="*,160,80,Auto" ColumnSpacing="8">
+          <Grid ColumnDefinitions="*,160,80,Auto,Auto" ColumnSpacing="8">
             <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center" />
             <TextBlock Grid.Column="1" Text="{Binding Category}" VerticalAlignment="Center" />
             <TextBlock Grid.Column="2" Text="{Binding Purity}" VerticalAlignment="Center" />
             <CheckBox Grid.Column="3" IsChecked="{Binding IgnoreImage}" />
+            <CheckBox Grid.Column="4" IsChecked="{Binding IsName}" />
           </Grid>
         </DataTemplate>
       </ListBox.ItemTemplate>

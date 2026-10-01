@@ -23,11 +23,11 @@ public sealed class GivenATagCatalogue : IDisposable
     [Fact]
     public async Task when_tags_exist_then_a_summary_is_listed_for_each()
     {
-        query.Tags.Add(CreateTag(1, "cats", ignoreImage: true));
+        query.Tags.Add(CreateTag(1, "cats", ignoreImage: true, isName: true));
 
         var result = await catalogue.ListAsync(TestContext.Current.CancellationToken);
 
-        result.Match(list => list, exception => throw exception).ShouldBe([new TagSummary(1, "cats", "Nature", "sfw", true)]);
+        result.Match(list => list, exception => throw exception).ShouldBe([new TagSummary(1, "cats", "Nature", "sfw", true, true)]);
     }
 
     [Fact]
@@ -42,13 +42,13 @@ public sealed class GivenATagCatalogue : IDisposable
     }
 
     [Fact]
-    public async Task when_ignore_flags_are_saved_then_only_the_named_tags_change_and_the_changes_are_saved()
+    public async Task when_flags_are_saved_then_only_the_named_tags_change_and_the_changes_are_saved()
     {
         query.Tags.AddRange([CreateTag(1, "cats", ignoreImage: false), CreateTag(2, "dogs", ignoreImage: true), CreateTag(3, "birds", ignoreImage: false)]);
 
-        var result = await catalogue.SaveIgnoreImageAsync(new Dictionary<int, bool> { [1] = true, [2] = false }, TestContext.Current.CancellationToken);
+        var result = await catalogue.SaveFlagsAsync(new Dictionary<int, TagFlags> { [1] = new(true, false), [2] = new(false, true) }, TestContext.Current.CancellationToken);
 
-        (result.Match(_ => true, _ => false), string.Join(",", query.Tags.Select(tag => tag.IgnoreImage)), unitOfWork.SaveCount).ShouldBe((true, "True,False,False", 1));
+        (result.Match(_ => true, _ => false), string.Join(",", query.Tags.Select(tag => $"{tag.IgnoreImage}/{tag.IsName}")), unitOfWork.SaveCount).ShouldBe((true, "True/False,False/True,False/False", 1));
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public sealed class GivenATagCatalogue : IDisposable
     {
         query.Tags.Add(CreateTag(1, "cats", ignoreImage: false));
 
-        var result = await catalogue.SaveIgnoreImageAsync(new Dictionary<int, bool>(), TestContext.Current.CancellationToken);
+        var result = await catalogue.SaveFlagsAsync(new Dictionary<int, TagFlags>(), TestContext.Current.CancellationToken);
 
         (result.Match(_ => true, _ => false), unitOfWork.SaveCount).ShouldBe((true, 0));
     }
@@ -68,19 +68,20 @@ public sealed class GivenATagCatalogue : IDisposable
         query.Tags.Add(CreateTag(1, "cats", ignoreImage: false));
         unitOfWork.OnSave = _ => throw failure;
 
-        var result = await catalogue.SaveIgnoreImageAsync(new Dictionary<int, bool> { [1] = true }, TestContext.Current.CancellationToken);
+        var result = await catalogue.SaveFlagsAsync(new Dictionary<int, TagFlags> { [1] = new(true, false) }, TestContext.Current.CancellationToken);
 
         result.Match(_ => (Exception?)null, exception => exception).ShouldBeSameAs(failure);
     }
 
     public void Dispose() => serviceProvider.Dispose();
 
-    private static TagEntity CreateTag(int wallhavenTagId, string name, bool ignoreImage) => new()
+    private static TagEntity CreateTag(int wallhavenTagId, string name, bool ignoreImage, bool isName = false) => new()
     {
         WallhavenTagId = wallhavenTagId,
         Name = name,
         Category = "Nature",
         Purity = "sfw",
-        IgnoreImage = ignoreImage
+        IgnoreImage = ignoreImage,
+        IsName = isName
     };
 }

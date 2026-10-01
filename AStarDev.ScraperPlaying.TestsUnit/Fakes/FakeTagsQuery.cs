@@ -20,5 +20,8 @@ internal sealed class FakeTagsQuery : ITagsQuery
     public Task<Exceptional<IReadOnlyCollection<int>>> GetIgnoredWallhavenIdsAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(Result<IReadOnlyCollection<int>>(Tags.Where(tag => tag.IgnoreImage).Select(tag => tag.WallhavenTagId).ToList()));
 
+    public Task<Exceptional<IReadOnlyCollection<int>>> GetNameWallhavenIdsAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(Result<IReadOnlyCollection<int>>(Tags.Where(tag => tag.IsName).Select(tag => tag.WallhavenTagId).ToList()));
+
     private Exceptional<T> Result<T>(T value) => Failure is Option<Exception>.Some failure ? failure.Value : value;
 }

@@ -37,7 +37,7 @@ public sealed class GivenATagsBrowser
 
         public Task<Exceptional<IReadOnlyList<TagSummary>>> ListAsync(CancellationToken cancellationToken = default) => Task.FromResult(Tags);
 
-        public Task<Exceptional<Unit>> SaveIgnoreImageAsync(IReadOnlyDictionary<int, bool> ignoreImageByWallhavenId, CancellationToken cancellationToken = default) =>
+        public Task<Exceptional<Unit>> SaveFlagsAsync(IReadOnlyDictionary<int, TagFlags> flagsByWallhavenId, CancellationToken cancellationToken = default) =>
             Task.FromResult(Exceptional.Success(Unit.Instance));
     }
 }
