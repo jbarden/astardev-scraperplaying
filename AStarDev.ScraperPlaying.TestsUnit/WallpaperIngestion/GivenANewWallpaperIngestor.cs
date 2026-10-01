@@ -25,6 +25,7 @@ public sealed class GivenANewWallpaperIngestor
     private readonly FakeRepository<TagEntity, TagId> tagRepository;
     private readonly FakeFileTagRepository fileTagRepository = new();
     private readonly FakeTagsQuery tagsQuery = new();
+    private readonly TagFlagStore flagStore = new();
     private readonly ImageDownloadNotifier notifier = new();
     private readonly List<WallpaperDownloadDetails> notifications = [];
     private readonly CapturingProgress progress = new();
@@ -48,7 +49,8 @@ public sealed class GivenANewWallpaperIngestor
         };
         notifier.ImageDownloaded += (_, details) => notifications.Add(details);
         ingestor = new(
-            new TagsProcessor(new JsonResponseProcessor(), tagsQuery, unitOfWork, fileTagRepository),
+            new TagFetcher(new JsonResponseProcessor(), tagsQuery, flagStore),
+            new TagLinker(tagsQuery, unitOfWork, fileTagRepository, flagStore),
             new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None),
             new WallpaperFileRecorder(System.TimeProvider.System),
             notifier);

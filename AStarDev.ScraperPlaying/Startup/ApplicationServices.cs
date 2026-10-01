@@ -110,7 +110,9 @@ public static class ApplicationServices
         => services
             .AddSingleton<ITagCatalogue, TagCatalogue>()
             .AddSingleton<IDownloadsClearer, DownloadsClearer>()
-            .AddScoped<ITagsProcessor, TagsProcessor>();
+            .AddScoped<TagFlagStore>()
+            .AddScoped<ITagFetcher, TagFetcher>()
+            .AddScoped<ITagLinker, TagLinker>();
 
     /// <summary>Registers the main window and the collaborators that hold its logic.</summary>
     /// <param name="services">The service collection to register the services with.</param>

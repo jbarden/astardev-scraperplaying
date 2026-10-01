@@ -7,14 +7,14 @@ using Tag = AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse.T
 namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 
 /// <inheritdoc/>
-public sealed class NewWallpaperIngestor(ITagsProcessor tagsProcessor, IImageDownloader imageDownloader, IWallpaperFileRecorder fileRecorder, IImageDownloadNotifier imageDownloadNotifier) : INewWallpaperIngestor
+public sealed class NewWallpaperIngestor(ITagFetcher tagFetcher, ITagLinker tagLinker, IImageDownloader imageDownloader, IWallpaperFileRecorder fileRecorder, IImageDownloadNotifier imageDownloadNotifier) : INewWallpaperIngestor
 {
     /// <inheritdoc/>
     public async Task<IReadOnlyList<Tag>> FetchTagsAsync(Data wallpaper, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
     {
         progress.Report($"No existing data found for wallpaper {wallpaper.Id}.");
 
-        return (await tagsProcessor.FetchTagsAsync(wallpaper.Id, context.Client, context.PersonCategories, progress, cancellationToken))
+        return (await tagFetcher.FetchTagsAsync(wallpaper.Id, context.Client, context.PersonCategories, progress, cancellationToken))
             .Match(
                 tags => tags,
                 exception =>
@@ -72,7 +72,7 @@ public sealed class NewWallpaperIngestor(ITagsProcessor tagsProcessor, IImageDow
     }
 
     private async Task LinkTagsAsync(string wallpaperId, FileId fileId, IReadOnlyList<Tag> tags, IProgress<string> progress, CancellationToken cancellationToken)
-        => await tagsProcessor.LinkTagsAsync(fileId, tags, cancellationToken)
+        => await tagLinker.LinkTagsAsync(fileId, tags, cancellationToken)
             .MatchAsync(
                 _ => Task.CompletedTask,
                 exception =>
