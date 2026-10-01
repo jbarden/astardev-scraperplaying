@@ -1,5 +1,6 @@
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse;
+using AStarDev.Utilities;
 
 namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 
@@ -7,7 +8,6 @@ namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 public static class WallpaperFileNamer
 {
     private const int MaxPrefixLength = 100;
-    private const string InvalidFileNameCharacters = "\\/:*?\"<>|";
 
     /// <summary>Generates the file name for a wallpaper. Wallpapers with famous tags (those flagged <c>IsFamous</c>) are prefixed with the tag names, joined by underscores; all others use just the wallpaper id.</summary>
     /// <param name="wallpaperId">Wallhaven's id for the wallpaper.</param>
@@ -26,9 +26,9 @@ public static class WallpaperFileNamer
     {
         var joined = string.Join('_', tags.Where(tag => tag.IsFamous).Select(tag => Sanitise(tag.Name)).Where(name => name.Length > 0));
 
-        return joined.Length > MaxPrefixLength ? joined[..MaxPrefixLength] : joined;
+        return joined.TruncateIfRequired(MaxPrefixLength);
     }
 
     private static string Sanitise(string tagName)
-        => new([.. tagName.Trim().Replace(' ', '_').Where(character => !InvalidFileNameCharacters.Contains(character, StringComparison.Ordinal) && !char.IsControl(character))]);
+        => tagName.Trim().Replace(' ', '_').RemoveInvalidFileNameCharacters();
 }

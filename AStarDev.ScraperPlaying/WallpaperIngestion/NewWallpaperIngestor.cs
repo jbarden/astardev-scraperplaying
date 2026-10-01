@@ -10,18 +10,18 @@ namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 public sealed class NewWallpaperIngestor(ITagFetcher tagFetcher, ITagLinker tagLinker, WallpaperSaver wallpaperSaver) : INewWallpaperIngestor
 {
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<Tag>> FetchTagsAsync(Data wallpaper, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+    public async Task<Option<IReadOnlyList<Tag>>> FetchTagsAsync(Data wallpaper, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
     {
         progress.Report($"No existing data found for wallpaper {wallpaper.Id}.");
 
         return (await tagFetcher.FetchTagsAsync(wallpaper.Id, context.Client, context.PersonCategories, progress, cancellationToken))
             .Match(
-                tags => tags,
+                tags => Option.Some(tags),
                 exception =>
                 {
                     progress.Report($"Failed to fetch tags for wallpaper {wallpaper.Id}: {exception.Message}");
 
-                    return [];
+                    return Option.None<IReadOnlyList<Tag>>();
                 });
     }
 

@@ -1,3 +1,5 @@
+using AStarDev.FunctionalParadigm;
+
 namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 public sealed class ScrapeConfigurationImportService(

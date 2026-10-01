@@ -48,7 +48,7 @@ public partial class App : Application, IDisposable
             .AddInfrastructureServices()
             .AddApplicationServices(configuration)
             .AddLogging(builder => builder.ConfigureOTelLogging(configuration).AddFileLogging(ApplicationDirectories.LogsDirectory, ApplicationMetadata.ApplicationNameHyphenated))
-            .BuildServiceProvider();
+            .BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
 
         var applicationDirectories = serviceProvider.GetRequiredService<IApplicationDirectories>();
         applicationDirectories.CreateIfRequired();

@@ -4,7 +4,6 @@ public sealed class OperationCoordinator : IDisposable
 {
     private readonly Lock gate = new();
     private CancellationTokenSource? cancellationTokenSource;
-    private bool isDisposing;
 
     public bool IsOperationRunning
     {
@@ -53,23 +52,10 @@ public sealed class OperationCoordinator : IDisposable
 
     public void Dispose()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    private void Dispose(bool disposing)
-    {
         lock (gate)
         {
-            if (isDisposing) return;
-
-            if (disposing)
-            {
-                cancellationTokenSource?.Dispose();
-                cancellationTokenSource = null;
-            }
-
-            isDisposing = true;
+            cancellationTokenSource?.Dispose();
+            cancellationTokenSource = null;
         }
     }
 }
