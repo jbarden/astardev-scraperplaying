@@ -42,7 +42,7 @@ public sealed class GivenAScrapeService : IDisposable
 
         progress.Messages.ShouldContain("Starting scrape operation.");
         progress.Messages.ShouldContain(message => message.StartsWith("Search completed in:"));
-        searchOrchestrator.Calls.ShouldBe([(configuration, (IProgress<string>)progress)]);
+        progress.Messages.ShouldContain($"Searched configuration {configuration.Id.Value}.");
         operationCoordinator.IsOperationRunning.ShouldBeFalse();
     }
 
@@ -66,7 +66,7 @@ public sealed class GivenAScrapeService : IDisposable
         await Should.ThrowAsync<InvalidOperationException>(Run);
 
         progress.Messages.ShouldContain("Starting scrape operation.");
-        searchOrchestrator.Calls.ShouldBeEmpty();
+        progress.Messages.ShouldNotContain(message => message.StartsWith("Searched configuration", StringComparison.Ordinal));
         operationCoordinator.IsOperationRunning.ShouldBeFalse();
     }
 
@@ -157,7 +157,6 @@ public sealed class GivenAScrapeService : IDisposable
         await Run();
 
         progress.Messages.ShouldBeEmpty();
-        searchOrchestrator.Calls.ShouldBeEmpty();
         operationCoordinator.IsOperationRunning.ShouldBeTrue();
     }
 
@@ -171,13 +170,11 @@ public sealed class GivenAScrapeService : IDisposable
 
     private sealed class FakeSearchOrchestrator : ISearchOrchestrator
     {
-        public List<(ScrapeConfigurationEntity Configuration, IProgress<string> Progress)> Calls { get; } = [];
-
         public Action OnSearch { get; set; } = () => { };
 
         public Task RunSearchesAsync(ScrapeConfigurationEntity configuration, IProgress<string> progress, CancellationToken cancellationToken)
         {
-            Calls.Add((configuration, progress));
+            progress.Report($"Searched configuration {configuration.Id.Value}.");
             OnSearch();
 
             return Task.CompletedTask;
