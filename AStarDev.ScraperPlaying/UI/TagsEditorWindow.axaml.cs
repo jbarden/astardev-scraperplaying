@@ -6,7 +6,7 @@ using Avalonia.Interactivity;
 namespace AStarDev.ScraperPlaying.UI;
 
 /// <summary>Lists the stored tags so the flags of each can be changed. Save writes the changed flags and closes with <c>true</c>, Cancel closes with <c>false</c>.</summary>
-public partial class TagsEditorWindow : Window
+public sealed partial class TagsEditorWindow : Window
 {
     private readonly IReadOnlyList<TagRow> rows = [];
     private readonly ITagCatalogue catalogue = null!;

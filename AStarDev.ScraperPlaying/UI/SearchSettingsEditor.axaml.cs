@@ -5,7 +5,7 @@ using Avalonia.Controls;
 namespace AStarDev.ScraperPlaying.UI;
 
 /// <summary>Edits the search term and maximum results of a scrape configuration.</summary>
-public partial class SearchSettingsEditor : UserControl
+public sealed partial class SearchSettingsEditor : UserControl
 {
     public SearchSettingsEditor() => InitializeComponent();
 

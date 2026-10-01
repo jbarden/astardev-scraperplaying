@@ -4,7 +4,7 @@ using Avalonia.Interactivity;
 namespace AStarDev.ScraperPlaying.UI;
 
 /// <summary>Shown instead of the main window when the application's services could not be built.</summary>
-public partial class StartupErrorWindow : Window
+public sealed partial class StartupErrorWindow : Window
 {
     /// <summary>Initializes the window for the design-time previewer.</summary>
     public StartupErrorWindow() => InitializeComponent();

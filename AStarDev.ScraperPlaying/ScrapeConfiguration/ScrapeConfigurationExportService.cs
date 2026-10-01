@@ -1,12 +1,6 @@
-using System.Text.Json;
 using AStarDev.FunctionalParadigm;
 
 namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
-
-public interface IScrapeConfigurationExportService
-{
-    Task<bool> ExportAsync(string filePath, ApiKeyExport apiKeys, CancellationToken cancellationToken = default);
-}
 
 public sealed class ScrapeConfigurationExportService(
     IScrapeConfigurationExporter repository,
@@ -26,21 +20,5 @@ public sealed class ScrapeConfigurationExportService(
                 return true;
             },
             () => false);
-    }
-}
-
-public interface IScrapeConfigurationFileWriter
-{
-    Task WriteAsync(ScrapeConfigurationImportDocument document, string filePath, CancellationToken cancellationToken = default);
-}
-
-public sealed class ScrapeConfigurationFileWriter : IScrapeConfigurationFileWriter
-{
-    private static readonly JsonSerializerOptions jsonOptions = new(JsonSerializerDefaults.Web) { WriteIndented = true };
-
-    public async Task WriteAsync(ScrapeConfigurationImportDocument document, string filePath, CancellationToken cancellationToken = default)
-    {
-        await using var stream = File.Create(filePath);
-        await JsonSerializer.SerializeAsync(stream, document, jsonOptions, cancellationToken);
     }
 }

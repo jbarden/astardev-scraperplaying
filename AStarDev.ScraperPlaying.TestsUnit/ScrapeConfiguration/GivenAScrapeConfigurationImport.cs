@@ -1,11 +1,14 @@
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using System.Text.Json;
+using Testably.Abstractions.Testing;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.ScrapeConfiguration;
 
 public sealed class GivenAScrapeConfigurationImport
 {
+    private readonly MockFileSystem fileSystem = new();
+
     [Fact]
     public async Task when_a_file_is_imported_then_the_repository_receives_the_complete_document()
     {
@@ -55,89 +58,68 @@ public sealed class GivenAScrapeConfigurationImport
     [Fact]
     public async Task when_json_is_read_then_all_nested_configuration_values_are_preserved()
     {
-        var path = Path.GetTempFileName();
-        try
-        {
-            await File.WriteAllTextAsync(path, """
-                {
-                  "id": "11111111-1111-1111-1111-111111111111",
-                  "userConfiguration": { "username": "user", "password": "secret" },
-                  "apiKey": "key", "baseUrl": "https://example.test", "loginUrl": "https://example.test/login",
-                  "searchConfiguration": {
-                    "searchCategories": [{ "id": "1", "name": "general", "isFamous": true }]
-                  },
-                  "scrapeDirectories": { "rootDirectory": "/tmp/scrapes" }
-                }
-                """, TestContext.Current.CancellationToken);
+        const string path = "/configuration.json";
+        await fileSystem.File.WriteAllTextAsync(path, """
+            {
+              "id": "11111111-1111-1111-1111-111111111111",
+              "userConfiguration": { "username": "user", "password": "secret" },
+              "apiKey": "key", "baseUrl": "https://example.test", "loginUrl": "https://example.test/login",
+              "searchConfiguration": {
+                "searchCategories": [{ "id": "1", "name": "general", "isFamous": true }]
+              },
+              "scrapeDirectories": { "rootDirectory": "/tmp/scrapes" }
+            }
+            """, TestContext.Current.CancellationToken);
 
-            var document = await new ScrapeConfigurationFileReader().ReadAsync(path, TestContext.Current.CancellationToken);
+        var document = await new ScrapeConfigurationFileReader(fileSystem).ReadAsync(path, TestContext.Current.CancellationToken);
 
-            document.UserConfiguration.Username.ShouldBe("user");
-            document.ApiKey.ShouldBe("key");
-            document.SearchConfiguration.SearchCategories.Single().IsFamous.ShouldBeTrue();
-            document.ScrapeDirectories.RootDirectory.ShouldBe("/tmp/scrapes");
-        }
-        finally
-        {
-            File.Delete(path);
-        }
+        document.UserConfiguration.Username.ShouldBe("user");
+        document.ApiKey.ShouldBe("key");
+        document.SearchConfiguration.SearchCategories.Single().IsFamous.ShouldBeTrue();
+        document.ScrapeDirectories.RootDirectory.ShouldBe("/tmp/scrapes");
     }
 
     [Fact]
     public async Task when_application_settings_are_read_then_scrape_configuration_is_converted()
     {
-        var path = Path.GetTempFileName();
-        try
-        {
-            await File.WriteAllTextAsync(path, """
-                                {
-                                    "logging": { "logLevel": { "default": "Warning" } },
-                                    "scrapeConfiguration": {
-                                        "userConfiguration": { "loginEmailAddress": "user@example.test", "username": "user", "password": "secret" },
-                                        "searchConfiguration": {
-                                            "baseUrl": "https://example.test", "loginUrl": "login",
-                                            "searchCategories": [{ "id": "1", "name": "General", "lastPageVisited": 4, "totalPages": 8 }],
-                                            "searchString": "/search", "imagePauseInSeconds": 10
-                                        },
-                                        "scrapeDirectories": {
-                                            "baseSaveDirectory": "Pictures", "baseDirectory": "Pictures/Wallhaven",
-                                            "baseDirectoryFamous": "Pictures/Famous", "subDirectoryName": "Wallhaven"
-                                        }
+        const string path = "/configuration.json";
+        await fileSystem.File.WriteAllTextAsync(path, """
+                            {
+                                "logging": { "logLevel": { "default": "Warning" } },
+                                "scrapeConfiguration": {
+                                    "userConfiguration": { "loginEmailAddress": "user@example.test", "username": "user", "password": "secret" },
+                                    "searchConfiguration": {
+                                        "baseUrl": "https://example.test", "loginUrl": "login",
+                                        "searchCategories": [{ "id": "1", "name": "General", "lastPageVisited": 4, "totalPages": 8 }],
+                                        "searchString": "/search", "imagePauseInSeconds": 10
+                                    },
+                                    "scrapeDirectories": {
+                                        "baseSaveDirectory": "Pictures", "baseDirectory": "Pictures/Wallhaven",
+                                        "baseDirectoryFamous": "Pictures/Famous", "subDirectoryName": "Wallhaven"
                                     }
                                 }
-                                """, TestContext.Current.CancellationToken);
+                            }
+                            """, TestContext.Current.CancellationToken);
 
-            var document = await new ScrapeConfigurationFileReader().ReadAsync(path, TestContext.Current.CancellationToken);
+        var document = await new ScrapeConfigurationFileReader(fileSystem).ReadAsync(path, TestContext.Current.CancellationToken);
 
-            document.UserConfiguration.EmailAddress.ShouldBe("user@example.test");
-            document.SearchConfiguration.SearchCategories.Single().LastPageVisited.ShouldBe(4);
-            document.ScrapeDirectories.RootDirectory.ShouldBe("Pictures/Wallhaven");
-            document.Id.ShouldNotBe(Guid.Empty);
-            document.SearchConfiguration.Id.ShouldNotBe(Guid.Empty);
-            document.BaseUrl.ShouldBe(new Uri("https://example.test"));
-            document.SearchString.ShouldBe("/search");
-            document.ImagePauseInSeconds.ShouldBe(10);
-        }
-        finally
-        {
-            File.Delete(path);
-        }
+        document.UserConfiguration.EmailAddress.ShouldBe("user@example.test");
+        document.SearchConfiguration.SearchCategories.Single().LastPageVisited.ShouldBe(4);
+        document.ScrapeDirectories.RootDirectory.ShouldBe("Pictures/Wallhaven");
+        document.Id.ShouldNotBe(Guid.Empty);
+        document.SearchConfiguration.Id.ShouldNotBe(Guid.Empty);
+        document.BaseUrl.ShouldBe(new Uri("https://example.test"));
+        document.SearchString.ShouldBe("/search");
+        document.ImagePauseInSeconds.ShouldBe(10);
     }
 
     [Fact]
     public async Task when_json_is_malformed_then_reading_fails_with_a_json_exception()
     {
-        var path = Path.GetTempFileName();
-        try
-        {
-            await File.WriteAllTextAsync(path, "not json", TestContext.Current.CancellationToken);
+        const string path = "/configuration.json";
+        await fileSystem.File.WriteAllTextAsync(path, "not json", TestContext.Current.CancellationToken);
 
-            await Should.ThrowAsync<JsonException>(() => new ScrapeConfigurationFileReader().ReadAsync(path, TestContext.Current.CancellationToken));
-        }
-        finally
-        {
-            File.Delete(path);
-        }
+        await Should.ThrowAsync<JsonException>(() => new ScrapeConfigurationFileReader(fileSystem).ReadAsync(path, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -164,37 +146,23 @@ public sealed class GivenAScrapeConfigurationImport
     [Fact]
     public async Task when_a_document_predates_person_categories_then_the_default_categories_are_used()
     {
-        var path = Path.GetTempFileName();
-        try
-        {
-            await File.WriteAllTextAsync(path, """{ "UserConfiguration": {}, "SearchConfiguration": { "SearchTerm": "cats" }, "ScrapeDirectories": {}, "BaseUrl": "https://example.test", "LoginUrl": "login" }""", TestContext.Current.CancellationToken);
+        const string path = "/configuration.json";
+        await fileSystem.File.WriteAllTextAsync(path, """{ "UserConfiguration": {}, "SearchConfiguration": { "SearchTerm": "cats" }, "ScrapeDirectories": {}, "BaseUrl": "https://example.test", "LoginUrl": "login" }""", TestContext.Current.CancellationToken);
 
-            var document = await new ScrapeConfigurationFileReader().ReadAsync(path, TestContext.Current.CancellationToken);
+        var document = await new ScrapeConfigurationFileReader(fileSystem).ReadAsync(path, TestContext.Current.CancellationToken);
 
-            document.SearchConfiguration.PersonCategories.ShouldBe(["Celebrities", "Models", "Pornstars", "Other Figures", "Actress"]);
-        }
-        finally
-        {
-            File.Delete(path);
-        }
+        document.SearchConfiguration.PersonCategories.ShouldBe(["Celebrities", "Models", "Pornstars", "Other Figures", "Actress"]);
     }
 
     [Fact]
     public async Task when_a_document_has_an_empty_person_category_list_then_it_stays_empty()
     {
-        var path = Path.GetTempFileName();
-        try
-        {
-            await File.WriteAllTextAsync(path, """{ "UserConfiguration": {}, "SearchConfiguration": { "PersonCategories": [] }, "ScrapeDirectories": {}, "BaseUrl": "https://example.test", "LoginUrl": "login" }""", TestContext.Current.CancellationToken);
+        const string path = "/configuration.json";
+        await fileSystem.File.WriteAllTextAsync(path, """{ "UserConfiguration": {}, "SearchConfiguration": { "PersonCategories": [] }, "ScrapeDirectories": {}, "BaseUrl": "https://example.test", "LoginUrl": "login" }""", TestContext.Current.CancellationToken);
 
-            var document = await new ScrapeConfigurationFileReader().ReadAsync(path, TestContext.Current.CancellationToken);
+        var document = await new ScrapeConfigurationFileReader(fileSystem).ReadAsync(path, TestContext.Current.CancellationToken);
 
-            document.SearchConfiguration.PersonCategories.ShouldBeEmpty();
-        }
-        finally
-        {
-            File.Delete(path);
-        }
+        document.SearchConfiguration.PersonCategories.ShouldBeEmpty();
     }
 
     [Fact]
@@ -208,17 +176,10 @@ public sealed class GivenAScrapeConfigurationImport
     [Fact]
     public async Task when_a_document_is_written_then_the_file_contains_no_password()
     {
-        var path = Path.GetTempFileName();
-        try
-        {
-            await new ScrapeConfigurationFileWriter().WriteAsync(new ScrapeConfigurationImportDocument { UserConfiguration = new UserConfigurationImportDocument { Username = "user" } }, path, TestContext.Current.CancellationToken);
+        const string path = "/configuration.json";
+        await new ScrapeConfigurationFileWriter(fileSystem).WriteAsync(new ScrapeConfigurationImportDocument { UserConfiguration = new UserConfigurationImportDocument { Username = "user" } }, path, TestContext.Current.CancellationToken);
 
-            (await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken)).Contains("password", StringComparison.OrdinalIgnoreCase).ShouldBeFalse();
-        }
-        finally
-        {
-            File.Delete(path);
-        }
+        (await fileSystem.File.ReadAllTextAsync(path, TestContext.Current.CancellationToken)).Contains("password", StringComparison.OrdinalIgnoreCase).ShouldBeFalse();
     }
 
     [Theory]
@@ -264,19 +225,12 @@ public sealed class GivenAScrapeConfigurationImport
         thrown.Message.ShouldContain(missing);
     }
 
-    private static async Task<ScrapeConfigurationImportDocument> ReadJsonAsync(string json)
+    private async Task<ScrapeConfigurationImportDocument> ReadJsonAsync(string json)
     {
-        var path = Path.GetTempFileName();
-        try
-        {
-            await File.WriteAllTextAsync(path, json, TestContext.Current.CancellationToken);
+        const string path = "/configuration.json";
+        await fileSystem.File.WriteAllTextAsync(path, json, TestContext.Current.CancellationToken);
 
-            return await new ScrapeConfigurationFileReader().ReadAsync(path, TestContext.Current.CancellationToken);
-        }
-        finally
-        {
-            File.Delete(path);
-        }
+        return await new ScrapeConfigurationFileReader(fileSystem).ReadAsync(path, TestContext.Current.CancellationToken);
     }
 
     private sealed class FakeImporter : IScrapeConfigurationImporter

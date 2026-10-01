@@ -7,7 +7,7 @@ using Avalonia.Interactivity;
 namespace AStarDev.ScraperPlaying.UI;
 
 /// <summary>Lists, adds, renames and removes the person categories of a scrape configuration.</summary>
-public partial class PersonCategoriesEditor : UserControl
+public sealed partial class PersonCategoriesEditor : UserControl
 {
     private readonly ObservableCollection<PersonCategoryRow> rows = [];
 

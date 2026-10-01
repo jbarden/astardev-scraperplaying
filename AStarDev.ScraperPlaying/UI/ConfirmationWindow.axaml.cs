@@ -4,7 +4,7 @@ using Avalonia.Interactivity;
 namespace AStarDev.ScraperPlaying.UI;
 
 /// <summary>Asks the user to confirm an action. Closes with <c>true</c> when confirmed and <c>false</c> when cancelled; cancel is the default button so an accidental Enter does not confirm.</summary>
-public partial class ConfirmationWindow : Window
+public sealed partial class ConfirmationWindow : Window
 {
     /// <summary>Initializes the window for the design-time previewer.</summary>
     public ConfirmationWindow() => InitializeComponent();

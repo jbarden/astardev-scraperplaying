@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 namespace AStarDev.ScraperPlaying.Scraping;
 
 /// <summary>Runs a scrape as the single active operation: owns its lifecycle, timing and error reporting, and leaves the choice of searches to <see cref="ISearchOrchestrator"/>.</summary>
-public class ScrapeService(OperationCoordinator operationCoordinator, IScopedRunner scopedRunner, ILogger<ScrapeService> logger) : IScrapeService
+public sealed class ScrapeService(OperationCoordinator operationCoordinator, IScopedRunner scopedRunner, ILogger<ScrapeService> logger) : IScrapeService
 {
     /// <inheritdoc/>
     public async Task RunScraperAsync(IProgress<string> progress)

@@ -5,7 +5,7 @@ using Avalonia.Controls;
 namespace AStarDev.ScraperPlaying.UI;
 
 /// <summary>Edits the root-level settings of a scrape configuration.</summary>
-public partial class RootSettingsEditor : UserControl
+public sealed partial class RootSettingsEditor : UserControl
 {
     public RootSettingsEditor() => InitializeComponent();
 

@@ -10,7 +10,7 @@ namespace AStarDev.ScraperPlaying.Startup;
 /// <param name="fileSystem">The file system abstraction used to interact with the file system.</param>
 /// <param name="logger">The logger used for logging directory creation and access.</param>
 [ExcludeFromCodeCoverage]
-public class ApplicationDirectories(IFileSystem fileSystem, ILogger<ApplicationDirectories> logger) : IApplicationDirectories
+public sealed class ApplicationDirectories(IFileSystem fileSystem, ILogger<ApplicationDirectories> logger) : IApplicationDirectories
 {
     private static readonly string root = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData).CombinePath(ApplicationMetadata.ApplicationNameHyphenated);
 

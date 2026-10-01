@@ -7,7 +7,7 @@ using Avalonia.Platform.Storage;
 namespace AStarDev.ScraperPlaying.UI;
 
 /// <summary>Edits the scrape directories of a scrape configuration and warns, without blocking, about directories that do not exist.</summary>
-public partial class DirectorySettingsEditor : UserControl
+public sealed partial class DirectorySettingsEditor : UserControl
 {
     private IFileSystem? fileSystem;
 

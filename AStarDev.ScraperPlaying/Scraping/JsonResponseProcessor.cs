@@ -5,7 +5,7 @@ using AStarDev.FunctionalParadigm;
 namespace AStarDev.ScraperPlaying.Scraping;
 
 /// <inheritdoc/>
-public class JsonResponseProcessor : IJsonResponseProcessor
+public sealed class JsonResponseProcessor : IJsonResponseProcessor
 {
     /// <inheritdoc/>
     public Task<Exceptional<Option<T>>> GetFromJsonAsync<T>(Uri url, HttpClient client, CancellationToken cancellationToken)

@@ -1,4 +1,3 @@
-using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -9,30 +8,20 @@ namespace AStarDev.ScraperPlaying.UI;
 
 /// <summary>
 /// The application's main window. It only translates between controls and the collaborators that hold the logic: the status
-/// reporter, readiness, operation runner, configuration browser and scrape runner.
+/// reporter, readiness and the grouped menu actions.
 /// </summary>
-public partial class MainWindow : Window
+public sealed partial class MainWindow : Window
 {
-    private readonly IScrapeConfigurationFileService scrapeConfigurationFileService;
     private readonly StatusReporter status;
     private readonly ApplicationReadiness readiness;
-    private readonly UserOperationRunner operations;
-    private readonly ConfigurationBrowser configurationBrowser;
-    private readonly TagsBrowser tagsBrowser;
-    private readonly ScrapeRunner scrapeRunner;
-    private readonly ClearDownloadsRunner clearDownloadsRunner;
+    private readonly MainWindowActions actions;
 
-    public MainWindow(StatusReporter status, ApplicationReadiness readiness, UserOperationRunner operations, ConfigurationBrowser configurationBrowser, TagsBrowser tagsBrowser, ScrapeRunner scrapeRunner, ClearDownloadsRunner clearDownloadsRunner, IScrapeConfigurationFileService scrapeConfigurationFileService, ImageDisplayCoordinator imageDisplayCoordinator)
+    public MainWindow(StatusReporter status, ApplicationReadiness readiness, MainWindowActions actions, ImageDisplayCoordinator imageDisplayCoordinator)
     {
         InitializeComponent();
         this.status = status;
         this.readiness = readiness;
-        this.operations = operations;
-        this.configurationBrowser = configurationBrowser;
-        this.tagsBrowser = tagsBrowser;
-        this.scrapeRunner = scrapeRunner;
-        this.clearDownloadsRunner = clearDownloadsRunner;
-        this.scrapeConfigurationFileService = scrapeConfigurationFileService;
+        this.actions = actions;
         status.RefreshRequired += (_, _) => Dispatcher.UIThread.Post(RefreshStatusText);
         readiness.Changed += (_, _) => Dispatcher.UIThread.Post(UpdateControls);
         ImagePreview.Attach(imageDisplayCoordinator);
@@ -40,39 +29,21 @@ public partial class MainWindow : Window
         UpdateControls();
     }
 
-    public async void ImportConfiguration(object? sender, RoutedEventArgs eventArgs) =>
-        await operations.RunAsync("Scrape configuration import cancelled.", "Unable to import scrape configuration.", async cancellationToken =>
-            status.Append(ConfigurationTransferMessages.ForImport(await scrapeConfigurationFileService.ImportViaPickerAsync(this, cancellationToken))));
+    public async void ImportConfiguration(object? sender, RoutedEventArgs eventArgs) => await actions.ImportConfigurationAsync(this);
 
-    public void ExportConfiguration(object? sender, RoutedEventArgs eventArgs) => Export(ApiKeyExport.Exclude);
+    public async void ExportConfiguration(object? sender, RoutedEventArgs eventArgs) => await actions.ExportConfigurationAsync(this, ApiKeyExport.Exclude);
 
-    public void ExportConfigurationWithApiKeys(object? sender, RoutedEventArgs eventArgs) => Export(ApiKeyExport.Include);
+    public async void ExportConfigurationWithApiKeys(object? sender, RoutedEventArgs eventArgs) => await actions.ExportConfigurationAsync(this, ApiKeyExport.Include);
 
-    public async void EditConfiguration(object? sender, RoutedEventArgs eventArgs) =>
-        await operations.ReportFailuresAsync("Unable to edit scrape configuration.", async () =>
-        {
-            if (await configurationBrowser.CreateEditorAsync() is Option<ConfigurationEditorWindow>.Some editor) _ = await editor.Value.ShowDialog<bool>(this);
-        });
+    public async void EditConfiguration(object? sender, RoutedEventArgs eventArgs) => await actions.EditConfigurationAsync(this);
 
-    public async void EditTags(object? sender, RoutedEventArgs eventArgs) =>
-        await operations.ReportFailuresAsync("Unable to edit tags.", async () =>
-        {
-            if (await tagsBrowser.CreateEditorAsync() is Option<TagsEditorWindow>.Some editor) _ = await editor.Value.ShowDialog<bool>(this);
-        });
+    public async void EditTags(object? sender, RoutedEventArgs eventArgs) => await actions.EditTagsAsync(this);
 
-    public async void ClearDownloads(object? sender, RoutedEventArgs eventArgs) =>
-        await operations.ReportFailuresAsync("Unable to clear downloads.", async () =>
-        {
-            var confirmation = new ConfirmationWindow(
-                "Clear Downloads",
-                "This permanently deletes every file record and everything inside the base save and famous directories. Nothing else is affected. This cannot be undone. Continue?",
-                "Clear Downloads");
-            if (await confirmation.ShowDialog<bool>(this)) await clearDownloadsRunner.RunAsync();
-        });
+    public async void ClearDownloads(object? sender, RoutedEventArgs eventArgs) => await actions.ClearDownloadsAsync(this);
 
-    public async void RunScraper(object? sender, RoutedEventArgs eventArgs) => await scrapeRunner.RunAsync();
+    public async void RunScraper(object? sender, RoutedEventArgs eventArgs) => await actions.RunScraperAsync();
 
-    public void CancelOperation(object? sender, RoutedEventArgs eventArgs) => operations.Cancel();
+    public void CancelOperation(object? sender, RoutedEventArgs eventArgs) => actions.CancelOperation();
 
     public void Exit(object? sender, RoutedEventArgs eventArgs) => Close();
 
@@ -87,10 +58,6 @@ public partial class MainWindow : Window
 
         base.OnKeyDown(e);
     }
-
-    private async void Export(ApiKeyExport apiKeys) =>
-        await operations.RunAsync("Scrape configuration export cancelled.", "Unable to export scrape configuration.", async cancellationToken =>
-            status.Append(ConfigurationTransferMessages.ForExport(await scrapeConfigurationFileService.ExportViaPickerAsync(this, apiKeys, cancellationToken), apiKeys)));
 
     private async Task InitialiseAsync() => await readiness.InitialiseAsync();
 

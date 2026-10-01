@@ -61,7 +61,7 @@ public sealed class GivenANewWallpaperIngestor
 
         await Ingest(wallpaper, ".jpg");
 
-        notifications.ShouldBe([new WallpaperDownloadDetails("/saved/wallpaper-3.jpg", "wallpaper-3.jpg", "resolved-category", 5, 1920, 1080)]);
+        notifications.ShouldBe([new WallpaperDownloadDetails("/saved/wallpaper-3.jpg", new WallpaperInfo("wallpaper-3.jpg", "resolved-category", 5, 1920, 1080))]);
     }
 
     [Fact]
@@ -170,7 +170,7 @@ public sealed class GivenANewWallpaperIngestor
         var context = new WallpaperIngestionContext(new SaveDirectories(directory, $"famous-{directory}", ""), client, fileRepository, "resolved-category", []);
 
         var tags = await ingestor.FetchTagsAsync(wallpaper, context, progress, cancellationToken);
-        await ingestor.IngestAsync(wallpaper, extension, tags, context, progress, cancellationToken);
+        await ingestor.IngestAsync(new WallpaperCandidate(wallpaper, extension), tags, context, progress, cancellationToken);
     }
 
     private static Data CreateWallpaper(string id) => new(id, 0, 0, 0, "", "");
