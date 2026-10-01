@@ -246,6 +246,8 @@ public sealed class GivenAScrapeConfigurationImport
 
     private sealed class FakeImporter : IScrapeConfigurationImporter
     {
+        public Exception? Failure { get; init; }
+
         public List<ScrapeConfigurationImportDocument> Imported { get; } = [];
 
         public Task<Exceptional<Unit>> ImportScrapeConfigurationAsync(ScrapeConfigurationImportDocument document, CancellationToken cancellationToken = default)

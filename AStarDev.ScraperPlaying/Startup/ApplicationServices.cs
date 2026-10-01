@@ -82,6 +82,7 @@ public static class ApplicationServices
             .AddScoped<IWallhavenPageFetcher, WallhavenPageFetcher>()
             .AddSingleton<ScrapeResumePolicy>()
             .AddScoped<IWallpaperIngestionContextFactory, WallpaperIngestionContextFactory>()
+            .AddScoped<PageIngestionStep>()
             .AddScoped<IPagesProcessor, PagesProcessor>()
             .AddScoped<ISearchOrchestrator, SearchOrchestrator>()
             .AddScoped<IJsonResponseProcessor, JsonResponseProcessor>()

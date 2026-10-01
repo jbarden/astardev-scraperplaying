@@ -272,7 +272,7 @@ public sealed class GivenAPagesProcessor
     }
 
     private PagesProcessor CreateProcessor(ScrapeLimits limits)
-        => new(new WallpaperIngestionContextFactory(new FakeClientFactory(), unitOfWork, new FakeSaveDirectoryResolver()), new FakePageFetcher(jsonResponseProcessor), unitOfWork, wallpaperIngestionService, new ScrapeResumePolicy(limits));
+        => new(new WallpaperIngestionContextFactory(new FakeClientFactory(), unitOfWork, new FakeSaveDirectoryResolver()), new FakePageFetcher(jsonResponseProcessor), new PageIngestionStep(wallpaperIngestionService, unitOfWork), new ScrapeResumePolicy(limits));
 
     private Task FetchWithCancellation(CancellationToken cancellationToken)
         => Fetch(Option.None<SearchCategoryProgress>(), cancellationToken);

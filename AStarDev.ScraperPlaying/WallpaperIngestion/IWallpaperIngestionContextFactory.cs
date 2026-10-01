@@ -1,6 +1,6 @@
-using AStarDev.ScraperPlaying.WallpaperIngestion;
+using AStarDev.ScraperPlaying.Scraping;
 
-namespace AStarDev.ScraperPlaying.Scraping;
+namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 
 /// <summary>Creates the per-scrape ingestion state, including the HTTP client, for a <see cref="PageScrapeRequest"/>.</summary>
 public interface IWallpaperIngestionContextFactory

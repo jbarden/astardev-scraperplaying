@@ -1,9 +1,9 @@
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
-using AStarDev.ScraperPlaying.WallpaperIngestion;
+using AStarDev.ScraperPlaying.Scraping;
 
-namespace AStarDev.ScraperPlaying.Scraping;
+namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 
 /// <inheritdoc/>
 public sealed class WallpaperIngestionContextFactory(IWallhavenClientFactory clientFactory, IUnitOfWork unitOfWork, ISaveDirectoryResolver saveDirectoryResolver) : IWallpaperIngestionContextFactory

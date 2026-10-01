@@ -24,24 +24,27 @@ public sealed class ScrapeConfigurationImporter(IScopedRunner scopedRunner) : IS
             // Exports leave the API keys out by default, so a file without them must not blank the keys already stored.
             _ = current.Match(existing => KeepStoredApiKeysWhereFileHasNone(replacement, existing), () => Unit.Instance);
 
-            // Delete and add commit together, so a failure while saving the replacement leaves the current configuration in place.
-            return await unitOfWork.InTransactionAsync(async () =>
-            {
-                await current.MatchAsync(
-                    async e =>
-                    {
-                        _ = dbContext.Delete(e).Match(unit => unit, exception => throw exception);
-                        _ = await unitOfWork.SaveChangesAsync(cancellationToken);
-                    },
-                    () => { });
-
-                _ = dbContext.Add(replacement).Match(entity => entity, exception => throw exception);
-                _ = await unitOfWork.SaveChangesAsync(cancellationToken);
-
-                return Unit.Instance;
-            }, cancellationToken);
+            return await ReplaceAsync(unitOfWork, dbContext, current, replacement, cancellationToken);
         }));
     }
+
+    // Delete and add commit together, so a failure while saving the replacement leaves the current configuration in place.
+    private static Task<Unit> ReplaceAsync(IUnitOfWork unitOfWork, IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> repository, Option<ScrapeConfigurationEntity> current, ScrapeConfigurationEntity replacement, CancellationToken cancellationToken)
+        => unitOfWork.InTransactionAsync(async () =>
+        {
+            await current.MatchAsync(
+                async existing =>
+                {
+                    _ = repository.Delete(existing).Match(unit => unit, exception => throw exception);
+                    _ = await unitOfWork.SaveChangesAsync(cancellationToken);
+                },
+                () => { });
+
+            _ = repository.Add(replacement).Match(entity => entity, exception => throw exception);
+            _ = await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return Unit.Instance;
+        }, cancellationToken);
 
     private static Unit KeepStoredApiKeysWhereFileHasNone(ScrapeConfigurationEntity replacement, ScrapeConfigurationEntity existing)
     {
