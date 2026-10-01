@@ -18,6 +18,7 @@ public sealed class GivenRootSettings
         settings.ApiKey.ShouldBe("api-key");
         settings.SearchString.ShouldBe("cats");
         settings.TopWallpapers.ShouldBe("top");
+        (settings.HotWallpapers, settings.HotWallpapersStartingPageNumber, settings.HotWallpapersTotalPages).ShouldBe(("hot", 7, 80));
         settings.SearchStringPrefix.ShouldBe("prefix-");
         settings.SearchStringSuffix.ShouldBe("-suffix");
         settings.Subscriptions.ShouldBe("subscriptions");
@@ -45,6 +46,7 @@ public sealed class GivenRootSettings
             "new-key",
             "dogs",
             "new-top",
+            "new-hot",
             "new-prefix",
             "new-suffix",
             "new-subscriptions",
@@ -55,6 +57,8 @@ public sealed class GivenRootSettings
             60,
             6,
             70,
+            8,
+            90,
             false,
             Option.None<float>());
 
@@ -75,6 +79,7 @@ public sealed class GivenRootSettings
         entity.SubscriptionsTotalPages.ShouldBe(60);
         entity.TopWallpapersStartingPageNumber.ShouldBe(6);
         entity.TopWallpapersTotalPages.ShouldBe(70);
+        (entity.HotWallpapers, entity.HotWallpapersStartingPageNumber, entity.HotWallpapersTotalPages).ShouldBe(("new-hot", 8, 90));
         entity.UseHeadless.ShouldBeFalse();
         entity.SlowMotionDelay.ShouldBeNull();
         entity.SearchConfiguration.SearchTerm.ShouldBe("term");
@@ -96,6 +101,9 @@ public sealed class GivenRootSettings
             ApiKey = "api-key",
             SearchString = "cats",
             TopWallpapers = "top",
+            HotWallpapers = "hot",
+            HotWallpapersStartingPageNumber = 7,
+            HotWallpapersTotalPages = 80,
             SearchStringPrefix = "prefix-",
             SearchStringSuffix = "-suffix",
             Subscriptions = "subscriptions",

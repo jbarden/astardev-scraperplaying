@@ -35,6 +35,7 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
                 "edited-api-key",
                 "edited search",
                 "edited-top",
+                "edited-hot",
                 "edited-prefix",
                 "edited-suffix",
                 "edited-subscriptions",
@@ -45,6 +46,8 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
                 33,
                 4,
                 44,
+                5,
+                55,
                 true,
                 Option.Some(125f)),
             new UserSettings("edited@example.test", "edited-user", "edited-user-key"),
@@ -73,6 +76,7 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
         imported.ApiKey.ShouldBe("edited-api-key");
         imported.SearchString.ShouldBe("edited search");
         imported.TopWallpapers.ShouldBe("edited-top");
+        imported.HotWallpapers.ShouldBe("edited-hot");
         imported.SearchStringPrefix.ShouldBe("edited-prefix");
         imported.SearchStringSuffix.ShouldBe("edited-suffix");
         imported.Subscriptions.ShouldBe("edited-subscriptions");
@@ -80,6 +84,7 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
         (imported.StartingPageNumber, imported.TotalPages).ShouldBe((2, 22));
         (imported.SubscriptionsStartingPageNumber, imported.SubscriptionsTotalPages).ShouldBe((3, 33));
         (imported.TopWallpapersStartingPageNumber, imported.TopWallpapersTotalPages).ShouldBe((4, 44));
+        (imported.HotWallpapersStartingPageNumber, imported.HotWallpapersTotalPages).ShouldBe((5, 55));
         imported.UseHeadless.ShouldBeTrue();
         imported.SlowMotionDelay.ShouldBe(125f);
         (imported.UserConfiguration.EmailAddress, imported.UserConfiguration.Username, imported.UserConfiguration.ApiKey)
@@ -104,7 +109,7 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
     public async Task when_the_default_export_is_imported_over_a_configuration_with_api_keys_then_the_file_has_no_keys_and_the_stored_keys_survive()
     {
         var id = await source.CreateAsync();
-        await source.Updater.SaveAsync(id, [new RootSettings(new Uri("https://example.test/"), "login", "scrape-key-123", "term", "top", "prefix", "suffix", "subs", 1, 1, 2, 1, 2, 1, 2, false, Option.None<float>()), new UserSettings("user@example.test", "user", "user-key-456")], TestContext.Current.CancellationToken);
+        await source.Updater.SaveAsync(id, [new RootSettings(new Uri("https://example.test/"), "login", "scrape-key-123", "term", "top", "hot", "prefix", "suffix", "subs", 1, 1, 2, 1, 2, 1, 2, 1, 2, false, Option.None<float>()), new UserSettings("user@example.test", "user", "user-key-456")], TestContext.Current.CancellationToken);
 
         (await source.ExportAsync(exportPath, ApiKeyExport.Exclude)).ShouldBeTrue();
         var text = await File.ReadAllTextAsync(exportPath, TestContext.Current.CancellationToken);

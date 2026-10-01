@@ -13,6 +13,7 @@ public sealed record RootSettings(
     string ApiKey,
     string SearchString,
     string TopWallpapers,
+    string HotWallpapers,
     string SearchStringPrefix,
     string SearchStringSuffix,
     string Subscriptions,
@@ -23,6 +24,8 @@ public sealed record RootSettings(
     int SubscriptionsTotalPages,
     int TopWallpapersStartingPageNumber,
     int TopWallpapersTotalPages,
+    int HotWallpapersStartingPageNumber,
+    int HotWallpapersTotalPages,
     bool UseHeadless,
     Option<float> SlowMotionDelay) : IScrapeConfigurationSectionEdit
 {
@@ -34,6 +37,7 @@ public sealed record RootSettings(
         entity.ApiKey,
         entity.SearchString,
         entity.TopWallpapers,
+        entity.HotWallpapers,
         entity.SearchStringPrefix,
         entity.SearchStringSuffix,
         entity.Subscriptions,
@@ -44,6 +48,8 @@ public sealed record RootSettings(
         entity.SubscriptionsTotalPages,
         entity.TopWallpapersStartingPageNumber,
         entity.TopWallpapersTotalPages,
+        entity.HotWallpapersStartingPageNumber,
+        entity.HotWallpapersTotalPages,
         entity.UseHeadless,
         entity.SlowMotionDelay is { } delay ? Option.Some(delay) : Option.None<float>());
 
@@ -55,6 +61,7 @@ public sealed record RootSettings(
         entity.ApiKey = ApiKey;
         entity.SearchString = SearchString;
         entity.TopWallpapers = TopWallpapers;
+        entity.HotWallpapers = HotWallpapers;
         entity.SearchStringPrefix = SearchStringPrefix;
         entity.SearchStringSuffix = SearchStringSuffix;
         entity.Subscriptions = Subscriptions;
@@ -65,6 +72,8 @@ public sealed record RootSettings(
         entity.SubscriptionsTotalPages = SubscriptionsTotalPages;
         entity.TopWallpapersStartingPageNumber = TopWallpapersStartingPageNumber;
         entity.TopWallpapersTotalPages = TopWallpapersTotalPages;
+        entity.HotWallpapersStartingPageNumber = HotWallpapersStartingPageNumber;
+        entity.HotWallpapersTotalPages = HotWallpapersTotalPages;
         entity.UseHeadless = UseHeadless;
         entity.SlowMotionDelay = SlowMotionDelay.Match(delay => (float?)delay, () => null);
     }
