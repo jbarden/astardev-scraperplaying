@@ -47,6 +47,7 @@ public static class ScrapeConfigurationExportMapper
             ApiKey = apiKeys == ApiKeyExport.Include ? entity.ApiKey : string.Empty,
             SearchString = entity.SearchString,
             TopWallpapers = entity.TopWallpapers,
+            HotWallpapers = entity.HotWallpapers,
             SearchStringPrefix = entity.SearchStringPrefix,
             SearchStringSuffix = entity.SearchStringSuffix,
             Subscriptions = entity.Subscriptions,
@@ -57,6 +58,8 @@ public static class ScrapeConfigurationExportMapper
             SubscriptionsTotalPages = entity.SubscriptionsTotalPages,
             TopWallpapersStartingPageNumber = entity.TopWallpapersStartingPageNumber,
             TopWallpapersTotalPages = entity.TopWallpapersTotalPages,
+            HotWallpapersStartingPageNumber = entity.HotWallpapersStartingPageNumber,
+            HotWallpapersTotalPages = entity.HotWallpapersTotalPages,
             LoginUrl = entity.LoginUrl,
             UseHeadless = entity.UseHeadless,
             SlowMotionDelay = entity.SlowMotionDelay
