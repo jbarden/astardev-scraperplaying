@@ -33,4 +33,18 @@ public sealed class ScrapeConfigurationLookup(ControlDbContext context) : IScrap
 
             return rootDirectories.Count == 0 ? Option.None<string>() : Option.Some(rootDirectories[0]);
         });
+
+    /// <inheritdoc/>
+    public Task<Exceptional<Option<RootDirectories>>> TryGetRootDirectoriesAsync(CancellationToken cancellationToken = default)
+        => Try.RunAsync(async () =>
+        {
+            var rows = await context.ScrapeConfigurations
+                .AsNoTracking()
+                .Select(configuration => new { configuration.ScrapeDirectories.RootDirectory, configuration.ScrapeDirectories.RootDirectoryFamous })
+                .Take(1)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            return rows.Count == 0 ? Option.None<RootDirectories>() : Option.Some(new RootDirectories(rows[0].RootDirectory, rows[0].RootDirectoryFamous));
+        });
 }

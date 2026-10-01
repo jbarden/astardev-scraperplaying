@@ -69,6 +69,28 @@ public sealed class GivenAScrapeConfigurationLookup : IDisposable
         result.Match(option => option, exception => throw exception).ShouldBe(Option.None<string>());
     }
 
+    [Fact]
+    public async Task when_a_configuration_exists_then_its_root_and_famous_root_directories_are_returned()
+    {
+        _ = await context.ScrapeConfigurations.AddAsync(ScrapeConfigurationEntityFactory.CreateScrapeConfigurationEntity(), TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var lookup = new ScrapeConfigurationLookup(context);
+
+        var result = await lookup.TryGetRootDirectoriesAsync(TestContext.Current.CancellationToken);
+
+        result.Match(option => option, exception => throw exception).ShouldBe(Option.Some(new RootDirectories("root-save-directory", "root-directory-famous")));
+    }
+
+    [Fact]
+    public async Task when_no_configuration_exists_then_no_root_directories_are_returned()
+    {
+        var lookup = new ScrapeConfigurationLookup(context);
+
+        var result = await lookup.TryGetRootDirectoriesAsync(TestContext.Current.CancellationToken);
+
+        result.Match(option => option, exception => throw exception).ShouldBe(Option.None<RootDirectories>());
+    }
+
     public void Dispose()
     {
         if (disposed) return;

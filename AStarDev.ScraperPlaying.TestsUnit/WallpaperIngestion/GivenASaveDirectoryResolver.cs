@@ -10,15 +10,13 @@ namespace AStarDev.ScraperPlaying.TestsUnit.WallpaperIngestion;
 public sealed class GivenASaveDirectoryResolver
 {
     private static readonly Tag FamousTag = new(1, "Famous Person", "famous-person", 1, "Celebrities", "sfw", IsFamous: true);
-    private readonly FakeUnitOfWork unitOfWork = new();
-    private readonly FakeRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> scrapeConfigurationRepository;
+    private readonly FakeScrapeConfigurationLookup lookup = new();
     private readonly SaveDirectoryResolver resolver;
 
     public GivenASaveDirectoryResolver()
     {
-        scrapeConfigurationRepository = unitOfWork.Register<ScrapeConfigurationEntity, ScrapeConfigurationId>();
-        scrapeConfigurationRepository.First = (Option<ScrapeConfigurationEntity>)CreateConfiguration("root-directory");
-        resolver = new(unitOfWork);
+        lookup.RootDirectoriesResult = CreateRoots("root-directory");
+        resolver = new(lookup);
     }
 
     [Fact]
@@ -65,7 +63,7 @@ public sealed class GivenASaveDirectoryResolver
     public async Task when_the_directory_is_resolved_again_then_the_scrape_configuration_is_not_reloaded()
     {
         _ = await resolver.ResolveSaveDirectoriesAsync(Option.None<string>(), CancellationToken.None);
-        scrapeConfigurationRepository.First = (Option<ScrapeConfigurationEntity>)CreateConfiguration("changed-root-directory");
+        lookup.RootDirectoriesResult = CreateRoots("changed-root-directory");
 
         var directories = await resolver.ResolveSaveDirectoriesAsync(Option.Some("My Category"), CancellationToken.None);
 
@@ -75,9 +73,9 @@ public sealed class GivenASaveDirectoryResolver
     [Fact]
     public async Task when_loading_the_root_directory_failed_then_the_next_resolve_loads_it_again()
     {
-        scrapeConfigurationRepository.First = Option<ScrapeConfigurationEntity>.None.Instance;
+        lookup.RootDirectoriesResult = Exceptional.Success(Option.None<RootDirectories>());
         _ = await Should.ThrowAsync<InvalidOperationException>(() => resolver.ResolveSaveDirectoriesAsync(Option.None<string>(), CancellationToken.None));
-        scrapeConfigurationRepository.First = (Option<ScrapeConfigurationEntity>)CreateConfiguration("recovered-root-directory");
+        lookup.RootDirectoriesResult = CreateRoots("recovered-root-directory");
 
         var directories = await resolver.ResolveSaveDirectoriesAsync(Option.None<string>(), CancellationToken.None);
 
@@ -85,21 +83,33 @@ public sealed class GivenASaveDirectoryResolver
     }
 
     [Fact]
+    public async Task when_the_lookup_fails_then_the_failure_is_thrown()
+    {
+        lookup.RootDirectoriesResult = new InvalidOperationException("lookup failed");
+
+        var failure = await Should.ThrowAsync<InvalidOperationException>(() => resolver.ResolveSaveDirectoriesAsync(Option.None<string>(), CancellationToken.None));
+
+        failure.Message.ShouldBe("lookup failed");
+    }
+
+    [Fact]
+    public async Task when_the_directory_is_resolved_repeatedly_then_the_lookup_runs_once()
+    {
+        _ = await resolver.ResolveSaveDirectoriesAsync(Option.None<string>(), CancellationToken.None);
+        _ = await resolver.ResolveSaveDirectoriesAsync(Option.Some("My Category"), CancellationToken.None);
+
+        lookup.RootDirectoriesLookupCount.ShouldBe(1);
+    }
+
+    [Fact]
     public async Task when_no_scrape_configuration_exists_then_it_throws()
     {
-        scrapeConfigurationRepository.First = Option<ScrapeConfigurationEntity>.None.Instance;
+        lookup.RootDirectoriesResult = Exceptional.Success(Option.None<RootDirectories>());
 
         await Should.ThrowAsync<InvalidOperationException>(
             () => resolver.ResolveSaveDirectoriesAsync(Option.None<string>(), CancellationToken.None));
     }
 
-    private static ScrapeConfigurationEntity CreateConfiguration(string rootDirectory)
-    {
-        var scrapeConfigurationId = new ScrapeConfigurationId(Guid.CreateVersion7());
-
-        return new ScrapeConfigurationEntity(scrapeConfigurationId)
-        {
-            ScrapeDirectories = new ScrapeDirectoriesEntity(new ScrapeDirectoriesId(Guid.CreateVersion7()), scrapeConfigurationId, rootDirectory, $"famous-{rootDirectory}", "")
-        };
-    }
+    private static Exceptional<Option<RootDirectories>> CreateRoots(string rootDirectory)
+        => Exceptional.Success(Option.Some(new RootDirectories(rootDirectory, $"famous-{rootDirectory}")));
 }
