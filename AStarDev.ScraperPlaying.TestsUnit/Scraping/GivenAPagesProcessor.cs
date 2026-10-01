@@ -46,7 +46,7 @@ public sealed class GivenAPagesProcessor
 
         var ingested = wallpaperIngestionService.Calls.Single();
         ingested.Wallpaper.ShouldBe(wallpaper);
-        ingested.Context.Directory.ShouldBe("resolved-directory");
+        ingested.Context.Directories.ShouldBe(new SaveDirectories("resolved-directory", "resolved-famous-directory"));
         ingested.Context.FileRepository.ShouldBeSameAs(fileRepository);
         ingested.Context.CategoryLabel.ShouldBe("Top Wallpapers");
         ingested.Context.PersonCategories.ShouldBe(personCategories);
@@ -345,7 +345,7 @@ public sealed class GivenAPagesProcessor
 
     private sealed class FakeSaveDirectoryResolver : ISaveDirectoryResolver
     {
-        public Task<string> ResolveSaveDirectoryAsync(Option<string> categoryName, CancellationToken cancellationToken) => Task.FromResult("resolved-directory");
+        public Task<SaveDirectories> ResolveSaveDirectoriesAsync(Option<string> categoryName, CancellationToken cancellationToken) => Task.FromResult(new SaveDirectories("resolved-directory", "resolved-famous-directory"));
     }
 
     private sealed class FakeJsonResponseProcessor : IJsonResponseProcessor

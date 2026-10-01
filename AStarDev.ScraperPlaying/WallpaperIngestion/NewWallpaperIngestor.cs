@@ -48,7 +48,7 @@ public sealed class NewWallpaperIngestor(ITagsProcessor tagsProcessor, IImageDow
 
     private async Task<Unit> IngestStepsAsync(Data wallpaper, string extension, IReadOnlyList<Tag> tags, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
     {
-        var request = new WallpaperFileRequest(wallpaper, context.Directory, WallpaperFileNamer.Create(wallpaper.Id, extension, tags), context.CategoryLabel);
+        var request = new WallpaperFileRequest(wallpaper, context.Directories.For(tags), WallpaperFileNamer.Create(wallpaper.Id, extension, tags), context.CategoryLabel);
 
         await DownloadAsync(request, context.Client, progress, cancellationToken);
         var fileEntity = Record(request, context, cancellationToken);

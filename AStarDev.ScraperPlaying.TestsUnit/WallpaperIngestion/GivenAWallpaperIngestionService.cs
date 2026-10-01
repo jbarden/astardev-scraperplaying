@@ -34,7 +34,7 @@ public sealed class GivenAWallpaperIngestionService
     {
         var wallpaper = CreateWallpaper("new-wallpaper", path: "https://example.test/full/new-wallpaper.jpg");
         using var client = new HttpClient();
-        var context = new WallpaperIngestionContext("resolved-directory", client, fileRepository, "resolved-category", []);
+        var context = new WallpaperIngestionContext(new SaveDirectories("resolved-directory", "famous-resolved-directory"), client, fileRepository, "resolved-category", []);
 
         await service.IngestPageAsync([wallpaper], context, progress, CancellationToken.None);
 
@@ -174,7 +174,7 @@ public sealed class GivenAWallpaperIngestionService
         };
         using var client = new HttpClient();
 
-        _ = await Should.ThrowAsync<OperationCanceledException>(() => service.IngestPageAsync([CreateWallpaper("first"), CreateWallpaper("second")], new WallpaperIngestionContext("some-directory", client, fileRepository, "resolved-category", []), progress, cancellationTokenSource.Token));
+        _ = await Should.ThrowAsync<OperationCanceledException>(() => service.IngestPageAsync([CreateWallpaper("first"), CreateWallpaper("second")], new WallpaperIngestionContext(new SaveDirectories("some-directory", "famous-some-directory"), client, fileRepository, "resolved-category", []), progress, cancellationTokenSource.Token));
 
         (await Task.WhenAny(prefetchEnded.Task, Task.Delay(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken))).ShouldBe(prefetchEnded.Task);
     }
@@ -193,7 +193,7 @@ public sealed class GivenAWallpaperIngestionService
     {
         using var client = new HttpClient();
 
-        await service.IngestPageAsync(wallpapers, new WallpaperIngestionContext("some-directory", client, fileRepository, "resolved-category", []), progress, CancellationToken.None);
+        await service.IngestPageAsync(wallpapers, new WallpaperIngestionContext(new SaveDirectories("some-directory", "famous-some-directory"), client, fileRepository, "resolved-category", []), progress, CancellationToken.None);
     }
 
     private static Data CreateWallpaper(string id, string path = "")
