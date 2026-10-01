@@ -20,9 +20,9 @@ public class PagesProcessor(IWallhavenClientFactory clientFactory, IWallhavenPag
         {
             var page = ResumePage(previousProgress);
             var fileRepository = unitOfWork.GetRepository<FileEntity, FileId>();
-            var directory = await saveDirectoryResolver.ResolveSaveDirectoryAsync(categoryName, cancellationToken);
+            var directories = await saveDirectoryResolver.ResolveSaveDirectoriesAsync(categoryName, cancellationToken);
             var categoryLabel = categoryName.Match(name => name, () => "Top Wallpapers");
-            var ingestionContext = new WallpaperIngestionContext(directory, client, fileRepository, categoryLabel, personCategories);
+            var ingestionContext = new WallpaperIngestionContext(directories, client, fileRepository, categoryLabel, personCategories);
             var pageResult = await pageFetcher.FetchPageAsync(logLabel, pageUrlFactory(page), page, client, progress, cancellationToken);
             if (page > 1 && !IsSameCategoryAsPreviousScrape(previousProgress, pageResult.Meta))
             {

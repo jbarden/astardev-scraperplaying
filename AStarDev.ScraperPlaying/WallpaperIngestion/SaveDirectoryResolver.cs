@@ -7,31 +7,32 @@ using AStarDev.Utilities;
 namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 
 /// <inheritdoc/>
-/// <remarks>Registered as Scoped (one scrape run): the root directory is loaded on first use and reused, rather than reloading the whole scrape configuration for every page set.</remarks>
+/// <remarks>Registered as Scoped (one scrape run): the root directories are loaded on first use and reused, rather than reloading the whole scrape configuration for every page set.</remarks>
 public class SaveDirectoryResolver(IFileSystem fileSystem, IUnitOfWork unitOfWork) : ISaveDirectoryResolver
 {
     private const string TopWallpapersDirectorySegment = "top-wallpapers";
-    private Option<string> rootDirectory = Option.None<string>();
+    private Option<SaveDirectories> rootDirectories = Option.None<SaveDirectories>();
 
     /// <inheritdoc/>
-    public async Task<string> ResolveSaveDirectoryAsync(Option<string> categoryName, CancellationToken cancellationToken)
+    public async Task<SaveDirectories> ResolveSaveDirectoriesAsync(Option<string> categoryName, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         var directorySegment = categoryName.Match(name => name.ToDirectorySlug(), () => TopWallpapersDirectorySegment);
-        var rootDirectory = await LoadRootDirectoryAsync();
+        var roots = await LoadRootDirectoriesAsync();
 
-        return fileSystem.Path.Combine(rootDirectory, directorySegment);
+        return new SaveDirectories(fileSystem.Path.Combine(roots.Directory, directorySegment), fileSystem.Path.Combine(roots.FamousDirectory, directorySegment));
     }
 
-    private async Task<string> LoadRootDirectoryAsync()
+    private async Task<SaveDirectories> LoadRootDirectoriesAsync()
     {
-        if (rootDirectory is Option<string>.Some cached) return cached.Value;
+        if (rootDirectories is Option<SaveDirectories>.Some cached) return cached.Value;
 
-        var configuration = await unitOfWork.LoadScrapeConfigurationAsync();
+        var scrapeDirectories = (await unitOfWork.LoadScrapeConfigurationAsync()).ScrapeDirectories;
+        var loaded = new SaveDirectories(scrapeDirectories.RootDirectory, scrapeDirectories.RootDirectoryFamous);
 
-        rootDirectory = Option.Some(configuration.ScrapeDirectories.RootDirectory);
+        rootDirectories = Option.Some(loaded);
 
-        return configuration.ScrapeDirectories.RootDirectory;
+        return loaded;
     }
 }

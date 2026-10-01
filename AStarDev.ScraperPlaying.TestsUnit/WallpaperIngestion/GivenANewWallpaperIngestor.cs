@@ -69,7 +69,7 @@ public sealed class GivenANewWallpaperIngestor
     {
         using var client = new HttpClient();
 
-        var tags = await ingestor.FetchTagsAsync(CreateWallpaper("tags-only"), new WallpaperIngestionContext("some-directory", client, fileRepository, "resolved-category", []), progress, TestContext.Current.CancellationToken);
+        var tags = await ingestor.FetchTagsAsync(CreateWallpaper("tags-only"), new WallpaperIngestionContext(new SaveDirectories("some-directory", "famous-some-directory"), client, fileRepository, "resolved-category", []), progress, TestContext.Current.CancellationToken);
 
         (tags.Count, imageDownloader.Requests.Count, fileRecorder.Recorded.Count, tagsProcessor.Linked.Count, progress.Messages.Contains("No existing data found for wallpaper tags-only.")).ShouldBe((0, 0, 0, 0, true));
     }
@@ -147,6 +147,17 @@ public sealed class GivenANewWallpaperIngestor
         fileRecorder.Recorded.ShouldBeEmpty();
     }
 
+    [Fact]
+    public async Task when_a_wallpaper_has_a_famous_tag_then_it_is_saved_under_the_famous_directory()
+    {
+        tagsProcessor.FetchResult = Exceptional.Success<IReadOnlyList<Tag>>([new Tag(1, "Emma Watson", "emma-watson", 1, "Celebrities", "sfw", IsFamous: true)]);
+        var wallpaper = CreateWallpaper("famous-wallpaper");
+
+        await Ingest(wallpaper, ".jpg", directory: "resolved-directory");
+
+        imageDownloader.Requests.Single().Directory.ShouldBe("famous-resolved-directory");
+    }
+
     private Task Ingest(Data wallpaper, string extension, string directory = "some-directory")
         => IngestWithToken(wallpaper, extension, directory, TestContext.Current.CancellationToken);
 
@@ -156,7 +167,7 @@ public sealed class GivenANewWallpaperIngestor
     private async Task IngestWithToken(Data wallpaper, string extension, string directory, CancellationToken cancellationToken)
     {
         using var client = new HttpClient();
-        var context = new WallpaperIngestionContext(directory, client, fileRepository, "resolved-category", []);
+        var context = new WallpaperIngestionContext(new SaveDirectories(directory, $"famous-{directory}"), client, fileRepository, "resolved-category", []);
 
         var tags = await ingestor.FetchTagsAsync(wallpaper, context, progress, cancellationToken);
         await ingestor.IngestAsync(wallpaper, extension, tags, context, progress, cancellationToken);

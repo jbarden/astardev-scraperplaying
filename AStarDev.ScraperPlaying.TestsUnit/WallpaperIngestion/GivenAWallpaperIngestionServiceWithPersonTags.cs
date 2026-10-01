@@ -28,15 +28,16 @@ public sealed class GivenAWallpaperIngestionServiceWithPersonTags
     }
 
     [Fact]
-    public async Task when_a_wallpaper_has_a_person_name_tag_then_the_saved_file_and_the_file_entity_are_prefixed_with_the_name()
+    public async Task when_a_wallpaper_has_a_famous_tag_then_it_is_saved_under_the_famous_directory_and_prefixed_with_the_name()
     {
         tagsProcessor.Tags = [new Tag(1, "finger pointing", "finger-pointing", 51, "Other Figures", "sfw"), new Tag(2, "Max Verstappen", "max-verstappen", 51, "Other Figures", "sfw", IsFamous: true)];
 
         await Ingest("abc123");
 
-        fileSystem.File.Exists(fileSystem.Path.Combine("some-directory", "Max_Verstappen_abc123.jpg")).ShouldBeTrue();
-        fileSystem.File.Exists(fileSystem.Path.Combine("some-directory", "abc123.jpg")).ShouldBeFalse();
+        fileSystem.File.Exists(fileSystem.Path.Combine("famous-some-directory", "Max_Verstappen_abc123.jpg")).ShouldBeTrue();
+        fileSystem.File.Exists(fileSystem.Path.Combine("famous-some-directory", "abc123.jpg")).ShouldBeFalse();
         fileRepository.Added.Select(file => file.FileName.Value).ShouldBe(["Max_Verstappen_abc123.jpg"]);
+        fileRepository.Added.Select(file => file.DirectoryName.Value).ShouldBe(["famous-some-directory"]);
         fileRepository.Added.Select(file => file.FileHandle.Value).ShouldBe(["abc123"]);
     }
 
@@ -78,7 +79,7 @@ public sealed class GivenAWallpaperIngestionServiceWithPersonTags
     {
         using var client = new HttpClient(new StubHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1, 2, 3]) }));
 
-        await service.IngestPageAsync([new Data(id, 1920, 1080, 3, "image/jpeg", $"https://example.test/full/{id}.jpg")], new WallpaperIngestionContext("some-directory", client, fileRepository, "Top Wallpapers", ["Celebrities", "Models", "Pornstars", "Other Figures", "Actress"]), new Progress<string>(), CancellationToken.None);
+        await service.IngestPageAsync([new Data(id, 1920, 1080, 3, "image/jpeg", $"https://example.test/full/{id}.jpg")], new WallpaperIngestionContext(new SaveDirectories("some-directory", "famous-some-directory"), client, fileRepository, "Top Wallpapers", ["Celebrities", "Models", "Pornstars", "Other Figures", "Actress"]), new Progress<string>(), CancellationToken.None);
     }
 
     private sealed class StubTagsProcessor : ITagsProcessor
