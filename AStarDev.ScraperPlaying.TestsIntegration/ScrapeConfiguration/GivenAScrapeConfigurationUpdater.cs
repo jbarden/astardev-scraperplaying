@@ -28,13 +28,13 @@ public sealed class GivenAScrapeConfigurationUpdater : IDisposable
     public async Task when_root_settings_are_saved_then_a_fresh_read_returns_them_and_the_children_are_unchanged()
     {
         var id = await SeedAsync();
-        var settings = RootSettings.From(await ReadAsync(id)) with
+        var current = RootSettings.From(await ReadAsync(id));
+        var settings = current with
         {
-            BaseUrl = new Uri("https://other.example/api"),
+            Urls = current.Urls with { BaseUrl = new Uri("https://other.example/api") },
             ApiKey = "new-key",
-            TotalPages = 99,
-            UseHeadless = true,
-            SlowMotionDelay = Option.Some(125f)
+            Pages = current.Pages with { Search = current.Pages.Search with { Total = 99 } },
+            Browser = new BrowserOptions(true, Option.Some(125f))
         };
 
         var result = await updater.SaveAsync(id, [settings], TestContext.Current.CancellationToken);
@@ -204,7 +204,9 @@ public sealed class GivenAScrapeConfigurationUpdater : IDisposable
     {
         var id = await SeedAsync();
 
-        await updater.SaveAsync(id, [RootSettings.From(await ReadAsync(id)) with { SlowMotionDelay = Option.None<float>() }], TestContext.Current.CancellationToken);
+        var current = RootSettings.From(await ReadAsync(id));
+
+        await updater.SaveAsync(id, [current with { Browser = current.Browser with { SlowMotionDelay = Option.None<float>() } }], TestContext.Current.CancellationToken);
 
         (await ReadAsync(id)).SlowMotionDelay.ShouldBeNull();
     }

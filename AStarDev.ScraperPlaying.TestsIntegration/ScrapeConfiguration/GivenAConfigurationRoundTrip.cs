@@ -30,26 +30,14 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
         var edits = new IScrapeConfigurationSectionEdit[]
         {
             new RootSettings(
-                new Uri("https://edited.example/api/v1"),
-                "edited login: not a url, /login?x=1 & more",
+                new WallhavenUrls(new Uri("https://edited.example/api/v1"), "edited login: not a url, /login?x=1 & more", "edited-top", "edited-hot", "edited-subscriptions"),
                 "edited-api-key",
                 "edited search",
-                "edited-top",
-                "edited-hot",
                 "edited-prefix",
                 "edited-suffix",
-                "edited-subscriptions",
                 11,
-                2,
-                22,
-                3,
-                33,
-                4,
-                44,
-                5,
-                55,
-                true,
-                Option.Some(125f)),
+                new PageRanges(new PageRange(2, 22), new PageRange(3, 33), new PageRange(4, 44), new PageRange(5, 55)),
+                new BrowserOptions(true, Option.Some(125f))),
             new UserSettings("edited@example.test", "edited-user", "edited-user-key"),
             new DirectorySettings("/edited/root", "/edited/famous", "edited-sub"),
             new SearchSettings("edited term", Option.Some(77)),
@@ -109,7 +97,7 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
     public async Task when_the_default_export_is_imported_over_a_configuration_with_api_keys_then_the_file_has_no_keys_and_the_stored_keys_survive()
     {
         var id = await source.CreateAsync();
-        await source.Updater.SaveAsync(id, [new RootSettings(new Uri("https://example.test/"), "login", "scrape-key-123", "term", "top", "hot", "prefix", "suffix", "subs", 1, 1, 2, 1, 2, 1, 2, 1, 2, false, Option.None<float>()), new UserSettings("user@example.test", "user", "user-key-456")], TestContext.Current.CancellationToken);
+        await source.Updater.SaveAsync(id, [new RootSettings(new WallhavenUrls(new Uri("https://example.test/"), "login", "top", "hot", "subs"), "scrape-key-123", "term", "prefix", "suffix", 1, new PageRanges(new PageRange(1, 2), new PageRange(1, 2), new PageRange(1, 2), new PageRange(1, 2)), new BrowserOptions(false, Option.None<float>())), new UserSettings("user@example.test", "user", "user-key-456")], TestContext.Current.CancellationToken);
 
         (await source.ExportAsync(exportPath, ApiKeyExport.Exclude)).ShouldBeTrue();
         var text = await File.ReadAllTextAsync(exportPath, TestContext.Current.CancellationToken);
