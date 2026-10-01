@@ -34,6 +34,7 @@ public sealed class TagCatalogue(IServiceScopeFactory scopeFactory) : ITagCatalo
                 var flags = flagsByWallhavenId[tag.WallhavenTagId];
                 tag.IgnoreImage = flags.IgnoreImage;
                 tag.IsName = flags.IsName;
+                tag.IsFamous = flags.IsFamous;
             }
 
             _ = await unitOfWork.SaveChangesAsync(cancellationToken);

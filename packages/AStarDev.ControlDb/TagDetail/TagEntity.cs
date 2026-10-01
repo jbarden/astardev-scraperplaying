@@ -30,6 +30,9 @@ public sealed class TagEntity : IAggregateRoot
     /// <summary>When true, the tag is a name (for example a person's), used to prefix the directory a wallpaper is saved under.</summary>
     public bool IsName { get; set; }
 
+    /// <summary>When true, the tag is famous: it names a person or thing that users want their wallpapers kept apart for. Seeded from the person categories when the tag is first stored, then owned by the user.</summary>
+    public bool IsFamous { get; set; }
+
     /// <summary>Navigation property to the files this tag is linked to.</summary>
     public ICollection<FileTagEntity> FileTags { get; } = [];
 }

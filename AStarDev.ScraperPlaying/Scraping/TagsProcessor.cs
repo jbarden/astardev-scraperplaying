@@ -2,6 +2,7 @@ using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.ControlDb.TagDetail;
 using AStarDev.FunctionalParadigm;
+using AStarDev.ScraperPlaying.Tags;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse;
 
 namespace AStarDev.ScraperPlaying.Scraping;
@@ -30,8 +31,14 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
     /// <summary>The Wallhaven ids of the tags flagged <see cref="TagEntity.IsName"/>. Loaded with <see cref="ignoredTagIds"/> on the first fetch and reused for the rest of the run for the same reason.</summary>
     private HashSet<int> nameTagIds = [];
 
+    /// <summary>The Wallhaven ids of the tags flagged <see cref="TagEntity.IsFamous"/>, loaded and reused in the same way as <see cref="ignoredTagIds"/>.</summary>
+    private HashSet<int> famousTagIds = [];
+
+    /// <summary>The Wallhaven ids of every tag stored when the run started. A tag in here owns its famous flag; a tag not in here is seeded by <see cref="FamousTagCheck"/>.</summary>
+    private HashSet<int> storedTagIds = [];
+
     /// <inheritdoc/>
-    public Task<Exceptional<IReadOnlyList<Tag>>> FetchTagsAsync(string wallpaperId, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
+    public Task<Exceptional<IReadOnlyList<Tag>>> FetchTagsAsync(string wallpaperId, HttpClient client, IReadOnlyList<string> personCategories, IProgress<string> progress, CancellationToken cancellationToken)
         => Try.RunAsync<IReadOnlyList<Tag>>(async () =>
         {
             progress.Report($"Fetching tags for wallpaper {wallpaperId}.");
@@ -43,7 +50,7 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
 
             await LoadTagFlagsAsync(cancellationToken);
 
-            return [.. detailResponse.Data.Tags.Select(tag => tag with { IgnoreImage = ignoredTagIds.Contains(tag.Id), IsName = nameTagIds.Contains(tag.Id) })];
+            return [.. detailResponse.Data.Tags.Select(tag => tag with { IgnoreImage = ignoredTagIds.Contains(tag.Id), IsName = nameTagIds.Contains(tag.Id), IsFamous = IsFamous(tag, personCategories) })];
         });
 
     private async Task LoadTagFlagsAsync(CancellationToken cancellationToken)
@@ -52,8 +59,13 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
 
         ignoredTagIds = [.. (await tagsQuery.GetIgnoredWallhavenIdsAsync(cancellationToken)).Match(found => found, exception => throw exception)];
         nameTagIds = [.. (await tagsQuery.GetNameWallhavenIdsAsync(cancellationToken)).Match(found => found, exception => throw exception)];
+        famousTagIds = [.. (await tagsQuery.GetFamousWallhavenIdsAsync(cancellationToken)).Match(found => found, exception => throw exception)];
+        storedTagIds = [.. (await tagsQuery.GetStoredWallhavenIdsAsync(cancellationToken)).Match(found => found, exception => throw exception)];
         ignoredTagIdsLoaded = true;
     }
+
+    private bool IsFamous(Tag tag, IReadOnlyList<string> personCategories)
+        => storedTagIds.Contains(tag.Id) ? famousTagIds.Contains(tag.Id) : FamousTagCheck.IsFamous(tag, personCategories);
 
     /// <inheritdoc/>
     public Task<Exceptional<Unit>> LinkTagsAsync(FileId fileId, IReadOnlyList<Tag> tags, CancellationToken cancellationToken)
@@ -75,7 +87,8 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
                         Alias = tag.Alias,
                         CategoryId = tag.CategoryId,
                         Category = tag.Category,
-                        Purity = tag.Purity
+                        Purity = tag.Purity,
+                        IsFamous = tag.IsFamous
                     }).Match(added => added, ex => throw ex);
 
                     resolvedTags.Add(tag.Id, tagEntity);

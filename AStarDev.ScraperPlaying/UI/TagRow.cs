@@ -24,11 +24,14 @@ public sealed class TagRow(TagSummary summary)
     /// <summary>Whether the tag is a name, used to prefix the directory a wallpaper is saved under.</summary>
     public bool IsName { get; set; } = summary.IsName;
 
+    /// <summary>Whether the tag is famous.</summary>
+    public bool IsFamous { get; set; } = summary.IsFamous;
+
     /// <summary>The flags currently set on the row.</summary>
-    public TagFlags Flags => new(IgnoreImage, IsName);
+    public TagFlags Flags => new(IgnoreImage, IsName, IsFamous);
 
     /// <summary>Whether any flag differs from the stored tag.</summary>
-    public bool IsChanged => IgnoreImage != summary.IgnoreImage || IsName != summary.IsName;
+    public bool IsChanged => IgnoreImage != summary.IgnoreImage || IsName != summary.IsName || IsFamous != summary.IsFamous;
 
     /// <summary>Whether the row's name or category contains <paramref name="filter"/>, ignoring case; every row matches an empty filter.</summary>
     /// <param name="filter">The text to look for.</param>

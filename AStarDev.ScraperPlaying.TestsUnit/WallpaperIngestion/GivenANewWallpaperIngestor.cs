@@ -205,7 +205,7 @@ public sealed class GivenANewWallpaperIngestor
 
         public List<(FileId FileId, IReadOnlyList<Tag> Tags)> Linked { get; } = [];
 
-        public Task<Exceptional<IReadOnlyList<Tag>>> FetchTagsAsync(string wallpaperId, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken) =>
+        public Task<Exceptional<IReadOnlyList<Tag>>> FetchTagsAsync(string wallpaperId, HttpClient client, IReadOnlyList<string> personCategories, IProgress<string> progress, CancellationToken cancellationToken) =>
             Task.FromResult(FetchResult);
 
         public Task<Exceptional<Unit>> LinkTagsAsync(FileId fileId, IReadOnlyList<Tag> tags, CancellationToken cancellationToken)

@@ -10,5 +10,6 @@ public record Tag(
     string Category,
     string Purity,
     bool IgnoreImage = false,
-    bool IsName = false
+    bool IsName = false,
+    bool IsFamous = false
 );

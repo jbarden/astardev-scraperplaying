@@ -30,7 +30,7 @@ public sealed class GivenAWallpaperIngestionServiceWithPersonTags
     [Fact]
     public async Task when_a_wallpaper_has_a_person_name_tag_then_the_saved_file_and_the_file_entity_are_prefixed_with_the_name()
     {
-        tagsProcessor.Tags = [new Tag(1, "finger pointing", "finger-pointing", 51, "Other Figures", "sfw"), new Tag(2, "Max Verstappen", "max-verstappen", 51, "Other Figures", "sfw")];
+        tagsProcessor.Tags = [new Tag(1, "finger pointing", "finger-pointing", 51, "Other Figures", "sfw"), new Tag(2, "Max Verstappen", "max-verstappen", 51, "Other Figures", "sfw", IsFamous: true)];
 
         await Ingest("abc123");
 
@@ -89,7 +89,7 @@ public sealed class GivenAWallpaperIngestionServiceWithPersonTags
 
         public IReadOnlyList<Tag> LinkedTags { get; private set; } = [];
 
-        public Task<Exceptional<IReadOnlyList<Tag>>> FetchTagsAsync(string wallpaperId, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
+        public Task<Exceptional<IReadOnlyList<Tag>>> FetchTagsAsync(string wallpaperId, HttpClient client, IReadOnlyList<string> personCategories, IProgress<string> progress, CancellationToken cancellationToken)
             => Task.FromResult(FetchFailure is null ? Exceptional.Success(Tags) : Exceptional.Failure<IReadOnlyList<Tag>>(FetchFailure));
 
         public Task<Exceptional<Unit>> LinkTagsAsync(FileId fileId, IReadOnlyList<Tag> tags, CancellationToken cancellationToken)
