@@ -1,5 +1,4 @@
 using AStarDev.FunctionalParadigm;
-using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using Avalonia.Controls;
 
 namespace AStarDev.ScraperPlaying.UI;
@@ -7,16 +6,13 @@ namespace AStarDev.ScraperPlaying.UI;
 /// <summary>The window-bound dialogs the main window's actions need, so the actions' logic does not depend on a live window.</summary>
 public interface IDialogHost
 {
-    /// <summary>Lets the person pick a scrape configuration file and imports it.</summary>
-    /// <param name="files">The service that performs the import.</param>
-    /// <param name="cancellationToken">Cancels the operation.</param>
-    Task<Option<Unit>> ImportConfigurationAsync(IScrapeConfigurationFileService files, CancellationToken cancellationToken);
+    /// <summary>Lets the person pick a scrape configuration file to import.</summary>
+    /// <returns>The picked path, or <see cref="Option{T}.None"/> when the person cancelled the picker.</returns>
+    Task<Option<string>> PickImportFileAsync();
 
-    /// <summary>Lets the person pick a destination file and exports the scrape configuration to it.</summary>
-    /// <param name="files">The service that performs the export.</param>
-    /// <param name="apiKeys">Whether the exported file includes the API keys.</param>
-    /// <param name="cancellationToken">Cancels the operation.</param>
-    Task<Option<bool>> ExportConfigurationAsync(IScrapeConfigurationFileService files, ApiKeyExport apiKeys, CancellationToken cancellationToken);
+    /// <summary>Lets the person pick a destination file to export the scrape configuration to.</summary>
+    /// <returns>The picked path, or <see cref="Option{T}.None"/> when the person cancelled the picker.</returns>
+    Task<Option<string>> PickExportFileAsync();
 
     /// <summary>Shows <paramref name="dialog"/> modally.</summary>
     /// <param name="dialog">The dialog to show.</param>

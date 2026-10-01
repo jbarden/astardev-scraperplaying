@@ -1,6 +1,6 @@
 using AStarDev.FunctionalParadigm;
-using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using Avalonia.Controls;
+using Avalonia.Platform.Storage;
 
 namespace AStarDev.ScraperPlaying.UI;
 
@@ -8,13 +8,34 @@ namespace AStarDev.ScraperPlaying.UI;
 /// <param name="owner">The window that owns the dialogs.</param>
 public sealed class WindowDialogHost(Window owner) : IDialogHost
 {
-    /// <inheritdoc/>
-    public Task<Option<Unit>> ImportConfigurationAsync(IScrapeConfigurationFileService files, CancellationToken cancellationToken)
-        => files.ImportViaPickerAsync(owner, cancellationToken);
+    private static readonly IReadOnlyList<FilePickerFileType> jsonFileTypes = [new FilePickerFileType("JSON configuration") { Patterns = ["*.json"] }];
 
     /// <inheritdoc/>
-    public Task<Option<bool>> ExportConfigurationAsync(IScrapeConfigurationFileService files, ApiKeyExport apiKeys, CancellationToken cancellationToken)
-        => files.ExportViaPickerAsync(owner, apiKeys, cancellationToken);
+    public async Task<Option<string>> PickImportFileAsync()
+    {
+        var files = await owner.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            AllowMultiple = false,
+            Title = "Import scrape configuration",
+            FileTypeFilter = jsonFileTypes
+        });
+
+        return files.Count == 0 ? Option.None<string>() : Option.Some(files[0].Path.LocalPath);
+    }
+
+    /// <inheritdoc/>
+    public async Task<Option<string>> PickExportFileAsync()
+    {
+        var file = await owner.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Export scrape configuration",
+            SuggestedFileName = "scrape-configuration.json",
+            DefaultExtension = "json",
+            FileTypeChoices = jsonFileTypes
+        });
+
+        return file is null ? Option.None<string>() : Option.Some(file.Path.LocalPath);
+    }
 
     /// <inheritdoc/>
     public async Task ShowAsync(Window dialog) => _ = await dialog.ShowDialog<bool>(owner);
