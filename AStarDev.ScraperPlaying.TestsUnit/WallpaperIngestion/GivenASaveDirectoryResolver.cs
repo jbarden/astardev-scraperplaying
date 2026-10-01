@@ -30,6 +30,14 @@ public sealed class GivenASaveDirectoryResolver
     }
 
     [Fact]
+    public async Task when_the_hot_wallpapers_name_is_supplied_then_the_resolved_directory_is_the_root_combined_with_hot_wallpapers()
+    {
+        var directories = await resolver.ResolveSaveDirectoriesAsync(Option.Some("Hot Wallpapers"), CancellationToken.None);
+
+        directories.For([]).ShouldBe(Path.Combine("root-directory", "hot-wallpapers"));
+    }
+
+    [Fact]
     public async Task when_a_category_name_is_supplied_then_the_resolved_directory_is_the_root_combined_with_the_slugified_category_name()
     {
         var directories = await resolver.ResolveSaveDirectoriesAsync(Option.Some("My Category"), CancellationToken.None);

@@ -8,14 +8,24 @@ namespace AStarDev.ScraperPlaying.Scraping;
 /// <inheritdoc/>
 public sealed class SearchOrchestrator(IPagesProcessor pagesProcessor, IUnitOfWork unitOfWork, ScrapeLimits limits) : ISearchOrchestrator
 {
+    /// <summary>The hot wallpapers are saved and labelled like a category of this name, so they land in the "hot-wallpapers" directory.</summary>
+    private const string HotWallpapersName = "Hot Wallpapers";
+
     /// <inheritdoc/>
     public async Task RunSearchesAsync(ScrapeConfigurationEntity configuration, IProgress<string> progress, CancellationToken cancellationToken)
     {
         var connection = new WallhavenConnection(configuration.UserConfiguration.ApiKey, configuration.BaseUrl);
+        var hotWallpapersUrl = configuration.HotWallpapers;
         var topWallpapersUrl = configuration.TopWallpapers;
         var searchCategoriesUrl = configuration.SearchStringPrefix;
         var searchCategoriesSuffix = configuration.SearchStringSuffix;
         IReadOnlyList<string> personCategories = [.. configuration.SearchConfiguration.PersonCategories.Select(category => category.Name)];
+
+        progress.Report("Fetching hot wallpapers.");
+        _ = await pagesProcessor.FetchAndProcessPagesAsync("hot wallpapers", Option.Some(HotWallpapersName), Option.None<SearchCategoryProgress>(), _ => { }, page => WallhavenUrlBuilder.BuildHotWallpapersPageUrl(hotWallpapersUrl, page), connection, personCategories, progress, cancellationToken);
+
+        progress.Report("Fetching top wallpapers.");
+        _ = await pagesProcessor.FetchAndProcessPagesAsync("top wallpapers", Option.None<string>(), Option.None<SearchCategoryProgress>(), _ => { }, page => WallhavenUrlBuilder.BuildTopWallpapersPageUrl(topWallpapersUrl, page), connection, personCategories, progress, cancellationToken);
 
         progress.Report("Fetching categories.");
         foreach (var category in configuration.SearchConfiguration.SearchCategories.Take(limits.MaximumSearchCategories))
@@ -27,8 +37,5 @@ public sealed class SearchOrchestrator(IPagesProcessor pagesProcessor, IUnitOfWo
                 _ = await unitOfWork.SaveChangesAsync(cancellationToken);
             }
         }
-
-        progress.Report("Fetching top wallpapers.");
-        _ = await pagesProcessor.FetchAndProcessPagesAsync("top wallpapers", Option.None<string>(), Option.None<SearchCategoryProgress>(), _ => { }, page => WallhavenUrlBuilder.BuildTopWallpapersPageUrl(topWallpapersUrl, page), connection, personCategories, progress, cancellationToken);
     }
 }

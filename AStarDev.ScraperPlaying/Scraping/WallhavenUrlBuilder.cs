@@ -2,7 +2,7 @@ using AStarDev.ControlDb.ScrapeConfiguration;
 
 namespace AStarDev.ScraperPlaying.Scraping;
 
-/// <summary>Builds the Wallhaven page URLs used to fetch "top wallpapers" and search-category results.</summary>
+/// <summary>Builds the Wallhaven page URLs used to fetch "hot wallpapers", "top wallpapers" and search-category results.</summary>
 public static class WallhavenUrlBuilder
 {
     /// <summary>Builds the URL for the given page of the "top wallpapers" search.</summary>
@@ -10,6 +10,12 @@ public static class WallhavenUrlBuilder
     /// <param name="page">The page number to append.</param>
     public static Uri BuildTopWallpapersPageUrl(string topWallpapersTemplate, int page)
         => ToUri(topWallpapersTemplate + page);
+
+    /// <summary>Builds the URL for the given page of the "hot wallpapers" search.</summary>
+    /// <param name="hotWallpapersTemplate">The configured URL prefix for the "hot wallpapers" search; may be relative to the HTTP client's base address.</param>
+    /// <param name="page">The page number to append.</param>
+    public static Uri BuildHotWallpapersPageUrl(string hotWallpapersTemplate, int page)
+        => ToUri(hotWallpapersTemplate + page);
 
     /// <summary>
     /// Builds the URL for the given page of a search category, substituting <paramref name="category"/>'s id

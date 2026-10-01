@@ -10,6 +10,10 @@ public sealed class GivenAWallhavenUrlBuilder
         => WallhavenUrlBuilder.BuildTopWallpapersPageUrl("https://example.test/top/", 3).ShouldBe(new Uri("https://example.test/top/3"));
 
     [Fact]
+    public void when_building_a_hot_wallpapers_page_url_then_the_page_number_is_appended()
+        => WallhavenUrlBuilder.BuildHotWallpapersPageUrl("https://example.test/hot/", 3).ShouldBe(new Uri("https://example.test/hot/3"));
+
+    [Fact]
     public void when_building_a_category_page_url_for_page_one_then_only_the_id_placeholder_is_substituted()
     {
         var category = new SearchCategoryEntity { SearchConfigurationId = new SearchConfigurationId(Guid.CreateVersion7()), Id = "cat1", Name = "category one" };

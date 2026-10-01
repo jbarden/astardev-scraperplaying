@@ -18,17 +18,17 @@ public sealed class GivenASearchOrchestrator
     public GivenASearchOrchestrator() => orchestrator = new(pagesProcessor, unitOfWork, new ScrapeLimits(3, 4));
 
     [Fact]
-    public async Task when_a_configuration_has_many_categories_then_up_to_three_categories_then_top_wallpapers_are_processed()
+    public async Task when_a_configuration_has_many_categories_then_hot_wallpapers_then_top_wallpapers_then_up_to_three_categories_are_processed()
     {
         await Run(ScrapeConfigurationTestData.CreateConfiguration(categoryCount: 5));
 
-        progress.Messages.ShouldContain("Fetching categories.");
-        progress.Messages.ShouldContain("Fetching top wallpapers.");
+        progress.Messages.ShouldBe(["Fetching hot wallpapers.", "Fetching top wallpapers.", "Fetching categories."]);
         pagesProcessor.Calls.Select(call => (call.LogLabel, call.CategoryName)).ShouldBe([
+            ("hot wallpapers", Option.Some("Hot Wallpapers")),
+            ("top wallpapers", Option.None<string>()),
             ("search category category one", Option.Some("category one")),
             ("search category category two", Option.Some("category two")),
-            ("search category category three", Option.Some("category three")),
-            ("top wallpapers", Option.None<string>())
+            ("search category category three", Option.Some("category three"))
         ]);
     }
 
@@ -39,7 +39,7 @@ public sealed class GivenASearchOrchestrator
 
         await unlimitedOrchestrator.RunSearchesAsync(ScrapeConfigurationTestData.CreateConfiguration(categoryCount: 5), progress, CancellationToken.None);
 
-        pagesProcessor.Calls.Count.ShouldBe(6);
+        pagesProcessor.Calls.Count.ShouldBe(7);
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public sealed class GivenASearchOrchestrator
 
         await limitedOrchestrator.RunSearchesAsync(ScrapeConfigurationTestData.CreateConfiguration(categoryCount: 5), progress, CancellationToken.None);
 
-        pagesProcessor.Calls.Select(call => call.LogLabel).ShouldBe(["search category category one", "top wallpapers"]);
+        pagesProcessor.Calls.Select(call => call.LogLabel).ShouldBe(["hot wallpapers", "top wallpapers", "search category category one"]);
     }
 
     [Fact]
@@ -63,11 +63,11 @@ public sealed class GivenASearchOrchestrator
     }
 
     [Fact]
-    public async Task when_a_configuration_has_no_categories_then_only_the_top_wallpapers_are_processed()
+    public async Task when_a_configuration_has_no_categories_then_only_the_hot_and_top_wallpapers_are_processed()
     {
         await Run(ScrapeConfigurationTestData.CreateConfiguration(categoryCount: 0));
 
-        pagesProcessor.Calls.Select(call => call.LogLabel).ShouldBe(["top wallpapers"]);
+        pagesProcessor.Calls.Select(call => call.LogLabel).ShouldBe(["hot wallpapers", "top wallpapers"]);
     }
 
     [Fact]
@@ -78,6 +78,7 @@ public sealed class GivenASearchOrchestrator
         _ = await Should.ThrowAsync<HttpRequestException>(() => Run(ScrapeConfigurationTestData.CreateConfiguration(categoryCount: 2)));
 
         pagesProcessor.Calls.Count.ShouldBe(1);
+        pagesProcessor.Calls.Single().LogLabel.ShouldBe("hot wallpapers");
     }
 
     [Fact]
@@ -106,14 +107,14 @@ public sealed class GivenASearchOrchestrator
     }
 
     [Fact]
-    public async Task when_a_category_has_stored_progress_then_it_is_passed_to_the_pages_processor_and_top_wallpapers_get_none()
+    public async Task when_a_category_has_stored_progress_then_it_is_passed_to_the_pages_processor_and_hot_and_top_wallpapers_get_none()
     {
         var configuration = ScrapeConfigurationTestData.CreateConfiguration(categoryCount: 1);
         configuration.SearchConfiguration.SearchCategories.Single().RecordScrapeProgress(7, 3, 9);
 
         await Run(configuration);
 
-        pagesProcessor.Calls.Select(call => call.PreviousProgress).ShouldBe([Option.Some(new SearchCategoryProgress(7, 3, 9)), Option.None<SearchCategoryProgress>()]);
+        pagesProcessor.Calls.Select(call => call.PreviousProgress).ShouldBe([Option.None<SearchCategoryProgress>(), Option.None<SearchCategoryProgress>(), Option.Some(new SearchCategoryProgress(7, 3, 9))]);
     }
 
     [Fact]
@@ -129,7 +130,7 @@ public sealed class GivenASearchOrchestrator
     }
 
     [Fact]
-    public async Task when_top_wallpaper_pages_complete_then_no_category_progress_is_recorded()
+    public async Task when_hot_and_top_wallpaper_pages_complete_then_no_category_progress_is_recorded()
     {
         var configuration = ScrapeConfigurationTestData.CreateConfiguration(categoryCount: 0);
         pagesProcessor.PageProgress.Add(new SearchCategoryProgress(50, 2, 10));
@@ -139,9 +140,20 @@ public sealed class GivenASearchOrchestrator
         unitOfWork.SaveCount.ShouldBe(0);
     }
 
+    [Fact]
+    public async Task when_the_hot_wallpapers_are_processed_then_the_first_page_url_uses_the_hot_wallpapers_setting_and_the_top_url_uses_the_top_setting()
+    {
+        var configuration = ScrapeConfigurationTestData.CreateConfiguration(categoryCount: 0);
+        configuration.HotWallpapers = "hot/";
+
+        await Run(configuration);
+
+        pagesProcessor.Calls.Select(call => call.FirstPageUrl).ShouldBe([new Uri("hot/1", UriKind.Relative), new Uri("top/1", UriKind.Relative)]);
+    }
+
     private Task Run(ScrapeConfigurationEntity configuration) => orchestrator.RunSearchesAsync(configuration, progress, CancellationToken.None);
 
-    private sealed record PagesCall(string LogLabel, Option<string> CategoryName, Option<SearchCategoryProgress> PreviousProgress, WallhavenConnection Connection, IReadOnlyList<string> PersonCategories, IProgress<string> Progress);
+    private sealed record PagesCall(string LogLabel, Option<string> CategoryName, Option<SearchCategoryProgress> PreviousProgress, WallhavenConnection Connection, IReadOnlyList<string> PersonCategories, IProgress<string> Progress, Uri FirstPageUrl);
 
     private sealed class FakePagesProcessor : IPagesProcessor
     {
@@ -155,7 +167,7 @@ public sealed class GivenASearchOrchestrator
 
         public Task<Option<SearchCategoryProgress>> FetchAndProcessPagesAsync(string logLabel, Option<string> categoryName, Option<SearchCategoryProgress> previousProgress, Action<SearchCategoryProgress> onPageCompleted, Func<int, Uri> pageUrlFactory, WallhavenConnection connection, IReadOnlyList<string> personCategories, IProgress<string> progress, CancellationToken cancellationToken)
         {
-            Calls.Add(new PagesCall(logLabel, categoryName, previousProgress, connection, personCategories, progress));
+            Calls.Add(new PagesCall(logLabel, categoryName, previousProgress, connection, personCategories, progress, pageUrlFactory(1)));
             OnFetch();
             PageProgress.ForEach(onPageCompleted);
 
