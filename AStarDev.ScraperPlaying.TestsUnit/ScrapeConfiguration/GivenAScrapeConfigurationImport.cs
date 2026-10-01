@@ -28,6 +28,17 @@ public sealed class GivenAScrapeConfigurationImport
     }
 
     [Fact]
+    public async Task when_the_repository_fails_to_import_then_the_failure_is_surfaced()
+    {
+        var failure = new InvalidOperationException("import rolled back");
+        var service = new ScrapeConfigurationImportService(new FakeImporter { Failure = failure }, new FakeReader());
+
+        var thrown = await Should.ThrowAsync<InvalidOperationException>(() => service.ImportAsync("configuration.json", TestContext.Current.CancellationToken));
+
+        thrown.ShouldBeSameAs(failure);
+    }
+
+    [Fact]
     public async Task when_import_is_cancelled_then_file_processing_does_not_start()
     {
         var reader = new FakeReader();
@@ -237,11 +248,13 @@ public sealed class GivenAScrapeConfigurationImport
     {
         public List<ScrapeConfigurationImportDocument> Imported { get; } = [];
 
+        public Exception? Failure { get; init; }
+
         public Task<Exceptional<Unit>> ImportScrapeConfigurationAsync(ScrapeConfigurationImportDocument document)
         {
             Imported.Add(document);
 
-            return Task.FromResult<Exceptional<Unit>>(Unit.Instance);
+            return Task.FromResult(Failure is null ? Exceptional.Success(Unit.Instance) : Exceptional.Failure<Unit>(Failure));
         }
     }
 

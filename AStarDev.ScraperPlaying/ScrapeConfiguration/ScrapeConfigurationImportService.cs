@@ -1,3 +1,5 @@
+using AStarDev.FunctionalParadigm;
+
 namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 public sealed class ScrapeConfigurationImportService(
@@ -9,6 +11,6 @@ public sealed class ScrapeConfigurationImportService(
         cancellationToken.ThrowIfCancellationRequested();
         var document = await fileReader.ReadAsync(filePath, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        _ = await repository.ImportScrapeConfigurationAsync(document);
+        _ = (await repository.ImportScrapeConfigurationAsync(document)).Match(unit => unit, ex => throw ex);
     }
 }
