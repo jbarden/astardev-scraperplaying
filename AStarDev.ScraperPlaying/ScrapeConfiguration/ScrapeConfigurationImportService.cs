@@ -43,12 +43,12 @@ public sealed class ScrapeConfigurationFileReader : IScrapeConfigurationFileRead
         {
             RequireApplicationSettings(settings.Value);
 
-            return (JsonSerializer.Deserialize<ScrapeSettingsImportDocument>(root.GetRawText(), jsonOptions) ?? throw new JsonException("The configuration file is empty.")).ToImportDocument();
+            return (root.Deserialize<ScrapeSettingsImportDocument>(jsonOptions) ?? throw new JsonException("The configuration file is empty.")).ToImportDocument();
         }
 
         RequireAll(root, string.Empty, "userConfiguration", "searchConfiguration", "scrapeDirectories", "baseUrl", "loginUrl");
 
-        return JsonSerializer.Deserialize<ScrapeConfigurationImportDocument>(root.GetRawText(), jsonOptions) ?? throw new JsonException("The configuration file is empty.");
+        return root.Deserialize<ScrapeConfigurationImportDocument>(jsonOptions) ?? throw new JsonException("The configuration file is empty.");
     }
 
     private static void RequireApplicationSettings(JsonElement settings)

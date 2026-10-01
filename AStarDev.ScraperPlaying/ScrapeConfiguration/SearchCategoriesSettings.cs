@@ -11,38 +11,48 @@ public sealed record SearchCategoriesSettings(IReadOnlyList<SearchCategorySettin
     public void ApplyTo(ScrapeConfigurationEntity entity)
     {
         var search = entity.SearchConfiguration;
-        var now = DateTimeOffset.UtcNow;
+        var keptIds = Categories.Select(category => category.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var removed in search.SearchCategories.Where(existing => !Categories.Any(category => IsSameId(category.Id, existing.Id))).ToList())
+        foreach (var removed in search.SearchCategories.Where(existing => !keptIds.Contains(existing.Id)).ToList())
         {
             _ = search.SearchCategories.Remove(removed);
         }
 
+        var existingById = new Dictionary<string, SearchCategoryEntity>(StringComparer.OrdinalIgnoreCase);
+        foreach (var existing in search.SearchCategories)
+        {
+            existingById[existing.Id] = existing;
+        }
+
         foreach (var category in Categories)
         {
-            var existing = search.SearchCategories.FirstOrDefault(candidate => IsSameId(category.Id, candidate.Id));
-            if (existing is null)
-            {
-                search.SearchCategories.Add(new SearchCategoryEntity
-                {
-                    SearchConfigurationId = search.Id,
-                    Id = category.Id,
-                    Name = category.Name,
-                    IncludeInSearch = category.IncludeInSearch,
-                    IsFamous = category.IsFamous,
-                    IsInternet = category.IsInternet
-                });
-
-                continue;
-            }
-
-            existing.Name = category.Name;
-            existing.IncludeInSearch = category.IncludeInSearch;
-            existing.IsFamous = category.IsFamous;
-            existing.IsInternet = category.IsInternet;
-            existing.UpdatedAt = now;
+            if (existingById.TryGetValue(category.Id, out var existing)) UpdateCategory(existing, category);
+            else existingById[category.Id] = AddCategory(search, category);
         }
     }
 
-    private static bool IsSameId(string first, string second) => string.Equals(first, second, StringComparison.OrdinalIgnoreCase);
+    private static SearchCategoryEntity AddCategory(SearchConfigurationEntity search, SearchCategorySettings category)
+    {
+        var added = new SearchCategoryEntity
+        {
+            SearchConfigurationId = search.Id,
+            Id = category.Id,
+            Name = category.Name,
+            IncludeInSearch = category.IncludeInSearch,
+            IsFamous = category.IsFamous,
+            IsInternet = category.IsInternet
+        };
+        search.SearchCategories.Add(added);
+
+        return added;
+    }
+
+    private static void UpdateCategory(SearchCategoryEntity existing, SearchCategorySettings category)
+    {
+        existing.Name = category.Name;
+        existing.IncludeInSearch = category.IncludeInSearch;
+        existing.IsFamous = category.IsFamous;
+        existing.IsInternet = category.IsInternet;
+        existing.UpdatedAt = DateTimeOffset.UtcNow;
+    }
 }

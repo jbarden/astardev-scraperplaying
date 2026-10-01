@@ -25,9 +25,11 @@ public sealed record PersonCategoriesSettings(IReadOnlyList<PersonCategorySettin
             _ = search.PersonCategories.Remove(removed);
         }
 
+        var existingById = search.PersonCategories.ToDictionary(existing => existing.Id);
+
         foreach (var category in Categories)
         {
-            var existing = category.Id.Match(id => search.PersonCategories.FirstOrDefault(candidate => candidate.Id == id), () => null);
+            var existing = category.Id.Match(id => existingById.GetValueOrDefault(id), () => null);
             if (existing is null)
             {
                 // An empty id lets EF generate one and treat the row as added; a pre-set id would make EF update a row that does not exist.

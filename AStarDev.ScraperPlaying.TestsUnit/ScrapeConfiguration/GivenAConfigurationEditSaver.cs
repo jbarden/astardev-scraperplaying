@@ -24,7 +24,7 @@ public sealed class GivenAConfigurationEditSaver
     [Fact]
     public async Task when_a_section_is_invalid_then_its_errors_are_returned_and_nothing_is_saved()
     {
-        var inputs = ValidInputs() with { Root = ValidInputs().Root with { BaseUrl = "not a url" } };
+        var inputs = ValidInputs() with { Root = ValidInputs().Root with { Urls = ValidInputs().Root.Urls with { BaseUrl = "not a url" } } };
 
         var failure = await saver.SaveAsync(configuration.Id, inputs, CancellationToken.None);
 
@@ -35,7 +35,7 @@ public sealed class GivenAConfigurationEditSaver
     public async Task when_several_sections_are_invalid_then_every_error_is_returned_one_per_line_in_section_order()
     {
         var valid = ValidInputs();
-        var inputs = valid with { Root = valid.Root with { BaseUrl = "not a url" }, User = valid.User with { EmailAddress = "not an email" }, PersonCategories = new PersonCategoriesInput([new PersonCategoryInput(Option.None<Guid>(), " ")]) };
+        var inputs = valid with { Root = valid.Root with { Urls = valid.Root.Urls with { BaseUrl = "not a url" } }, User = valid.User with { EmailAddress = "not an email" }, PersonCategories = new PersonCategoriesInput([new PersonCategoryInput(Option.None<Guid>(), " ")]) };
 
         var failure = await saver.SaveAsync(configuration.Id, inputs, CancellationToken.None);
 

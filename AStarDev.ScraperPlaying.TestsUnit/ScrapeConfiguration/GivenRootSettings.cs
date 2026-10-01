@@ -13,54 +13,33 @@ public sealed class GivenRootSettings
 
         var settings = RootSettings.From(entity);
 
-        settings.BaseUrl.ShouldBe(entity.BaseUrl);
-        settings.LoginUrl.ShouldBe(entity.LoginUrl);
-        settings.ApiKey.ShouldBe("api-key");
-        settings.SearchString.ShouldBe("cats");
-        settings.TopWallpapers.ShouldBe("top");
-        (settings.HotWallpapers, settings.HotWallpapersStartingPageNumber, settings.HotWallpapersTotalPages).ShouldBe(("hot", 7, 80));
-        settings.SearchStringPrefix.ShouldBe("prefix-");
-        settings.SearchStringSuffix.ShouldBe("-suffix");
-        settings.Subscriptions.ShouldBe("subscriptions");
-        settings.ImagePauseInSeconds.ShouldBe(5);
-        settings.TotalPages.ShouldBe(20);
-        settings.UseHeadless.ShouldBeTrue();
-        settings.SlowMotionDelay.ShouldBe(Option.Some(250f));
+        settings.Urls.ShouldBe(new WallhavenUrls(entity.BaseUrl, "https://wallhaven.cc/login", "top", "hot", "subscriptions"));
+        (settings.ApiKey, settings.SearchString, settings.SearchStringPrefix, settings.SearchStringSuffix, settings.ImagePauseInSeconds).ShouldBe(("api-key", "cats", "prefix-", "-suffix", 5));
+        settings.Pages.ShouldBe(new PageRanges(new PageRange(0, 20), new PageRange(0, 0), new PageRange(0, 0), new PageRange(7, 80)));
+        settings.Browser.ShouldBe(new BrowserOptions(true, Option.Some(250f)));
     }
 
     [Fact]
     public void when_the_entity_has_no_slow_motion_delay_then_the_setting_is_none() =>
-        RootSettings.From(CreateEntity(null)).SlowMotionDelay.ShouldBe(Option.None<float>());
+        RootSettings.From(CreateEntity(null)).Browser.SlowMotionDelay.ShouldBe(Option.None<float>());
 
     [Fact]
     public void when_the_entity_has_a_zero_slow_motion_delay_then_the_setting_is_some_zero() =>
-        RootSettings.From(CreateEntity(0f)).SlowMotionDelay.ShouldBe(Option.Some(0f));
+        RootSettings.From(CreateEntity(0f)).Browser.SlowMotionDelay.ShouldBe(Option.Some(0f));
 
     [Fact]
     public void when_applied_to_an_entity_then_the_root_values_are_replaced_and_the_children_are_untouched()
     {
         var entity = CreateEntity(250f);
         var settings = new RootSettings(
-            new Uri("https://other.example/api"),
-            "https://other.example/login",
+            new WallhavenUrls(new Uri("https://other.example/api"), "https://other.example/login", "new-top", "new-hot", "new-subscriptions"),
             "new-key",
             "dogs",
-            "new-top",
-            "new-hot",
             "new-prefix",
             "new-suffix",
-            "new-subscriptions",
             9,
-            4,
-            50,
-            5,
-            60,
-            6,
-            70,
-            8,
-            90,
-            false,
-            Option.None<float>());
+            new PageRanges(new PageRange(4, 50), new PageRange(5, 60), new PageRange(6, 70), new PageRange(8, 90)),
+            new BrowserOptions(false, Option.None<float>()));
 
         settings.ApplyTo(entity);
 
