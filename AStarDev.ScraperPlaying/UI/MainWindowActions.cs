@@ -1,6 +1,5 @@
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
-using Avalonia.Controls;
 
 namespace AStarDev.ScraperPlaying.UI;
 
@@ -15,44 +14,44 @@ public sealed class MainWindowActions(
     ScrapeRunner scrapeRunner)
 {
     /// <summary>Imports a scrape configuration from a file the person picks.</summary>
-    /// <param name="owner">The window that owns the file picker.</param>
-    public async Task ImportConfigurationAsync(Window owner)
+    /// <param name="dialogs">The dialogs the person is asked through.</param>
+    public async Task ImportConfigurationAsync(IDialogHost dialogs)
         => await operations.RunAsync("Scrape configuration import cancelled.", "Unable to import scrape configuration.", async cancellationToken =>
-            status.Append(ConfigurationTransferMessages.ForImport(await scrapeConfigurationFileService.ImportViaPickerAsync(owner, cancellationToken))));
+            status.Append(ConfigurationTransferMessages.ForImport(await dialogs.ImportConfigurationAsync(scrapeConfigurationFileService, cancellationToken))));
 
     /// <summary>Exports the scrape configuration to a file the person picks.</summary>
-    /// <param name="owner">The window that owns the file picker.</param>
+    /// <param name="dialogs">The dialogs the person is asked through.</param>
     /// <param name="apiKeys">Whether the exported file includes the API keys.</param>
-    public async Task ExportConfigurationAsync(Window owner, ApiKeyExport apiKeys)
+    public async Task ExportConfigurationAsync(IDialogHost dialogs, ApiKeyExport apiKeys)
         => await operations.RunAsync("Scrape configuration export cancelled.", "Unable to export scrape configuration.", async cancellationToken =>
-            status.Append(ConfigurationTransferMessages.ForExport(await scrapeConfigurationFileService.ExportViaPickerAsync(owner, apiKeys, cancellationToken), apiKeys)));
+            status.Append(ConfigurationTransferMessages.ForExport(await dialogs.ExportConfigurationAsync(scrapeConfigurationFileService, apiKeys, cancellationToken), apiKeys)));
 
     /// <summary>Shows the scrape configuration editor.</summary>
-    /// <param name="owner">The window that owns the dialog.</param>
-    public async Task EditConfigurationAsync(Window owner)
+    /// <param name="dialogs">The dialogs the person is asked through.</param>
+    public async Task EditConfigurationAsync(IDialogHost dialogs)
         => await operations.ReportFailuresAsync("Unable to edit scrape configuration.", async () =>
         {
-            if (await configurationBrowser.CreateEditorAsync() is Option<ConfigurationEditorWindow>.Some editor) _ = await editor.Value.ShowDialog<bool>(owner);
+            if (await configurationBrowser.CreateEditorAsync() is Option<ConfigurationEditorWindow>.Some editor) await dialogs.ShowAsync(editor.Value);
         });
 
     /// <summary>Shows the tags editor.</summary>
-    /// <param name="owner">The window that owns the dialog.</param>
-    public async Task EditTagsAsync(Window owner)
+    /// <param name="dialogs">The dialogs the person is asked through.</param>
+    public async Task EditTagsAsync(IDialogHost dialogs)
         => await operations.ReportFailuresAsync("Unable to edit tags.", async () =>
         {
-            if (await tagsBrowser.CreateEditorAsync() is Option<TagsEditorWindow>.Some editor) _ = await editor.Value.ShowDialog<bool>(owner);
+            if (await tagsBrowser.CreateEditorAsync() is Option<TagsEditorWindow>.Some editor) await dialogs.ShowAsync(editor.Value);
         });
 
     /// <summary>Clears the downloads after the person confirms.</summary>
-    /// <param name="owner">The window that owns the confirmation dialog.</param>
-    public async Task ClearDownloadsAsync(Window owner)
+    /// <param name="dialogs">The dialogs the person is asked through.</param>
+    public async Task ClearDownloadsAsync(IDialogHost dialogs)
         => await operations.ReportFailuresAsync("Unable to clear downloads.", async () =>
         {
-            var confirmation = new ConfirmationWindow(
+            var confirmed = await dialogs.ConfirmAsync(
                 "Clear Downloads",
                 "This permanently deletes every file record and everything inside the base save and famous directories. Nothing else is affected. This cannot be undone. Continue?",
                 "Clear Downloads");
-            if (await confirmation.ShowDialog<bool>(owner)) await clearDownloadsRunner.RunAsync();
+            if (confirmed) await clearDownloadsRunner.RunAsync();
         });
 
     /// <summary>Runs the scraper.</summary>
