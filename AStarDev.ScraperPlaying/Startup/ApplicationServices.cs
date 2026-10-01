@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using AStarDev.ScraperPlaying.Scraping;
+using AStarDev.ScraperPlaying.Tags;
 using AStarDev.ScraperPlaying.UI;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
 
@@ -64,7 +65,9 @@ public static class ApplicationServices
             .AddSingleton<IDatabaseInitialization, DatabaseInitialization>()
             .AddSingleton<StatusReporter>()
             .AddSingleton<UserOperationRunner>()
+            .AddSingleton<ITagCatalogue, TagCatalogue>()
             .AddSingleton<ConfigurationBrowser>()
+            .AddSingleton<TagsBrowser>()
             .AddSingleton<ScrapeRunner>()
             .AddSingleton<ApplicationReadiness>()
             .AddSingleton<MainWindow>()
