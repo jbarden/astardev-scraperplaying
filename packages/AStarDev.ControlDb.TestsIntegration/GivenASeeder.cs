@@ -49,6 +49,16 @@ public sealed class GivenASeeder : IDisposable
     }
 
     [Fact]
+    public async Task when_the_database_is_seeded_then_the_hot_wallpapers_setting_defaults_to_hot_wallpapers()
+    {
+        await Seeder.SeedAsync(context, TestContext.Current.CancellationToken);
+
+        var configuration = await context.Set<ScrapeConfigurationEntity>().SingleAsync(TestContext.Current.CancellationToken);
+
+        configuration.HotWallpapers.ShouldBe("HotWallpapers");
+    }
+
+    [Fact]
     public async Task when_the_database_is_empty_then_seeding_adds_a_scrape_configuration()
     {
         await Seeder.SeedAsync(context, TestContext.Current.CancellationToken);

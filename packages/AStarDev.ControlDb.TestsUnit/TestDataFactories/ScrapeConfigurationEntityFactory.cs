@@ -19,6 +19,7 @@ internal static class ScrapeConfigurationEntityFactory
             ApiKey = "scrape-api-key",
             SearchString = "search-string",
             TopWallpapers = "top-wallpapers",
+            HotWallpapers = "hot-wallpapers",
             SearchStringPrefix = "prefix-",
             SearchStringSuffix = "-suffix",
             Subscriptions = "subscriptions",
@@ -29,6 +30,8 @@ internal static class ScrapeConfigurationEntityFactory
             SubscriptionsTotalPages = 30,
             TopWallpapersStartingPageNumber = 3,
             TopWallpapersTotalPages = 40,
+            HotWallpapersStartingPageNumber = 4,
+            HotWallpapersTotalPages = 50,
             LoginUrl = "https://example.com/scrape/login",
             UseHeadless = true,
             SlowMotionDelay = 250f

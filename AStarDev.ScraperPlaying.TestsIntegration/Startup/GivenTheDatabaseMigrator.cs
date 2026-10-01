@@ -49,7 +49,7 @@ public sealed class GivenTheDatabaseMigrator : IDisposable
             await MigrateWithoutSeedingAsync(older, "20260929073110_AddPersonCategories", TestContext.Current.CancellationToken);
             await older.Database.ExecuteSqlRawAsync("ALTER TABLE UserConfigurations DROP COLUMN Password", TestContext.Current.CancellationToken);
             await older.Database.ExecuteSqlRawAsync("ALTER TABLE UserConfigurations ADD COLUMN Password TEXT NOT NULL DEFAULT 'old-secret'", TestContext.Current.CancellationToken);
-            await Seeder.SeedAsync(older, TestContext.Current.CancellationToken);
+            await SeedOlderSchemaAsync(older, TestContext.Current.CancellationToken);
             await older.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
@@ -92,7 +92,7 @@ public sealed class GivenTheDatabaseMigrator : IDisposable
             await MigrateWithoutSeedingAsync(older, "20260930085048_AddFileLastUpdated", TestContext.Current.CancellationToken);
             await older.Database.ExecuteSqlRawAsync("ALTER TABLE UserConfigurations DROP COLUMN Password", TestContext.Current.CancellationToken);
             await older.Database.ExecuteSqlRawAsync("ALTER TABLE UserConfigurations ADD COLUMN Password TEXT NOT NULL DEFAULT 'stored-secret'", TestContext.Current.CancellationToken);
-            await Seeder.SeedAsync(older, TestContext.Current.CancellationToken);
+            await SeedOlderSchemaAsync(older, TestContext.Current.CancellationToken);
         }
 
         await DatabaseMigrator.MigrateAsync(factory, NullLogger.Instance);
@@ -110,7 +110,7 @@ public sealed class GivenTheDatabaseMigrator : IDisposable
         await using (var older = await factory.CreateDbContextAsync(TestContext.Current.CancellationToken))
         {
             await MigrateWithoutSeedingAsync(older, "20261001140613_AddTagIsName", TestContext.Current.CancellationToken);
-            await Seeder.SeedAsync(older, TestContext.Current.CancellationToken);
+            await SeedOlderSchemaAsync(older, TestContext.Current.CancellationToken);
             await older.Database.ExecuteSqlRawAsync("INSERT INTO Tags (Id, WallhavenTagId, Name, Alias, CategoryId, Category, Purity, IgnoreImage, IsName) VALUES ('a1', 1, 'Emma Watson', 'emma', 1, 'celebrities', 'sfw', 0, 0), ('a2', 2, 'finger pointing', 'finger', 1, 'Celebrities', 'sfw', 0, 0), ('a3', 3, 'Formula 1', 'f1', 1, 'Sports', 'sfw', 0, 0)", TestContext.Current.CancellationToken);
         }
 
@@ -119,6 +119,38 @@ public sealed class GivenTheDatabaseMigrator : IDisposable
         await using var context = await factory.CreateDbContextAsync(TestContext.Current.CancellationToken);
         var famous = await context.Database.SqlQueryRaw<string>("SELECT Name AS Value FROM Tags WHERE IsFamous = 1 ORDER BY Name").ToListAsync(TestContext.Current.CancellationToken);
         string.Join(",", famous).ShouldBe("Emma Watson");
+    }
+
+    [Fact]
+    public async Task when_a_configuration_exists_before_the_hot_wallpapers_columns_are_added_then_it_gets_the_default_url_and_zero_pages()
+    {
+        var factory = serviceProvider.GetRequiredService<IDbContextFactory<ControlDbContext>>();
+        await using (var older = await factory.CreateDbContextAsync(TestContext.Current.CancellationToken))
+        {
+            await MigrateWithoutSeedingAsync(older, "20261001150610_AddTagIsFamous", TestContext.Current.CancellationToken);
+            await SeedOlderSchemaAsync(older, TestContext.Current.CancellationToken);
+        }
+
+        await DatabaseMigrator.MigrateAsync(factory, NullLogger.Instance);
+
+        await using var context = await factory.CreateDbContextAsync(TestContext.Current.CancellationToken);
+        var configuration = await context.ScrapeConfigurations.SingleAsync(TestContext.Current.CancellationToken);
+        (configuration.HotWallpapers, configuration.HotWallpapersStartingPageNumber, configuration.HotWallpapersTotalPages).ShouldBe(("HotWallpapers", 0, 0));
+    }
+
+    /// <summary>Seeds with the current model, which also writes the hot wallpapers columns: add them for the insert, then drop them so the schema is as old as the migration it was built to.</summary>
+    private static async Task SeedOlderSchemaAsync(ControlDbContext context, CancellationToken cancellationToken)
+    {
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE ScrapeConfigurations ADD COLUMN HotWallpapers TEXT NOT NULL DEFAULT ''", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE ScrapeConfigurations ADD COLUMN HotWallpapersStartingPageNumber INTEGER NOT NULL DEFAULT 0", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE ScrapeConfigurations ADD COLUMN HotWallpapersTotalPages INTEGER NOT NULL DEFAULT 0", cancellationToken);
+
+        await Seeder.SeedAsync(context, cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
+
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE ScrapeConfigurations DROP COLUMN HotWallpapers", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE ScrapeConfigurations DROP COLUMN HotWallpapersStartingPageNumber", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE ScrapeConfigurations DROP COLUMN HotWallpapersTotalPages", cancellationToken);
     }
 
     [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "The text is the migrator's own generated script for a fixed migration name; no user input.")]
