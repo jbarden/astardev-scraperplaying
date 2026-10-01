@@ -175,7 +175,7 @@ public sealed class GivenAScrapeConfigurationExport
 
         public List<ApiKeyExport> Modes { get; } = [];
 
-        public Task<Exceptional<Option<ScrapeConfigurationImportDocument>>> ExportScrapeConfigurationAsync(ApiKeyExport apiKeys)
+        public Task<Exceptional<Option<ScrapeConfigurationImportDocument>>> ExportScrapeConfigurationAsync(ApiKeyExport apiKeys, CancellationToken cancellationToken = default)
         {
             LookupCount++;
             Modes.Add(apiKeys);

@@ -298,12 +298,12 @@ public sealed class GivenMainWindowActions : IDisposable
     {
         public Exception? Failure { get; set; }
 
-        public Task<Exceptional<IReadOnlyList<ScrapeConfigurationSummary>>> ListAsync()
+        public Task<Exceptional<IReadOnlyList<ScrapeConfigurationSummary>>> ListAsync(CancellationToken cancellationToken = default)
             => Failure is null
                 ? Task.FromResult(Exceptional.Success<IReadOnlyList<ScrapeConfigurationSummary>>([]))
                 : Task.FromException<Exceptional<IReadOnlyList<ScrapeConfigurationSummary>>>(Failure);
 
-        public Task<Exceptional<Option<ScrapeConfigurationEntity>>> FindAsync(ScrapeConfigurationId id)
+        public Task<Exceptional<Option<ScrapeConfigurationEntity>>> FindAsync(ScrapeConfigurationId id, CancellationToken cancellationToken = default)
             => Task.FromResult(Exceptional.Success(Option.None<ScrapeConfigurationEntity>()));
     }
 

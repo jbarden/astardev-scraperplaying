@@ -11,7 +11,7 @@ namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 public sealed class ScrapeConfigurationImporter(IScopedRunner scopedRunner) : IScrapeConfigurationImporter
 {
     /// <inheritdoc/>
-    public async Task<Exceptional<Unit>> ImportScrapeConfigurationAsync(ScrapeConfigurationImportDocument document)
+    public async Task<Exceptional<Unit>> ImportScrapeConfigurationAsync(ScrapeConfigurationImportDocument document, CancellationToken cancellationToken = default)
     {
         return await scopedRunner.RunAsync<IUnitOfWork, Exceptional<Unit>>(unitOfWork => Try.RunAsync(async () =>
         {
@@ -19,7 +19,7 @@ public sealed class ScrapeConfigurationImporter(IScopedRunner scopedRunner) : IS
 
             // Map first: an unmappable document must not cost the user their current configuration.
             var replacement = document.ToEntity();
-            var current = (await dbContext.TryGetFirstAsync()).Match(option => option, exception => throw exception);
+            var current = (await dbContext.TryGetFirstAsync(cancellationToken)).Match(option => option, exception => throw exception);
 
             // Exports leave the API keys out by default, so a file without them must not blank the keys already stored.
             _ = current.Match(existing => KeepStoredApiKeysWhereFileHasNone(replacement, existing), () => Unit.Instance);
@@ -31,15 +31,15 @@ public sealed class ScrapeConfigurationImporter(IScopedRunner scopedRunner) : IS
                     async e =>
                     {
                         _ = dbContext.Delete(e).Match(unit => unit, exception => throw exception);
-                        _ = await unitOfWork.SaveChangesAsync();
+                        _ = await unitOfWork.SaveChangesAsync(cancellationToken);
                     },
                     () => { });
 
                 _ = dbContext.Add(replacement).Match(entity => entity, exception => throw exception);
-                _ = await unitOfWork.SaveChangesAsync();
+                _ = await unitOfWork.SaveChangesAsync(cancellationToken);
 
                 return Unit.Instance;
-            });
+            }, cancellationToken);
         }));
     }
 

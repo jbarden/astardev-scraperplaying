@@ -9,7 +9,7 @@ public sealed class ScrapeConfigurationExportService(
     public async Task<bool> ExportAsync(string filePath, ApiKeyExport apiKeys, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var result = (await repository.ExportScrapeConfigurationAsync(apiKeys)).Match(option => option, exception => throw exception);
+        var result = (await repository.ExportScrapeConfigurationAsync(apiKeys, cancellationToken)).Match(option => option, exception => throw exception);
 
         return await result.MatchAsync(
             async document =>

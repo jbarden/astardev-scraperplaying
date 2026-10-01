@@ -33,10 +33,20 @@ public sealed class GivenAScrapeConfigurationExporter : IDisposable
     {
         var exporter = CreateExporter();
 
-        _ = await exporter.ExportScrapeConfigurationAsync(ApiKeyExport.Include);
-        _ = await exporter.ExportScrapeConfigurationAsync(ApiKeyExport.Include);
+        _ = await exporter.ExportScrapeConfigurationAsync(ApiKeyExport.Include, TestContext.Current.CancellationToken);
+        _ = await exporter.ExportScrapeConfigurationAsync(ApiKeyExport.Include, TestContext.Current.CancellationToken);
 
         unitOfWorkResolutions.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task when_the_token_is_cancelled_then_the_export_is_cancelled()
+    {
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+        var exporter = CreateExporter();
+
+        _ = await Should.ThrowAsync<OperationCanceledException>(() => exporter.ExportScrapeConfigurationAsync(ApiKeyExport.Include, cancellation.Token));
     }
 
     private ScrapeConfigurationExporter CreateExporter() => new(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()));
@@ -57,7 +67,7 @@ public sealed class GivenAScrapeConfigurationExporter : IDisposable
         repository.First = (Option<ScrapeConfigurationEntity>)existing;
         var exporter = CreateExporter();
 
-        var result = await exporter.ExportScrapeConfigurationAsync(ApiKeyExport.Include);
+        var result = await exporter.ExportScrapeConfigurationAsync(ApiKeyExport.Include, TestContext.Current.CancellationToken);
 
         var document = result.Match(option => option, exception => throw exception).Match(value => (ScrapeConfigurationImportDocument?)value, () => null);
         document.ShouldNotBeNull();
@@ -73,7 +83,7 @@ public sealed class GivenAScrapeConfigurationExporter : IDisposable
         repository.First = Option<ScrapeConfigurationEntity>.None.Instance;
         var exporter = CreateExporter();
 
-        var result = await exporter.ExportScrapeConfigurationAsync(ApiKeyExport.Include);
+        var result = await exporter.ExportScrapeConfigurationAsync(ApiKeyExport.Include, TestContext.Current.CancellationToken);
 
         var hasDocument = result.Match(option => option, exception => throw exception).Match(_ => true, () => false);
         hasDocument.ShouldBeFalse();
@@ -86,7 +96,7 @@ public sealed class GivenAScrapeConfigurationExporter : IDisposable
         repository.First = exception;
         var exporter = CreateExporter();
 
-        var result = await exporter.ExportScrapeConfigurationAsync(ApiKeyExport.Include);
+        var result = await exporter.ExportScrapeConfigurationAsync(ApiKeyExport.Include, TestContext.Current.CancellationToken);
 
         var capturedException = result.Match(_ => (Exception?)null, ex => ex);
         capturedException.ShouldBeSameAs(exception);

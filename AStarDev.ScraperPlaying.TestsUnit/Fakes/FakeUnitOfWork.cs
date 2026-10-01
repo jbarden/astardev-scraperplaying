@@ -45,6 +45,8 @@ internal sealed class FakeUnitOfWork : IUnitOfWork
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        if (cancellationToken.IsCancellationRequested) return Task.FromCanceled<int>(cancellationToken);
+
         OnSave(cancellationToken);
         SaveCount++;
         SaveTokens.Add(cancellationToken);

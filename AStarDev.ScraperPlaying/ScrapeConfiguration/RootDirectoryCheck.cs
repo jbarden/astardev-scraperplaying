@@ -9,9 +9,9 @@ namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 public sealed class RootDirectoryCheck(IScopedRunner scopedRunner, IFileSystem fileSystem) : IRootDirectoryCheck
 {
     /// <inheritdoc/>
-    public async Task<bool> ExistsAsync()
+    public async Task<bool> ExistsAsync(CancellationToken cancellationToken = default)
     {
-        var rootDirectory = (await scopedRunner.RunAsync<IScrapeConfigurationLookup, Exceptional<Option<string>>>(lookup => lookup.TryGetRootDirectoryAsync()))
+        var rootDirectory = (await scopedRunner.RunAsync<IScrapeConfigurationLookup, Exceptional<Option<string>>>(lookup => lookup.TryGetRootDirectoryAsync(cancellationToken)))
             .Match(
                 option => option.Match(directory => directory, () => throw new InvalidOperationException("Scrape configuration not found")),
                 exception => throw exception);

@@ -237,7 +237,7 @@ public sealed class GivenAScrapeConfigurationImport
     {
         public List<ScrapeConfigurationImportDocument> Imported { get; } = [];
 
-        public Task<Exceptional<Unit>> ImportScrapeConfigurationAsync(ScrapeConfigurationImportDocument document)
+        public Task<Exceptional<Unit>> ImportScrapeConfigurationAsync(ScrapeConfigurationImportDocument document, CancellationToken cancellationToken = default)
         {
             Imported.Add(document);
 

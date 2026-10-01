@@ -96,6 +96,6 @@ public sealed class GivenApplicationReadiness : IDisposable
 
         public Func<bool> Check { get; set; } = () => true;
 
-        public Task<bool> ExistsAsync() => Task.FromResult(Exists && Check());
+        public Task<bool> ExistsAsync(CancellationToken cancellationToken = default) => Task.FromResult(Exists && Check());
     }
 }

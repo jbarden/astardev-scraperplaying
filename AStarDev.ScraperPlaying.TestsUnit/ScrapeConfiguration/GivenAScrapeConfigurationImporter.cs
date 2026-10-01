@@ -33,10 +33,19 @@ public sealed class GivenAScrapeConfigurationImporter : IDisposable
     [Fact]
     public async Task when_several_imports_run_then_each_resolves_its_own_unit_of_work()
     {
-        _ = await importer.ImportScrapeConfigurationAsync(CreateDocument("first"));
-        _ = await importer.ImportScrapeConfigurationAsync(CreateDocument("second"));
+        _ = await importer.ImportScrapeConfigurationAsync(CreateDocument("first"), TestContext.Current.CancellationToken);
+        _ = await importer.ImportScrapeConfigurationAsync(CreateDocument("second"), TestContext.Current.CancellationToken);
 
         unitOfWorkResolutions.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task when_the_token_is_cancelled_then_the_import_is_cancelled()
+    {
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        _ = await Should.ThrowAsync<OperationCanceledException>(() => importer.ImportScrapeConfigurationAsync(CreateDocument("user"), cancellation.Token));
     }
 
     [Fact]
@@ -44,7 +53,7 @@ public sealed class GivenAScrapeConfigurationImporter : IDisposable
     {
         repository.First = (Option<ScrapeConfigurationEntity>)StoredConfigurationWithKeys("stored-scrape-key", "stored-user-key");
 
-        _ = await importer.ImportScrapeConfigurationAsync(CreateDocument("user"));
+        _ = await importer.ImportScrapeConfigurationAsync(CreateDocument("user"), TestContext.Current.CancellationToken);
 
         unitOfWork.TransactionCount.ShouldBe(1);
     }
@@ -55,7 +64,7 @@ public sealed class GivenAScrapeConfigurationImporter : IDisposable
         repository.First = (Option<ScrapeConfigurationEntity>)StoredConfigurationWithKeys("stored-scrape-key", "stored-user-key");
         var unmappable = new ScrapeConfigurationImportDocument { SearchConfiguration = new SearchConfigurationImportDocument { SearchCategories = [null!] } };
 
-        var result = await importer.ImportScrapeConfigurationAsync(unmappable);
+        var result = await importer.ImportScrapeConfigurationAsync(unmappable, TestContext.Current.CancellationToken);
 
         (result.Match(_ => true, _ => false), repository.Deleted.Count, unitOfWork.SaveCount).ShouldBe((false, 0, 0));
     }
@@ -65,7 +74,7 @@ public sealed class GivenAScrapeConfigurationImporter : IDisposable
     {
         repository.First = (Option<ScrapeConfigurationEntity>)StoredConfigurationWithKeys("stored-scrape-key", "stored-user-key");
 
-        _ = await importer.ImportScrapeConfigurationAsync(CreateDocument("user"));
+        _ = await importer.ImportScrapeConfigurationAsync(CreateDocument("user"), TestContext.Current.CancellationToken);
 
         (repository.Added.Single().ApiKey, repository.Added.Single().UserConfiguration.ApiKey).ShouldBe(("stored-scrape-key", "stored-user-key"));
     }
@@ -76,7 +85,7 @@ public sealed class GivenAScrapeConfigurationImporter : IDisposable
         repository.First = (Option<ScrapeConfigurationEntity>)StoredConfigurationWithKeys("stored-scrape-key", "stored-user-key");
         var document = new ScrapeConfigurationImportDocument { ApiKey = "file-scrape-key", UserConfiguration = new() { ApiKey = "file-user-key" }, SearchConfiguration = new(), ScrapeDirectories = new() };
 
-        _ = await importer.ImportScrapeConfigurationAsync(document);
+        _ = await importer.ImportScrapeConfigurationAsync(document, TestContext.Current.CancellationToken);
 
         (repository.Added.Single().ApiKey, repository.Added.Single().UserConfiguration.ApiKey).ShouldBe(("file-scrape-key", "file-user-key"));
     }
@@ -86,7 +95,7 @@ public sealed class GivenAScrapeConfigurationImporter : IDisposable
     {
         repository.First = Option<ScrapeConfigurationEntity>.None.Instance;
 
-        _ = await importer.ImportScrapeConfigurationAsync(CreateDocument("user"));
+        _ = await importer.ImportScrapeConfigurationAsync(CreateDocument("user"), TestContext.Current.CancellationToken);
 
         (repository.Added.Single().ApiKey, repository.Added.Single().UserConfiguration.ApiKey).ShouldBe((string.Empty, string.Empty));
     }
@@ -97,7 +106,7 @@ public sealed class GivenAScrapeConfigurationImporter : IDisposable
         repository.First = (Option<ScrapeConfigurationEntity>)StoredConfigurationWithKeys("stored-scrape-key", "stored-user-key");
         var document = new ScrapeConfigurationImportDocument { ApiKey = "file-scrape-key", UserConfiguration = new(), SearchConfiguration = new(), ScrapeDirectories = new() };
 
-        _ = await importer.ImportScrapeConfigurationAsync(document);
+        _ = await importer.ImportScrapeConfigurationAsync(document, TestContext.Current.CancellationToken);
 
         (repository.Added.Single().ApiKey, repository.Added.Single().UserConfiguration.ApiKey).ShouldBe(("file-scrape-key", "stored-user-key"));
     }
@@ -118,7 +127,7 @@ public sealed class GivenAScrapeConfigurationImporter : IDisposable
     {
         repository.First = Option<ScrapeConfigurationEntity>.None.Instance;
 
-        var result = await importer.ImportScrapeConfigurationAsync(CreateDocument("user"));
+        var result = await importer.ImportScrapeConfigurationAsync(CreateDocument("user"), TestContext.Current.CancellationToken);
 
         result.Match(_ => true, _ => false).ShouldBeTrue();
         repository.Deleted.ShouldBeEmpty();
@@ -133,7 +142,7 @@ public sealed class GivenAScrapeConfigurationImporter : IDisposable
         var existing = StoredConfigurationWithKeys("stored-scrape-key", "stored-user-key");
         repository.First = (Option<ScrapeConfigurationEntity>)existing;
 
-        var result = await importer.ImportScrapeConfigurationAsync(CreateDocument("new-user"));
+        var result = await importer.ImportScrapeConfigurationAsync(CreateDocument("new-user"), TestContext.Current.CancellationToken);
 
         result.Match(_ => true, _ => false).ShouldBeTrue();
         repository.Deleted.ShouldBe([existing]);
@@ -148,7 +157,7 @@ public sealed class GivenAScrapeConfigurationImporter : IDisposable
         var exception = new InvalidOperationException("lookup failed");
         repository.First = exception;
 
-        var result = await importer.ImportScrapeConfigurationAsync(new ScrapeConfigurationImportDocument());
+        var result = await importer.ImportScrapeConfigurationAsync(new ScrapeConfigurationImportDocument(), TestContext.Current.CancellationToken);
 
         result.Match(_ => (Exception?)null, ex => ex).ShouldBeSameAs(exception);
         unitOfWork.Operations.ShouldBeEmpty();
@@ -161,7 +170,7 @@ public sealed class GivenAScrapeConfigurationImporter : IDisposable
         repository.First = Option<ScrapeConfigurationEntity>.None.Instance;
         repository.AddFailure = Option.Some<Exception>(exception);
 
-        var result = await importer.ImportScrapeConfigurationAsync(new ScrapeConfigurationImportDocument());
+        var result = await importer.ImportScrapeConfigurationAsync(new ScrapeConfigurationImportDocument(), TestContext.Current.CancellationToken);
 
         result.Match(_ => (Exception?)null, ex => ex).ShouldBeSameAs(exception);
         unitOfWork.SaveCount.ShouldBe(0);
