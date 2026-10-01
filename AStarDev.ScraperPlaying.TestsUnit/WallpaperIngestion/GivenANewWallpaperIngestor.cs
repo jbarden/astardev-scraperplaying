@@ -102,7 +102,8 @@ public sealed class GivenANewWallpaperIngestor
 
         var tags = await ingestor.FetchTagsAsync(CreateWallpaper("tags-only"), CreateContext("some-directory", client), progress, TestContext.Current.CancellationToken);
 
-        tags.Select(tag => tag.Name).ShouldBe(["landscape"]);
+        tags.TryGetValue(out var fetched).ShouldBeTrue();
+        fetched.Select(tag => tag.Name).ShouldBe(["landscape"]);
         (fileSystem.Directory.Exists("some-directory"), fileRepository.Added.Count, fileTagRepository.Added.Count, progress.Messages.Contains("No existing data found for wallpaper tags-only.")).ShouldBe((false, 0, 0, true));
     }
 
@@ -131,16 +132,15 @@ public sealed class GivenANewWallpaperIngestor
     }
 
     [Fact]
-    public async Task when_fetching_the_tags_fails_then_it_is_reported_distinctly_and_the_image_is_still_ingested_without_tags()
+    public async Task when_fetching_the_tags_fails_then_it_is_reported_distinctly_and_the_wallpaper_is_left_to_be_retried_untouched()
     {
         wallhaven.DetailStatus = HttpStatusCode.InternalServerError;
 
         await Ingest(CreateWallpaper("failing-tags"), ".jpg");
 
         progress.Messages.ShouldContain(message => message.StartsWith("Failed to fetch tags for wallpaper failing-tags: ", StringComparison.Ordinal));
-        progress.Messages.ShouldNotContain(message => message.Contains("Failed to process image"));
-        progress.Messages.ShouldContain("Downloaded image data for wallpaper failing-tags");
-        (fileSystem.File.Exists(fileSystem.Path.Combine("some-directory", "failing-tags.jpg")), fileRepository.Added.Count, fileTagRepository.Added.Count).ShouldBe((true, 1, 0));
+        progress.Messages.ShouldNotContain(message => message.Contains("Downloaded image data"));
+        (fileSystem.Directory.Exists("some-directory"), fileRepository.Added.Count, fileTagRepository.Added.Count, notifications.Count).ShouldBe((false, 0, 0, 0));
     }
 
     [Fact]
@@ -173,14 +173,14 @@ public sealed class GivenANewWallpaperIngestor
     }
 
     [Fact]
-    public async Task when_the_operation_is_cancelled_after_downloading_then_nothing_is_recorded_and_the_cancellation_propagates()
+    public async Task when_the_operation_is_cancelled_after_downloading_then_nothing_is_recorded_or_announced_and_the_cancellation_propagates()
     {
         using var cancellationTokenSource = new CancellationTokenSource();
-        notifier.ImageDownloaded += (_, _) => cancellationTokenSource.Cancel();
+        wallhaven.OnImageRequested = cancellationTokenSource.Cancel;
 
         _ = await Should.ThrowAsync<OperationCanceledException>(() => IngestWithToken(CreateWallpaper("cancelled-after"), ".jpg", "some-directory", cancellationTokenSource.Token));
 
-        (notifications.Count, fileRepository.Added.Count).ShouldBe((1, 0));
+        (notifications.Count, fileRepository.Added.Count).ShouldBe((0, 0));
     }
 
     [Fact]
@@ -202,7 +202,7 @@ public sealed class GivenANewWallpaperIngestor
         var context = CreateContext(directory, client);
 
         var tags = await ingestor.FetchTagsAsync(wallpaper, context, progress, cancellationToken);
-        await ingestor.IngestAsync(new WallpaperCandidate(wallpaper, extension), tags, context, progress, cancellationToken);
+        if (tags.TryGetValue(out var fetched)) await ingestor.IngestAsync(new WallpaperCandidate(wallpaper, extension), fetched, context, progress, cancellationToken);
     }
 
     private WallpaperIngestionContext CreateContext(string directory, HttpClient client)
