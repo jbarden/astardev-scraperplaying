@@ -32,6 +32,13 @@ public sealed class ConfigurationBrowser(IScrapeConfigurationCatalogue catalogue
             return Option.None<ScrapeConfigurationEntity>();
         });
 
+    /// <summary>Loads the configuration behind <paramref name="summary"/> as the inputs the editor shows; none, with the reason reported, if it could not be loaded or no longer exists.</summary>
+    /// <param name="summary">The configuration to load.</param>
+    public async Task<Option<LoadedConfiguration>> LoadAsync(ScrapeConfigurationSummary summary) =>
+        (await FindAsync(summary)) is Option<ScrapeConfigurationEntity>.Some found
+            ? Option.Some(LoadedConfiguration.From(found.Value))
+            : Option.None<LoadedConfiguration>();
+
     /// <summary>Creates the editor window with every configuration selectable, opened on the first; none, with the reason reported, if there is nothing to edit.</summary>
     public async Task<Option<ConfigurationEditorWindow>> CreateEditorAsync()
     {
@@ -43,8 +50,8 @@ public sealed class ConfigurationBrowser(IScrapeConfigurationCatalogue catalogue
             return Option.None<ConfigurationEditorWindow>();
         }
 
-        return (await FindAsync(summaries[0])) is Option<ScrapeConfigurationEntity>.Some found
-            ? Option.Some(editorFactory.Create(found.Value, summaries, this))
+        return (await LoadAsync(summaries[0])) is Option<LoadedConfiguration>.Some loaded
+            ? Option.Some(editorFactory.Create(new ConfigurationEditorSession(loaded.Value, summaries, LoadAsync)))
             : Option.None<ConfigurationEditorWindow>();
     }
 

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
@@ -10,7 +11,7 @@ namespace AStarDev.ScraperPlaying.UI;
 /// <summary>Hosts the section tabs used to edit a single root scrape configuration. Save writes every section and closes with <c>true</c>, Cancel closes with <c>false</c>.</summary>
 public sealed partial class ConfigurationEditorWindow : Window
 {
-    private readonly ConfigurationBrowser browser = null!;
+    private readonly ConfigurationEditorSession session = null!;
     private readonly ConfigurationEditSaver saver = null!;
     private readonly IFileSystem fileSystem = null!;
     private ScrapeConfigurationId configurationId;
@@ -18,53 +19,78 @@ public sealed partial class ConfigurationEditorWindow : Window
     /// <summary>Initializes the window for the design-time previewer.</summary>
     public ConfigurationEditorWindow() => InitializeComponent();
 
-    /// <summary>Initializes a new instance of the <see cref="ConfigurationEditorWindow"/> class for the specified configuration.</summary>
-    /// <param name="configuration">The scrape configuration to edit first.</param>
-    /// <param name="summaries">Every scrape configuration the user can switch to.</param>
-    /// <param name="browser">The browser used to load the configuration the user switches to.</param>
+    /// <summary>Initializes a new instance of the <see cref="ConfigurationEditorWindow"/> class for the specified session.</summary>
+    /// <param name="session">The configuration to edit first and how to switch to the others.</param>
     /// <param name="saver">The service that validates and saves the edits.</param>
     /// <param name="fileSystem">The file system used to check that the scrape directories exist.</param>
-    public ConfigurationEditorWindow(ScrapeConfigurationEntity configuration, IReadOnlyList<ScrapeConfigurationSummary> summaries, ConfigurationBrowser browser, ConfigurationEditSaver saver, IFileSystem fileSystem)
+    public ConfigurationEditorWindow(ConfigurationEditorSession session, ConfigurationEditSaver saver, IFileSystem fileSystem)
     {
         InitializeComponent();
-        this.browser = browser;
+        this.session = session;
         this.saver = saver;
         this.fileSystem = fileSystem;
-        ConfigurationPicker.ItemsSource = summaries;
-        ConfigurationPicker.SelectedItem = summaries.FirstOrDefault(summary => summary.Id == configuration.Id);
-        Load(configuration);
+        Load(session.Initial);
+        ConfigurationPicker.ItemsSource = session.Summaries;
+        ConfigurationPicker.SelectedItem = session.Summaries.FirstOrDefault(summary => summary.Id == session.Initial.Id);
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "An async void handler: any exception escaping it would crash the application, so the failure is shown in the editor instead.")]
     public async void ConfigurationSelected(object? sender, SelectionChangedEventArgs eventArgs)
     {
         if (ConfigurationPicker.SelectedItem is not ScrapeConfigurationSummary summary || summary.Id == configurationId) return;
 
         ShowError(string.Empty);
-        if (await browser.FindAsync(summary) is Option<ScrapeConfigurationEntity>.Some found) Load(found.Value);
-    }
-
-    private void Load(ScrapeConfigurationEntity configuration)
-    {
-        configurationId = configuration.Id;
-        RootSettingsTabContent.Load(RootSettingsInput.From(configuration));
-        UserTabContent.Load(UserSettingsInput.From(configuration));
-        SearchTabContent.Load(SearchSettingsInput.From(configuration));
-        SearchCategoriesTabContent.Load(SearchCategoriesInput.From(configuration));
-        PersonCategoriesTabContent.Load(PersonCategoriesInput.From(configuration));
-        DirectoriesTabContent.Load(DirectorySettingsInput.From(configuration), fileSystem);
+        try
+        {
+            if (await session.LoadAsync(summary) is Option<LoadedConfiguration>.Some loaded) Load(loaded.Value);
+        }
+        catch (Exception exception)
+        {
+            ShowError($"Unable to load the scrape configuration. {exception.Message}");
+        }
     }
 
     public async void Save(object? sender, RoutedEventArgs eventArgs)
     {
         ShowError(string.Empty);
         SetSaving(true);
-        var failure = await saver.SaveAsync(configurationId, ReadInputs(), CancellationToken.None);
-        SetSaving(false);
-        if (failure is Option<string>.Some some) ShowError(some.Value);
-        else Close(true);
+        try
+        {
+            var failure = await TrySaveAsync();
+            if (failure is Option<string>.Some some) ShowError(some.Value);
+            else Close(true);
+        }
+        finally
+        {
+            SetSaving(false);
+        }
     }
 
     public void Cancel(object? sender, RoutedEventArgs eventArgs) => Close(false);
+
+    private void Load(LoadedConfiguration configuration)
+    {
+        configurationId = configuration.Id;
+        RootSettingsTabContent.Load(configuration.Inputs.Root);
+        UserTabContent.Load(configuration.Inputs.User);
+        SearchTabContent.Load(configuration.Inputs.Search);
+        SearchCategoriesTabContent.Load(configuration.Inputs.SearchCategories);
+        PersonCategoriesTabContent.Load(configuration.Inputs.PersonCategories);
+        DirectoriesTabContent.Load(configuration.Inputs.Directories, fileSystem);
+    }
+
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Called from an async void handler: any exception escaping it would crash the application, so the failure is shown in the editor instead.")]
+    private async Task<Option<string>> TrySaveAsync()
+    {
+        try
+        {
+            return await saver.SaveAsync(configurationId, ReadInputs(), CancellationToken.None);
+        }
+        catch (Exception exception)
+        {
+            return Option.Some($"Unable to save the scrape configuration. {exception.Message}");
+        }
+    }
 
     private ConfigurationEditInputs ReadInputs() => new(
         RootSettingsTabContent.ReadInput(),
