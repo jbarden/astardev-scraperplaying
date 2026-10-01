@@ -313,11 +313,11 @@ public sealed class GivenAPagesProcessor
 
     private sealed class FakePageFetcher(FakeJsonResponseProcessor jsonResponseProcessor) : IWallhavenPageFetcher
     {
-        public Task<SearchResponse> FetchPageAsync(string logLabel, Uri pageUrl, int page, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
+        public Task<SearchResponse> FetchPageAsync(PageFetchRequest request, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
         {
-            progress.Report($"Fetching {logLabel} page {page}.");
+            progress.Report($"Fetching {request.LogLabel} page {request.Page}.");
 
-            return Task.FromResult(jsonResponseProcessor.Fetch(pageUrl));
+            return Task.FromResult(jsonResponseProcessor.Fetch(request.PageUrl));
         }
     }
 

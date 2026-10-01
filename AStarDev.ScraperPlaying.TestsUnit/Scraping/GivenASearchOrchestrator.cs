@@ -188,11 +188,11 @@ public sealed class GivenASearchOrchestrator
 
         public Func<string, int, bool> FailWhen { get; set; } = (_, _) => false;
 
-        public Task<SearchResponse> FetchPageAsync(string logLabel, Uri pageUrl, int page, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
+        public Task<SearchResponse> FetchPageAsync(PageFetchRequest request, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
         {
-            if (FailWhen(logLabel, page)) throw new HttpRequestException("boom");
+            if (FailWhen(request.LogLabel, request.Page)) throw new HttpRequestException("boom");
 
-            Fetches.Add($"Fetched {logLabel} page {page} from {pageUrl} via {client.BaseAddress} with key {client.DefaultRequestHeaders.GetValues("X-API-Key").Single()}");
+            Fetches.Add($"Fetched {request.LogLabel} page {request.Page} from {request.PageUrl} via {client.BaseAddress} with key {client.DefaultRequestHeaders.GetValues("X-API-Key").Single()}");
 
             return Task.FromResult(new SearchResponse([new Data("wallpaper", 0, 0, 0, "", "")], Meta));
         }

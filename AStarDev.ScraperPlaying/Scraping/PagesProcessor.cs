@@ -84,7 +84,7 @@ public sealed class PagesProcessor(IWallhavenClientFactory clientFactory, IWallh
     }
 
     private async Task<FetchedPage> FetchPageAsync(PageScrapeRequest request, HttpClient client, int page, IProgress<string> progress, CancellationToken cancellationToken)
-        => new(page, await pageFetcher.FetchPageAsync(request.LogLabel, request.PageUrlFactory(page), page, client, progress, cancellationToken));
+        => new(page, await pageFetcher.FetchPageAsync(new PageFetchRequest(request.LogLabel, request.PageUrlFactory(page), page), client, progress, cancellationToken));
 
     private bool IsLastPageToVisit(FetchedPage page)
         => page.Number >= page.Response.Meta.LastPage || page.Number >= limits.MaximumPagesPerSearch;
