@@ -9,11 +9,12 @@
         MinHeight="320">
   <Grid RowDefinitions="Auto,*">
     <Menu Grid.Row="0" Margin="5,5,0,0">
-      <MenuItem Header="_Edit">
-        <MenuItem x:Name="EditConfigurationMenuItem" Header="_Configuration" Click="EditConfiguration" />
-        <MenuItem x:Name="EditTagsMenuItem" Header="_Tags" Click="EditTags" />
-      </MenuItem>
       <MenuItem Header="_File">
+        <MenuItem Header="_Edit">
+          <MenuItem x:Name="EditConfigurationMenuItem" Header="_Configuration" Click="EditConfiguration" />
+          <MenuItem x:Name="EditTagsMenuItem" Header="_Tags" Click="EditTags" />
+        </MenuItem>
+        <Separator />
         <MenuItem x:Name="ImportConfigurationMenuItem" Header="_Import Configuration" Click="ImportConfiguration" />
         <MenuItem x:Name="ExportConfigurationMenuItem" Header="_Export Configuration" Click="ExportConfiguration" />
         <MenuItem x:Name="ExportConfigurationWithApiKeysMenuItem" Header="Export Configuration with API _Keys" Click="ExportConfigurationWithApiKeys" />
