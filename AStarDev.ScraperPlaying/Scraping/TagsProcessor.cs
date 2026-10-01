@@ -21,21 +21,12 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
     private readonly Dictionary<int, TagEntity> resolvedTags = [];
 
     /// <summary>
-    /// The Wallhaven ids of the tags flagged <see cref="TagEntity.IgnoreImage"/>. Loaded on the first fetch, and then reused for the rest of the run: the flags do not change during a scrape.
+    /// The flags of every tag stored when the run started, loaded with a single query on the first fetch and reused for the rest of the run: the flags do not change during a scrape.
     /// The first fetch always completes before any other database work starts, so the load never overlaps another use of the database context.
     /// </summary>
-    private HashSet<int> ignoredTagIds = [];
+    private TagFlagCache flagCache = TagFlagCache.Empty;
 
-    private bool ignoredTagIdsLoaded;
-
-    /// <summary>The Wallhaven ids of the tags flagged <see cref="TagEntity.IsName"/>. Loaded with <see cref="ignoredTagIds"/> on the first fetch and reused for the rest of the run for the same reason.</summary>
-    private HashSet<int> nameTagIds = [];
-
-    /// <summary>The Wallhaven ids of the tags flagged <see cref="TagEntity.IsFamous"/>, loaded and reused in the same way as <see cref="ignoredTagIds"/>.</summary>
-    private HashSet<int> famousTagIds = [];
-
-    /// <summary>The Wallhaven ids of every tag stored when the run started. A tag in here owns its famous flag; a tag not in here is seeded by <see cref="FamousTagCheck"/>.</summary>
-    private HashSet<int> storedTagIds = [];
+    private bool flagCacheLoaded;
 
     /// <inheritdoc/>
     public Task<Exceptional<IReadOnlyList<Tag>>> FetchTagsAsync(string wallpaperId, HttpClient client, IReadOnlyList<string> personCategories, IProgress<string> progress, CancellationToken cancellationToken)
@@ -50,50 +41,30 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
 
             await LoadTagFlagsAsync(cancellationToken);
 
-            return [.. detailResponse.Data.Tags.Select(tag => tag with { IgnoreImage = ignoredTagIds.Contains(tag.Id), IsName = nameTagIds.Contains(tag.Id), IsFamous = IsFamous(tag, personCategories) })];
+            return [.. detailResponse.Data.Tags.Select(tag => tag with { IgnoreImage = flagCache.IsIgnored(tag.Id), IsName = flagCache.IsName(tag.Id), IsFamous = IsFamous(tag, personCategories) })];
         });
 
     private async Task LoadTagFlagsAsync(CancellationToken cancellationToken)
     {
-        if (ignoredTagIdsLoaded) return;
+        if (flagCacheLoaded) return;
 
-        ignoredTagIds = [.. (await tagsQuery.GetIgnoredWallhavenIdsAsync(cancellationToken)).Match(found => found, exception => throw exception)];
-        nameTagIds = [.. (await tagsQuery.GetNameWallhavenIdsAsync(cancellationToken)).Match(found => found, exception => throw exception)];
-        famousTagIds = [.. (await tagsQuery.GetFamousWallhavenIdsAsync(cancellationToken)).Match(found => found, exception => throw exception)];
-        storedTagIds = [.. (await tagsQuery.GetStoredWallhavenIdsAsync(cancellationToken)).Match(found => found, exception => throw exception)];
-        ignoredTagIdsLoaded = true;
+        flagCache = TagFlagCache.From((await tagsQuery.GetFlagsAsync(cancellationToken)).Match(found => found, exception => throw exception));
+        flagCacheLoaded = true;
     }
 
     private bool IsFamous(Tag tag, IReadOnlyList<string> personCategories)
-        => storedTagIds.Contains(tag.Id) ? famousTagIds.Contains(tag.Id) : FamousTagCheck.IsFamous(tag, personCategories);
+        => flagCache.IsStored(tag.Id) ? flagCache.IsFamous(tag.Id) : FamousTagCheck.IsFamous(tag, personCategories);
 
     /// <inheritdoc/>
     public Task<Exceptional<Unit>> LinkTagsAsync(FileId fileId, IReadOnlyList<Tag> tags, CancellationToken cancellationToken)
         => Try.RunAsync(async () =>
         {
-            var tagRepository = unitOfWork.GetRepository<TagEntity, TagId>();
             var distinctTags = tags.DistinctBy(tag => tag.Id).ToList();
             await CacheExistingTagsAsync(distinctTags, cancellationToken);
 
             foreach (var tag in distinctTags)
             {
-                if (!resolvedTags.TryGetValue(tag.Id, out var tagEntity))
-                {
-                    tagEntity = tagRepository.Add(new TagEntity
-                    {
-                        Id = TagId.Empty,
-                        WallhavenTagId = tag.Id,
-                        Name = tag.Name,
-                        Alias = tag.Alias,
-                        CategoryId = tag.CategoryId,
-                        Category = tag.Category,
-                        Purity = tag.Purity,
-                        IsFamous = tag.IsFamous
-                    }).Match(added => added, ex => throw ex);
-
-                    resolvedTags.Add(tag.Id, tagEntity);
-                }
-
+                var tagEntity = ResolveOrAdd(tag);
                 _ = fileTagRepository.Add(new FileTagEntity { FileId = fileId, TagId = tagEntity.Id })
                     .Match(_ => Unit.Instance, ex => throw ex);
             }
@@ -101,9 +72,32 @@ public class TagsProcessor(IJsonResponseProcessor jsonResponseProcessor, ITagsQu
             return Unit.Instance;
         });
 
+    private TagEntity ResolveOrAdd(Tag tag)
+    {
+        if (resolvedTags.TryGetValue(tag.Id, out var existing)) return existing;
+
+        var added = unitOfWork.GetRepository<TagEntity, TagId>().Add(ToEntity(tag)).Match(entity => entity, ex => throw ex);
+        resolvedTags.Add(tag.Id, added);
+
+        return added;
+    }
+
+    private static TagEntity ToEntity(Tag tag) => new()
+    {
+        Id = TagId.Empty,
+        WallhavenTagId = tag.Id,
+        Name = tag.Name,
+        Alias = tag.Alias,
+        CategoryId = tag.CategoryId,
+        Category = tag.Category,
+        Purity = tag.Purity,
+        IsFamous = tag.IsFamous
+    };
+
+    /// <summary>Loads, in one query, only the uncached tags that were stored when the run started. A tag that was not stored cannot be in the database, so it needs no lookup.</summary>
     private async Task CacheExistingTagsAsync(IReadOnlyList<Tag> tags, CancellationToken cancellationToken)
     {
-        IReadOnlyList<int> uncachedIds = [.. tags.Where(tag => !resolvedTags.ContainsKey(tag.Id)).Select(tag => tag.Id)];
+        IReadOnlyList<int> uncachedIds = [.. tags.Where(tag => !resolvedTags.ContainsKey(tag.Id) && (!flagCacheLoaded || flagCache.IsStored(tag.Id))).Select(tag => tag.Id)];
         if (uncachedIds.Count == 0) return;
 
         var existingTags = (await tagsQuery.FindByWallhavenIdsAsync(uncachedIds, cancellationToken))

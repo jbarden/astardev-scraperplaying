@@ -1,3 +1,4 @@
+using AStarDev.ControlDb.TagDetail;
 using AStarDev.ControlDb.TestsIntegration.TestDataFactories;
 using AStarDev.FunctionalParadigm;
 using Microsoft.EntityFrameworkCore;
@@ -44,17 +45,31 @@ public sealed class GivenATagsQuery : IDisposable
     }
 
     [Fact]
-    public async Task when_some_tags_are_flagged_to_ignore_images_then_only_their_wallhaven_ids_are_returned()
+    public async Task when_tags_are_stored_then_their_flags_are_projected_in_one_query()
     {
-        var ignored = TagEntityFactory.CreateTagEntity(wallhavenTagId: 10, name: "ignored");
-        ignored.IgnoreImage = true;
-        await context.Tags.AddRangeAsync([ignored, TagEntityFactory.CreateTagEntity(wallhavenTagId: 11, name: "kept")], TestContext.Current.CancellationToken);
+        var flagged = TagEntityFactory.CreateTagEntity(wallhavenTagId: 10, name: "flagged");
+        (flagged.IgnoreImage, flagged.IsName, flagged.IsFamous) = (true, true, true);
+        await context.Tags.AddRangeAsync([flagged, TagEntityFactory.CreateTagEntity(wallhavenTagId: 11, name: "plain")], TestContext.Current.CancellationToken);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var query = new TagsQuery(context);
 
-        var result = await query.GetIgnoredWallhavenIdsAsync(TestContext.Current.CancellationToken);
+        var result = await query.GetFlagsAsync(TestContext.Current.CancellationToken);
 
-        result.Match(ids => ids.ToList(), exception => throw exception).ShouldBe([10]);
+        result.Match(flags => flags.OrderBy(flag => flag.WallhavenTagId).ToList(), exception => throw exception)
+            .ShouldBe([new TagFlagProjection(10, true, true, true), new TagFlagProjection(11, false, false, false)]);
+    }
+
+    [Fact]
+    public async Task when_tags_are_listed_then_they_are_not_tracked()
+    {
+        await context.Tags.AddAsync(TagEntityFactory.CreateTagEntity(wallhavenTagId: 60, name: "untracked"), TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        context.ChangeTracker.Clear();
+        var query = new TagsQuery(context);
+
+        _ = await query.ListAsync(TestContext.Current.CancellationToken);
+
+        context.ChangeTracker.Entries().ShouldBeEmpty();
     }
 
     [Fact]
@@ -70,52 +85,12 @@ public sealed class GivenATagsQuery : IDisposable
     }
 
     [Fact]
-    public async Task when_some_tags_are_flagged_as_names_then_only_their_wallhaven_ids_are_returned()
-    {
-        var name = TagEntityFactory.CreateTagEntity(wallhavenTagId: 30, name: "some name");
-        name.IsName = true;
-        await context.Tags.AddRangeAsync([name, TagEntityFactory.CreateTagEntity(wallhavenTagId: 31, name: "not a name")], TestContext.Current.CancellationToken);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var query = new TagsQuery(context);
-
-        var result = await query.GetNameWallhavenIdsAsync(TestContext.Current.CancellationToken);
-
-        result.Match(ids => ids.ToList(), exception => throw exception).ShouldBe([30]);
-    }
-
-    [Fact]
     public async Task when_a_tag_is_stored_then_it_is_not_a_name_by_default()
     {
         await context.Tags.AddAsync(TagEntityFactory.CreateTagEntity(wallhavenTagId: 32, name: "default"), TestContext.Current.CancellationToken);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         context.Tags.Single().IsName.ShouldBeFalse();
-    }
-
-    [Fact]
-    public async Task when_some_tags_are_flagged_famous_then_only_their_wallhaven_ids_are_returned()
-    {
-        var famous = TagEntityFactory.CreateTagEntity(wallhavenTagId: 40, name: "Famous Person");
-        famous.IsFamous = true;
-        await context.Tags.AddRangeAsync([famous, TagEntityFactory.CreateTagEntity(wallhavenTagId: 41, name: "outside")], TestContext.Current.CancellationToken);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var query = new TagsQuery(context);
-
-        var result = await query.GetFamousWallhavenIdsAsync(TestContext.Current.CancellationToken);
-
-        result.Match(ids => ids.ToList(), exception => throw exception).ShouldBe([40]);
-    }
-
-    [Fact]
-    public async Task when_tags_are_stored_then_the_stored_wallhaven_ids_are_all_returned()
-    {
-        await context.Tags.AddRangeAsync([TagEntityFactory.CreateTagEntity(wallhavenTagId: 50, name: "one"), TagEntityFactory.CreateTagEntity(wallhavenTagId: 51, name: "two")], TestContext.Current.CancellationToken);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var query = new TagsQuery(context);
-
-        var result = await query.GetStoredWallhavenIdsAsync(TestContext.Current.CancellationToken);
-
-        result.Match(ids => ids.Order().ToList(), exception => throw exception).ShouldBe([50, 51]);
     }
 
     [Fact]

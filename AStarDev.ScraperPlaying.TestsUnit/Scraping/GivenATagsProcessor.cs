@@ -100,7 +100,7 @@ public sealed class GivenATagsProcessor
     }
 
     [Fact]
-    public async Task when_a_wallpaper_has_several_tags_then_the_existing_ones_are_looked_up_with_a_single_query_of_the_distinct_ids()
+    public async Task when_a_wallpaper_has_several_tags_then_only_the_tags_stored_at_the_start_of_the_run_are_looked_up_with_a_single_query()
     {
         SetUpDetailResponse(CreateTag(wallhavenTagId: 5, name: "one"), CreateTag(wallhavenTagId: 6, name: "two"), CreateTag(wallhavenTagId: 5, name: "one"), CreateTag(wallhavenTagId: 7, name: "three"));
         tagsQuery.Existing[6] = new TagEntity { Id = TagId.Create(), WallhavenTagId = 6, Name = "two" };
@@ -108,13 +108,24 @@ public sealed class GivenATagsProcessor
         var result = await Run();
 
         result.Match(_ => true, ex => throw ex).ShouldBeTrue();
-        (tagsQuery.Queries.Count, string.Join(",", tagsQuery.Queries.Single().Order()), string.Join(",", tagRepository.Added.Select(tag => tag.WallhavenTagId).Order())).ShouldBe((1, "5,6,7", "5,7"));
+        (tagsQuery.Queries.Count, string.Join(",", tagsQuery.Queries.Single().Order()), string.Join(",", tagRepository.Added.Select(tag => tag.WallhavenTagId).Order())).ShouldBe((1, "6", "5,7"));
+    }
+
+    [Fact]
+    public async Task when_no_tag_of_a_wallpaper_is_stored_then_no_lookup_query_is_made()
+    {
+        SetUpDetailResponse(CreateTag(wallhavenTagId: 12, name: "brand new"));
+
+        _ = await Run();
+
+        tagsQuery.Queries.ShouldBeEmpty();
     }
 
     [Fact]
     public async Task when_every_tag_of_a_later_wallpaper_is_already_cached_then_no_query_is_made()
     {
         var tag = CreateTag(wallhavenTagId: 8, name: "cached");
+        tagsQuery.Existing[8] = new TagEntity { Id = TagId.Create(), WallhavenTagId = 8, Name = "cached" };
         jsonResponseProcessor.Responses["wallpaper-a"] = CreateDetailResponse(tag);
         jsonResponseProcessor.Responses["wallpaper-b"] = CreateDetailResponse(tag);
 
@@ -159,19 +170,6 @@ public sealed class GivenATagsProcessor
         var result = await processor.FetchTagsAsync("wallpaper-1", client, PersonCategories, progress, CancellationToken.None);
 
         result.Match(tags => tags.Select(tag => (tag.Id, tag.IsName)).ToList(), ex => throw ex).ShouldBe([(24, true), (25, false)]);
-    }
-
-    [Fact]
-    public async Task when_tags_are_fetched_for_several_wallpapers_then_the_name_tags_are_only_loaded_once()
-    {
-        jsonResponseProcessor.Responses["wallpaper-a"] = CreateDetailResponse(CreateTag(wallhavenTagId: 26, name: "one"));
-        jsonResponseProcessor.Responses["wallpaper-b"] = CreateDetailResponse(CreateTag(wallhavenTagId: 27, name: "two"));
-
-        using var client = new HttpClient();
-        _ = await processor.FetchTagsAsync("wallpaper-a", client, PersonCategories, progress, CancellationToken.None);
-        _ = await processor.FetchTagsAsync("wallpaper-b", client, PersonCategories, progress, CancellationToken.None);
-
-        tagsQuery.NamesQueryCount.ShouldBe(1);
     }
 
     [Fact]
@@ -220,20 +218,7 @@ public sealed class GivenATagsProcessor
     }
 
     [Fact]
-    public async Task when_tags_are_fetched_for_several_wallpapers_then_the_famous_and_stored_tags_are_only_loaded_once()
-    {
-        jsonResponseProcessor.Responses["wallpaper-a"] = CreateDetailResponse(CreateTag(wallhavenTagId: 35, name: "one"));
-        jsonResponseProcessor.Responses["wallpaper-b"] = CreateDetailResponse(CreateTag(wallhavenTagId: 36, name: "two"));
-
-        using var client = new HttpClient();
-        _ = await processor.FetchTagsAsync("wallpaper-a", client, PersonCategories, progress, CancellationToken.None);
-        _ = await processor.FetchTagsAsync("wallpaper-b", client, PersonCategories, progress, CancellationToken.None);
-
-        (tagsQuery.FamousQueryCount, tagsQuery.StoredQueryCount).ShouldBe((1, 1));
-    }
-
-    [Fact]
-    public async Task when_tags_are_fetched_for_several_wallpapers_then_the_ignored_tags_are_only_loaded_once()
+    public async Task when_tags_are_fetched_for_several_wallpapers_then_the_flags_are_loaded_with_a_single_query()
     {
         jsonResponseProcessor.Responses["wallpaper-a"] = CreateDetailResponse(CreateTag(wallhavenTagId: 22, name: "one"));
         jsonResponseProcessor.Responses["wallpaper-b"] = CreateDetailResponse(CreateTag(wallhavenTagId: 23, name: "two"));
@@ -242,7 +227,7 @@ public sealed class GivenATagsProcessor
         _ = await processor.FetchTagsAsync("wallpaper-a", client, PersonCategories, progress, CancellationToken.None);
         _ = await processor.FetchTagsAsync("wallpaper-b", client, PersonCategories, progress, CancellationToken.None);
 
-        tagsQuery.IgnoredQueryCount.ShouldBe(1);
+        tagsQuery.FlagsQueryCount.ShouldBe(1);
     }
 
     [Fact]
@@ -315,46 +300,24 @@ public sealed class GivenATagsProcessor
 
         public HashSet<int> Ignored { get; } = [];
 
-        public int IgnoredQueryCount { get; private set; }
-
         public HashSet<int> Names { get; } = [];
 
-        public int FamousQueryCount { get; private set; }
+        public int FlagsQueryCount { get; private set; }
 
-        public int StoredQueryCount { get; private set; }
-
-        public Task<Exceptional<IReadOnlyCollection<int>>> GetFamousWallhavenIdsAsync(CancellationToken cancellationToken = default)
+        public Task<Exceptional<IReadOnlyList<TagFlagProjection>>> GetFlagsAsync(CancellationToken cancellationToken = default)
         {
-            FamousQueryCount++;
+            FlagsQueryCount++;
+            IReadOnlyList<TagFlagProjection> flags = [.. Existing.Values.Select(tag => new TagFlagProjection(tag.WallhavenTagId, Ignored.Contains(tag.WallhavenTagId), Names.Contains(tag.WallhavenTagId), tag.IsFamous))
+                .Concat(Ignored.Where(id => !Existing.ContainsKey(id)).Select(id => new TagFlagProjection(id, true, Names.Contains(id), false)))
+                .Concat(Names.Where(id => !Existing.ContainsKey(id) && !Ignored.Contains(id)).Select(id => new TagFlagProjection(id, false, true, false)))];
 
-            return Task.FromResult<Exceptional<IReadOnlyCollection<int>>>(Existing.Values.Where(tag => tag.IsFamous).Select(tag => tag.WallhavenTagId).ToList());
-        }
-
-        public Task<Exceptional<IReadOnlyCollection<int>>> GetStoredWallhavenIdsAsync(CancellationToken cancellationToken = default)
-        {
-            StoredQueryCount++;
-
-            return Task.FromResult<Exceptional<IReadOnlyCollection<int>>>(Existing.Keys.ToList());
-        }
-
-        public int NamesQueryCount { get; private set; }
-
-        public Task<Exceptional<IReadOnlyCollection<int>>> GetNameWallhavenIdsAsync(CancellationToken cancellationToken = default)
-        {
-            NamesQueryCount++;
-
-            return Task.FromResult<Exceptional<IReadOnlyCollection<int>>>(Names.ToList());
+            return Task.FromResult<Exceptional<IReadOnlyList<TagFlagProjection>>>(Result(flags));
         }
 
         public Task<Exceptional<IReadOnlyList<TagEntity>>> ListAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult<Exceptional<IReadOnlyList<TagEntity>>>(Existing.Values.ToList());
 
-        public Task<Exceptional<IReadOnlyCollection<int>>> GetIgnoredWallhavenIdsAsync(CancellationToken cancellationToken = default)
-        {
-            IgnoredQueryCount++;
-
-            return Task.FromResult<Exceptional<IReadOnlyCollection<int>>>(Ignored.ToList());
-        }
+        private static Exceptional<T> Result<T>(T value) => value;
 
         public Task<Exceptional<IReadOnlyList<TagEntity>>> FindByWallhavenIdsAsync(IReadOnlyCollection<int> wallhavenTagIds, CancellationToken cancellationToken = default)
         {
