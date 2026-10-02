@@ -29,21 +29,21 @@ public sealed partial class MainWindow : Window
         UpdateControls();
     }
 
-    public async void ImportConfiguration(object? sender, RoutedEventArgs eventArgs) => await actions.ImportConfigurationAsync(new WindowDialogHost(this));
+    public async void ImportConfiguration(object? sender, RoutedEventArgs eventArgs) => await actions.Configuration.ImportConfigurationAsync(new WindowDialogHost(this));
 
-    public async void ExportConfiguration(object? sender, RoutedEventArgs eventArgs) => await actions.ExportConfigurationAsync(new WindowDialogHost(this), ApiKeyExport.Exclude);
+    public async void ExportConfiguration(object? sender, RoutedEventArgs eventArgs) => await actions.Configuration.ExportConfigurationAsync(new WindowDialogHost(this), ApiKeyExport.Exclude);
 
-    public async void ExportConfigurationWithApiKeys(object? sender, RoutedEventArgs eventArgs) => await actions.ExportConfigurationAsync(new WindowDialogHost(this), ApiKeyExport.Include);
+    public async void ExportConfigurationWithApiKeys(object? sender, RoutedEventArgs eventArgs) => await actions.Configuration.ExportConfigurationAsync(new WindowDialogHost(this), ApiKeyExport.Include);
 
-    public async void EditConfiguration(object? sender, RoutedEventArgs eventArgs) => await actions.EditConfigurationAsync(new WindowDialogHost(this));
+    public async void EditConfiguration(object? sender, RoutedEventArgs eventArgs) => await actions.Configuration.EditConfigurationAsync(new WindowDialogHost(this));
 
-    public async void EditTags(object? sender, RoutedEventArgs eventArgs) => await actions.EditTagsAsync(new WindowDialogHost(this));
+    public async void EditTags(object? sender, RoutedEventArgs eventArgs) => await actions.Tags.EditTagsAsync(new WindowDialogHost(this));
 
-    public async void ClearDownloads(object? sender, RoutedEventArgs eventArgs) => await actions.ClearDownloadsAsync(new WindowDialogHost(this));
+    public async void ClearDownloads(object? sender, RoutedEventArgs eventArgs) => await actions.Scrape.ClearDownloadsAsync(new WindowDialogHost(this));
 
-    public async void RunScraper(object? sender, RoutedEventArgs eventArgs) => await actions.RunScraperAsync();
+    public async void RunScraper(object? sender, RoutedEventArgs eventArgs) => await actions.Scrape.RunScraperAsync();
 
-    public void CancelOperation(object? sender, RoutedEventArgs eventArgs) => actions.CancelOperation();
+    public void CancelOperation(object? sender, RoutedEventArgs eventArgs) => actions.Scrape.CancelOperation();
 
     public void Exit(object? sender, RoutedEventArgs eventArgs) => Close();
 
