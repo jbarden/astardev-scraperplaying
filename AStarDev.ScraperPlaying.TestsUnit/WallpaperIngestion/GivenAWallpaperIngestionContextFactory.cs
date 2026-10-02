@@ -25,7 +25,7 @@ public sealed class GivenAWallpaperIngestionContextFactory
     {
         var context = await factory.CreateAsync(CreateRequest(Option.None<string>()), CancellationToken.None);
 
-        context.CategoryLabel.ShouldBe("Top Wallpapers");
+        context.Output.CategoryLabel.ShouldBe("Top Wallpapers");
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public sealed class GivenAWallpaperIngestionContextFactory
     {
         var context = await factory.CreateAsync(CreateRequest(Option.Some("Cars")), CancellationToken.None);
 
-        context.CategoryLabel.ShouldBe("Cars");
+        context.Output.CategoryLabel.ShouldBe("Cars");
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public sealed class GivenAWallpaperIngestionContextFactory
     {
         var context = await factory.CreateAsync(CreateRequest(Option.Some("Cars")), CancellationToken.None);
 
-        (context.Directories, context.PersonCategories).ShouldBe((new SaveDirectories("root", "famous", "segment"), (IReadOnlyList<string>)personCategories));
+        (context.Output.Directories, context.PersonCategories).ShouldBe((new SaveDirectories("root", "famous", "segment"), (IReadOnlyList<string>)personCategories));
     }
 
     private static PageScrapeRequest CreateRequest(Option<string> categoryName)

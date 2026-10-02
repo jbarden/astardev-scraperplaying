@@ -305,7 +305,7 @@ public sealed class GivenATagFetcherAndLinker
     }
 
     private IngestionRun CreateRun(HttpClient client)
-        => IngestionRuns.Create(new WallpaperIngestionContext(new SaveDirectories("root", "famous", "segment"), client, new FakeRepository<FileEntity, FileId>(), "category", PersonCategories), progress);
+        => IngestionRuns.Create(new WallpaperIngestionContext(new SearchOutput(new SaveDirectories("root", "famous", "segment"), "category"), client, new FakeRepository<FileEntity, FileId>(), PersonCategories), progress);
 
     private void SetUpDetailResponse(params Tag[] tags)
         => jsonResponseProcessor.Responses["wallpaper-1"] = CreateDetailResponse(tags);

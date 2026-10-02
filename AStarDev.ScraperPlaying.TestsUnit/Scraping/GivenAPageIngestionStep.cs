@@ -120,7 +120,7 @@ public sealed class GivenAPageIngestionStep : IDisposable
     private IngestionRun CreateCancellableRun(Action<SearchCategoryProgress> onPageCompleted, CancellationToken cancellationToken)
         => new(
             new PageScrapeRequest(new ScrapeLabel("label", Option.None<string>()), Option.None<SearchCategoryProgress>(), new PageHooks(onPageCompleted, page => new Uri($"https://example.test/page/{page}")), new ScrapeTarget(new WallhavenConnection("api-key", new Uri("https://example.test")), [])),
-            new WallpaperIngestionContext(new SaveDirectories("root", "famous", "segment"), client, new FakeRepository<FileEntity, FileId>(), "Top Wallpapers", []),
+            new WallpaperIngestionContext(new SearchOutput(new SaveDirectories("root", "famous", "segment"), "Top Wallpapers"), client, new FakeRepository<FileEntity, FileId>(), []),
             new Progress(messages),
             cancellationToken);
 

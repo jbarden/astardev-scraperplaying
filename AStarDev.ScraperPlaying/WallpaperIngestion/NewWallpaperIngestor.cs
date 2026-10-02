@@ -1,5 +1,3 @@
-using AStarDev.ControlDb;
-using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
@@ -8,7 +6,7 @@ using Tag = AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse.T
 namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 
 /// <inheritdoc/>
-public sealed class NewWallpaperIngestor(ITagFetcher tagFetcher, ITagLinker tagLinker, WallpaperSaver wallpaperSaver, IImageDownloadNotifier imageDownloadNotifier, IIgnoredWallpapers ignoredWallpapers) : INewWallpaperIngestor
+public sealed class NewWallpaperIngestor(ITagFetcher tagFetcher, WallpaperFiler wallpaperFiler, IgnoredWallpaperRecorder ignoredWallpaperRecorder) : INewWallpaperIngestor
 {
     /// <inheritdoc/>
     public async Task<Option<IReadOnlyList<Tag>>> FetchTagsAsync(Data wallpaper, IngestionRun run)
@@ -32,12 +30,12 @@ public sealed class NewWallpaperIngestor(ITagFetcher tagFetcher, ITagLinker tagL
         if (tags.Any(tag => tag.IgnoreImage))
         {
             run.Progress.Report($"Ignoring wallpaper {candidate.Wallpaper.Id}: it has a tag flagged to ignore images.");
-            RememberIgnored(candidate.Wallpaper.Id, run.Progress);
+            ignoredWallpaperRecorder.Remember(candidate.Wallpaper.Id, run.Progress);
 
             return IngestOutcome.Complete;
         }
 
-        return (await Try.RunAsync(() => IngestStepsAsync(candidate, tags, run)))
+        return (await Try.RunAsync(() => wallpaperFiler.FileAsync(candidate, tags, run)))
             .Match(
                 outcome => outcome,
                 exception =>
@@ -47,65 +45,4 @@ public sealed class NewWallpaperIngestor(ITagFetcher tagFetcher, ITagLinker tagL
                     return IngestOutcome.Incomplete;
                 });
     }
-
-    /// <summary>Remembers the ignored wallpaper so later scrapes skip it before fetching its tags. A failure only costs those later fetches, so it is reported and the wallpaper is still ignored.</summary>
-    private void RememberIgnored(string wallpaperId, IProgress<string> progress)
-        => _ = ignoredWallpapers.Record(FileHandle.Create(wallpaperId))
-            .Match(
-                unit => unit,
-                exception =>
-                {
-                    progress.Report($"Failed to remember that wallpaper {wallpaperId} is ignored: {exception.Message}");
-
-                    return Unit.Instance;
-                });
-
-    private async Task<IngestOutcome> IngestStepsAsync(WallpaperCandidate candidate, IReadOnlyList<Tag> tags, IngestionRun run)
-    {
-        var request = new WallpaperFileRequest(candidate.Wallpaper, run.Context.Directories.For(tags), WallpaperFileNamer.Create(candidate.Wallpaper.Id, candidate.Extension, tags), run.Context.CategoryLabel);
-
-        var saved = await wallpaperSaver.SaveAsync(request, run.Context, run.Progress, run.CancellationToken);
-
-        return await LinkTagsAsync(candidate.Wallpaper.Id, saved, tags, run);
-    }
-
-    /// <summary>Links the tags to the recorded file, then announces the download. The file is recorded first, so if linking fails or is cancelled it is discarded: left tracked, the page save would persist an untagged file that later scrapes treat as already ingested. Listeners are only told of a wallpaper that survives linking, so a preview never shows a discarded image.</summary>
-    private async Task<IngestOutcome> LinkTagsAsync(string wallpaperId, SavedWallpaper saved, IReadOnlyList<Tag> tags, IngestionRun run)
-    {
-        try
-        {
-            return (await tagLinker.LinkTagsAsync(saved.Entity.Id, tags, run.CancellationToken))
-                .Match(
-                    _ =>
-                    {
-                        imageDownloadNotifier.NotifyImageDownloaded(saved.Details);
-
-                        return IngestOutcome.Complete;
-                    },
-                    exception =>
-                    {
-                        run.Progress.Report($"Failed to link tags for wallpaper {wallpaperId}: {exception.Message}");
-                        Discard(saved.Entity, wallpaperId, run);
-
-                        return IngestOutcome.Incomplete;
-                    });
-        }
-        catch (OperationCanceledException)
-        {
-            Discard(saved.Entity, wallpaperId, run);
-
-            throw;
-        }
-    }
-
-    private static void Discard(FileEntity fileEntity, string wallpaperId, IngestionRun run)
-        => _ = run.Context.FileRepository.Delete(fileEntity)
-            .Match(
-                unit => unit,
-                exception =>
-                {
-                    run.Progress.Report($"Failed to discard the untagged file record for wallpaper {wallpaperId}: {exception.Message}");
-
-                    return Unit.Instance;
-                });
 }
