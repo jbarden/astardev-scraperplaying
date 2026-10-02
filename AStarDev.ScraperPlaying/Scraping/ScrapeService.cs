@@ -31,11 +31,7 @@ public sealed class ScrapeService(OperationCoordinator operationCoordinator, ISc
             progress.Report("Starting scrape operation.");
             LogMessage.Information(logger, "Scrape started");
             await RunWithinScopeAsync(progress, cancellationToken);
-
-            var duration = Stopwatch.GetElapsedTime(startTime).ToDurationString();
-            progress.Report($"Search completed in: {duration}.");
-            var completedMessage = $"Scrape completed in {duration}";
-            LogMessage.Information(logger, completedMessage);
+            ReportCompleted(progress, startTime);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -51,6 +47,14 @@ public sealed class ScrapeService(OperationCoordinator operationCoordinator, ISc
         {
             operationCoordinator.Complete();
         }
+    }
+
+    private void ReportCompleted(IProgress<string> progress, long startTime)
+    {
+        var duration = Stopwatch.GetElapsedTime(startTime).ToDurationString();
+        progress.Report($"Search completed in: {duration}.");
+        var completedMessage = $"Scrape completed in {duration}";
+        LogMessage.Information(logger, completedMessage);
     }
 
     private async Task RunWithinScopeAsync(IProgress<string> progress, CancellationToken cancellationToken)
