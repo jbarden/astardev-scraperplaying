@@ -1,9 +1,20 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.ExceptionServices;
+
 namespace AStarDev.FunctionalParadigm;
 
 /// <summary>Functional helpers and utilities for working with <see cref="Exceptional{T}" />.</summary>
 public static class ExceptionalExtensions
 {
     private const string UnexpectedExceptionalTypeMessage = "Unexpected exceptional type.";
+
+    [DoesNotReturn]
+    private static TOut Rethrow<TOut>(Exception exception)
+    {
+        ExceptionDispatchInfo.Capture(exception).Throw();
+
+        throw exception;
+    }
 
     extension<T>(Exceptional<T> exceptional)
     {
@@ -18,7 +29,7 @@ public static class ExceptionalExtensions
 
         /// <summary>Returns the value of a <see cref="Success{T}" />, or throws the captured exception of a <see cref="Failure{T}" />.</summary>
         public T GetOrThrow()
-            => exceptional.Match(value => value, exception => throw exception);
+            => exceptional.Match(value => value, Rethrow<T>);
 
         /// <summary>Asynchronously pattern matches on the <see cref="Exceptional{T}" />, invoking the async success handler.</summary>
         public async Task<TOut> MatchAsync<TOut>(Func<T, Task<TOut>> onSuccess, Func<Exception, TOut> onFailure)
