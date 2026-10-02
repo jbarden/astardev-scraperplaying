@@ -74,6 +74,16 @@ public sealed class GivenAPageIngestionStep : IDisposable
         messages.ShouldBe(["Scrape cancelled - failed to save wallpapers downloaded so far this page: save failed"]);
     }
 
+    [Fact]
+    public async Task when_saving_partially_ingested_wallpapers_fails_for_any_other_reason_then_the_failure_is_reported_not_thrown()
+    {
+        unitOfWork.OnSave = _ => throw new InvalidOperationException("context disposed");
+
+        await step.SavePartiallyIngestedPageAsync(new Progress(messages));
+
+        messages.ShouldBe(["Scrape cancelled - failed to save wallpapers downloaded so far this page: context disposed"]);
+    }
+
     public void Dispose() => client.Dispose();
 
     private IngestionRun CreateRun(Action<SearchCategoryProgress> onPageCompleted)

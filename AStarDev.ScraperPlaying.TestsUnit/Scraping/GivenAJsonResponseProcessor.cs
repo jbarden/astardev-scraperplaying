@@ -95,6 +95,16 @@ public sealed class GivenAJsonResponseProcessor
             () => processor.GetFromJsonAsync<TestPayload>(new Uri("https://example.test/search"), client, cancellationTokenSource.Token));
     }
 
+    [Fact]
+    public async Task when_the_request_times_out_without_a_cancellation_then_a_timeout_failure_is_returned_without_throwing()
+    {
+        using var client = CreateClient(_ => throw new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout."));
+
+        var result = await processor.GetFromJsonAsync<TestPayload>(new Uri("https://example.test/search"), client, CancellationToken.None);
+
+        result.Match(_ => (Exception?)null, ex => ex).ShouldBeOfType<TimeoutException>();
+    }
+
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient owns and disposes the handler.")]
     private static HttpClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> responder)
         => new(new StubHttpMessageHandler(responder));
