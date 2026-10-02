@@ -183,10 +183,11 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
 
         return new NewWallpaperIngestor(
             new TagFetcher(new JsonResponseProcessor(), tagsQuery, flagStore),
-            new TagLinker(tagsQuery, unitOfWork, linkFailure is null ? scopedServices.GetRequiredService<IFileTagRepository>() : new FailingFileTagRepository(scopedServices.GetRequiredService<IFileTagRepository>(), linkFailure, succeedingLinks, onLinkFailure ?? (() => { })), flagStore),
-            new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None, ScrapeTimeouts.Default), new WallpaperFileRecorder(System.TimeProvider.System)),
-            notifier,
-            scopedServices.GetRequiredService<IIgnoredWallpapers>());
+            new WallpaperFiler(
+                new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None, ScrapeTimeouts.Default), new WallpaperFileRecorder(System.TimeProvider.System)),
+                new TagLinker(tagsQuery, unitOfWork, linkFailure is null ? scopedServices.GetRequiredService<IFileTagRepository>() : new FailingFileTagRepository(scopedServices.GetRequiredService<IFileTagRepository>(), linkFailure, succeedingLinks, onLinkFailure ?? (() => { })), flagStore),
+                notifier),
+            new IgnoredWallpaperRecorder(scopedServices.GetRequiredService<IIgnoredWallpapers>()));
     }
 
     private async Task IngestPage(string wallpaperId, object[] tags, CancellationToken cancellationToken)
@@ -195,7 +196,7 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
         var service = new WallpaperIngestionService(scope.ServiceProvider.GetRequiredService<IFilesQuery>(), CreateIngestor(scope.ServiceProvider));
         using var client = CreateClient(HttpStatusCode.OK, tags);
-        var context = new WallpaperIngestionContext(new SaveDirectories("save-directory", "famous-save-directory", ""), client, unitOfWork.GetRepository<FileEntity, FileId>(), "category", PersonCategories);
+        var context = new WallpaperIngestionContext(new SearchOutput(new SaveDirectories("save-directory", "famous-save-directory", ""), "category"), client, unitOfWork.GetRepository<FileEntity, FileId>(), PersonCategories);
 
         _ = await service.IngestPageAsync([new Data(wallpaperId, 0, 0, 0, "", "https://example.test/image.jpg")], CreateRun(context, cancellationToken));
         _ = await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -208,7 +209,7 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
         var ingestor = CreateIngestor(scope.ServiceProvider, linkFailure, succeedingLinks, onLinkFailure);
         using var client = CreateClient(imageStatus, tags);
         var wallpaper = new Data(wallpaperId, 0, 0, 0, "", "https://example.test/image.jpg");
-        var context = new WallpaperIngestionContext(new SaveDirectories("save-directory", "famous-save-directory", ""), client, unitOfWork.GetRepository<FileEntity, FileId>(), "category", PersonCategories);
+        var context = new WallpaperIngestionContext(new SearchOutput(new SaveDirectories("save-directory", "famous-save-directory", ""), "category"), client, unitOfWork.GetRepository<FileEntity, FileId>(), PersonCategories);
 
         try
         {

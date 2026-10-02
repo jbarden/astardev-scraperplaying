@@ -51,10 +51,8 @@ public sealed class GivenANewWallpaperIngestor
         notifier.ImageDownloaded += (_, details) => notifications.Add(details);
         ingestor = new(
             new TagFetcher(new JsonResponseProcessor(), tagsQuery, flagStore),
-            new TagLinker(tagsQuery, unitOfWork, fileTagRepository, flagStore),
-            new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None, ScrapeTimeouts.Default), new WallpaperFileRecorder(System.TimeProvider.System)),
-            notifier,
-            ignoredWallpapers);
+            new WallpaperFiler(new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None, ScrapeTimeouts.Default), new WallpaperFileRecorder(System.TimeProvider.System)), new TagLinker(tagsQuery, unitOfWork, fileTagRepository, flagStore), notifier),
+            new IgnoredWallpaperRecorder(ignoredWallpapers));
     }
 
     [Fact]
@@ -288,7 +286,7 @@ public sealed class GivenANewWallpaperIngestor
     }
 
     private WallpaperIngestionContext CreateContext(string directory, HttpClient client)
-        => new(new SaveDirectories(directory, $"famous-{directory}", ""), client, fileRepository, "resolved-category", PersonCategories);
+        => new(new SearchOutput(new SaveDirectories(directory, $"famous-{directory}", ""), "resolved-category"), client, fileRepository, PersonCategories);
 
     private static Data CreateWallpaper(string id) => new(id, 0, 0, 0, "", "https://example.test/image.jpg");
 

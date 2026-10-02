@@ -103,6 +103,8 @@ public static class ApplicationServices
             .AddScoped<IImageDownloader, ImageDownloader>()
             .AddScoped<IWallpaperFileRecorder, WallpaperFileRecorder>()
             .AddScoped<WallpaperSaver>()
+            .AddScoped<WallpaperFiler>()
+            .AddScoped<IgnoredWallpaperRecorder>()
             .AddScoped<INewWallpaperIngestor, NewWallpaperIngestor>()
             .AddScoped<ISaveDirectoryResolver, SaveDirectoryResolver>()
             .AddScoped<IWallpaperIngestionService, WallpaperIngestionService>();

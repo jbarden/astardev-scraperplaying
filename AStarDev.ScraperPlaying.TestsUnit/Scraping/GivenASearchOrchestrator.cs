@@ -246,7 +246,7 @@ public sealed class GivenASearchOrchestrator
     {
         public Task<IngestOutcome> IngestPageAsync(IReadOnlyList<Data> wallpapers, IngestionRun run)
         {
-            run.Progress.Report($"Ingested {run.Context.CategoryLabel} with people {string.Join(",", run.Context.PersonCategories)}.");
+            run.Progress.Report($"Ingested {run.Context.Output.CategoryLabel} with people {string.Join(",", run.Context.PersonCategories)}.");
 
             return Task.FromResult(IngestOutcome.Complete);
         }

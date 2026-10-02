@@ -23,7 +23,7 @@ public sealed class GivenAWallpaperIngestionServiceWithPersonTags
 
     public GivenAWallpaperIngestionServiceWithPersonTags()
     {
-        var newWallpaperIngestor = new NewWallpaperIngestor(tagsProcessor, tagsProcessor, new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None, ScrapeTimeouts.Default), new WallpaperFileRecorder(new FakeTimeProvider(DateTimeOffset.UnixEpoch))), new ImageDownloadNotifier(), new FakeIgnoredWallpapers());
+        var newWallpaperIngestor = new NewWallpaperIngestor(tagsProcessor, new WallpaperFiler(new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None, ScrapeTimeouts.Default), new WallpaperFileRecorder(new FakeTimeProvider(DateTimeOffset.UnixEpoch))), tagsProcessor, new ImageDownloadNotifier()), new IgnoredWallpaperRecorder(new FakeIgnoredWallpapers()));
         service = new(filesQuery, newWallpaperIngestor);
     }
 
@@ -79,7 +79,7 @@ public sealed class GivenAWallpaperIngestionServiceWithPersonTags
     {
         using var client = new HttpClient(new StubHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1, 2, 3]) }));
 
-        await service.IngestPageAsync([new Data(id, 1920, 1080, 3, "image/jpeg", $"https://example.test/full/{id}.jpg")], IngestionRuns.Create(new WallpaperIngestionContext(new SaveDirectories("some-directory", "famous-some-directory", ""), client, fileRepository, "Top Wallpapers", ["Celebrities", "Models", "Pornstars", "Other Figures", "Actress"]), new Progress<string>()));
+        await service.IngestPageAsync([new Data(id, 1920, 1080, 3, "image/jpeg", $"https://example.test/full/{id}.jpg")], IngestionRuns.Create(new WallpaperIngestionContext(new SearchOutput(new SaveDirectories("some-directory", "famous-some-directory", ""), "Top Wallpapers"), client, fileRepository, ["Celebrities", "Models", "Pornstars", "Other Figures", "Actress"]), new Progress<string>()));
     }
 
     private sealed class StubTagsProcessor : ITagFetcher, ITagLinker

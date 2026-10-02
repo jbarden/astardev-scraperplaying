@@ -36,7 +36,7 @@ public sealed class GivenAWallpaperIngestionService
     {
         var wallpaper = CreateWallpaper("new-wallpaper", path: "https://example.test/full/new-wallpaper.jpg");
         using var client = new HttpClient();
-        var context = new WallpaperIngestionContext(new SaveDirectories("resolved-directory", "famous-resolved-directory", ""), client, fileRepository, "resolved-category", []);
+        var context = new WallpaperIngestionContext(new SearchOutput(new SaveDirectories("resolved-directory", "famous-resolved-directory", ""), "resolved-category"), client, fileRepository, []);
 
         var run = IngestionRuns.Create(context, progress, TestContext.Current.CancellationToken);
 
@@ -226,7 +226,7 @@ public sealed class GivenAWallpaperIngestionService
         };
         using var client = new HttpClient();
 
-        _ = await Should.ThrowAsync<OperationCanceledException>(() => service.IngestPageAsync([CreateWallpaper("first"), CreateWallpaper("second")], IngestionRuns.Create(new WallpaperIngestionContext(new SaveDirectories("some-directory", "famous-some-directory", ""), client, fileRepository, "resolved-category", []), progress, cancellationTokenSource.Token)));
+        _ = await Should.ThrowAsync<OperationCanceledException>(() => service.IngestPageAsync([CreateWallpaper("first"), CreateWallpaper("second")], IngestionRuns.Create(new WallpaperIngestionContext(new SearchOutput(new SaveDirectories("some-directory", "famous-some-directory", ""), "resolved-category"), client, fileRepository, []), progress, cancellationTokenSource.Token)));
 
         (await Task.WhenAny(prefetchEnded.Task, Task.Delay(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken))).ShouldBe(prefetchEnded.Task);
     }
@@ -245,7 +245,7 @@ public sealed class GivenAWallpaperIngestionService
     {
         using var client = new HttpClient();
 
-        return await service.IngestPageAsync(wallpapers, IngestionRuns.Create(new WallpaperIngestionContext(new SaveDirectories("some-directory", "famous-some-directory", ""), client, fileRepository, "resolved-category", []), progress));
+        return await service.IngestPageAsync(wallpapers, IngestionRuns.Create(new WallpaperIngestionContext(new SearchOutput(new SaveDirectories("some-directory", "famous-some-directory", ""), "resolved-category"), client, fileRepository, []), progress));
     }
 
     private static Data CreateWallpaper(string id, string path = "")

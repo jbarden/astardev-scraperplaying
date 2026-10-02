@@ -69,7 +69,7 @@ public sealed class GivenAWallpaperSaver
     {
         using var client = new HttpClient();
 
-        return await saver.SaveAsync(request, new WallpaperIngestionContext(new SaveDirectories("some-directory", "famous-some-directory", ""), client, fileRepository, "category", []), progress, cancellationToken);
+        return await saver.SaveAsync(request, new WallpaperIngestionContext(new SearchOutput(new SaveDirectories("some-directory", "famous-some-directory", ""), "category"), client, fileRepository, []), progress, cancellationToken);
     }
 
     private static FileEntity CreateEntity()

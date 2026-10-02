@@ -25,27 +25,27 @@ public sealed class ScrapeConfigurationImporter(IScopedRunner scopedRunner, Time
             // Exports leave the API keys out by default, so a file without them must not blank the keys already stored.
             _ = current.Match(existing => KeepStoredApiKeysWhereFileHasNone(replacement, existing), () => Unit.Instance);
 
-            return await ReplaceAsync(unitOfWork, dbContext, current, replacement, cancellationToken);
+            return await ReplaceAsync(new ImportTransaction(unitOfWork, dbContext, cancellationToken), current, replacement);
         }));
     }
 
     // Delete and add commit together, so a failure while saving the replacement leaves the current configuration in place.
-    private static Task<Unit> ReplaceAsync(IUnitOfWork unitOfWork, IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> repository, Option<ScrapeConfigurationEntity> current, ScrapeConfigurationEntity replacement, CancellationToken cancellationToken)
-        => unitOfWork.InTransactionAsync(async () =>
+    private static Task<Unit> ReplaceAsync(ImportTransaction transaction, Option<ScrapeConfigurationEntity> current, ScrapeConfigurationEntity replacement)
+        => transaction.UnitOfWork.InTransactionAsync(async () =>
         {
             await current.MatchAsync(
                 async existing =>
                 {
-                    _ = repository.Delete(existing).GetOrThrow();
-                    _ = await unitOfWork.SaveChangesAsync(cancellationToken);
+                    _ = transaction.Repository.Delete(existing).GetOrThrow();
+                    _ = await transaction.UnitOfWork.SaveChangesAsync(transaction.CancellationToken);
                 },
                 () => { });
 
-            _ = repository.Add(replacement).GetOrThrow();
-            _ = await unitOfWork.SaveChangesAsync(cancellationToken);
+            _ = transaction.Repository.Add(replacement).GetOrThrow();
+            _ = await transaction.UnitOfWork.SaveChangesAsync(transaction.CancellationToken);
 
             return Unit.Instance;
-        }, cancellationToken);
+        }, transaction.CancellationToken);
 
     private static Unit KeepStoredApiKeysWhereFileHasNone(ScrapeConfigurationEntity replacement, ScrapeConfigurationEntity existing)
     {
@@ -54,4 +54,7 @@ public sealed class ScrapeConfigurationImporter(IScopedRunner scopedRunner, Time
 
         return Unit.Instance;
     }
+
+    /// <summary>What one import runs against: the unit of work its changes commit through, the repository it changes and the token that cancels it.</summary>
+    private sealed record ImportTransaction(IUnitOfWork UnitOfWork, IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> Repository, CancellationToken CancellationToken);
 }
