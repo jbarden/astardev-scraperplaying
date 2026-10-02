@@ -14,4 +14,13 @@ public class FileTagRepository(ControlDbContext context) : IFileTagRepository
             _ = context.FileTags.Add(fileTag);
             return fileTag;
         });
+
+    /// <inheritdoc/>
+    public Exceptional<Unit> Delete(FileTagEntity fileTag) =>
+        Try.Run(() =>
+        {
+            _ = context.FileTags.Remove(fileTag);
+
+            return Unit.Instance;
+        });
 }

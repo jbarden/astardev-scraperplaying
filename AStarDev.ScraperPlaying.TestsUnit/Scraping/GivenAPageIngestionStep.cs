@@ -135,7 +135,7 @@ public sealed class GivenAPageIngestionStep : IDisposable
 
         public IngestOutcome Outcome { get; set; } = IngestOutcome.Complete;
 
-        public Task<IngestOutcome> IngestPageAsync(IReadOnlyList<Data> wallpapers, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+        public Task<IngestOutcome> IngestPageAsync(IReadOnlyList<Data> wallpapers, IngestionRun run)
         {
             OnIngest();
 

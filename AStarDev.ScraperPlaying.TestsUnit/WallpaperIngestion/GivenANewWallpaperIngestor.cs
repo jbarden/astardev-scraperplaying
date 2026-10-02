@@ -136,7 +136,7 @@ public sealed class GivenANewWallpaperIngestor
         wallhaven.Tags = [WallhavenTag(1, "landscape")];
         using var client = wallhaven.CreateClient();
 
-        var tags = await ingestor.FetchTagsAsync(CreateWallpaper("tags-only"), CreateContext("some-directory", client), progress, TestContext.Current.CancellationToken);
+        var tags = await ingestor.FetchTagsAsync(CreateWallpaper("tags-only"), IngestionRuns.Create(CreateContext("some-directory", client), progress, TestContext.Current.CancellationToken));
 
         tags.TryGetValue(out var fetched).ShouldBeTrue();
         fetched.Select(tag => tag.Name).ShouldBe(["landscape"]);
@@ -246,10 +246,10 @@ public sealed class GivenANewWallpaperIngestor
     private async Task IngestWithToken(Data wallpaper, string extension, string directory, CancellationToken cancellationToken)
     {
         using var client = wallhaven.CreateClient();
-        var context = CreateContext(directory, client);
+        var run = IngestionRuns.Create(CreateContext(directory, client), progress, cancellationToken);
 
-        var tags = await ingestor.FetchTagsAsync(wallpaper, context, progress, cancellationToken);
-        if (tags.TryGetValue(out var fetched)) await ingestor.IngestAsync(new WallpaperCandidate(wallpaper, extension), fetched, context, progress, cancellationToken);
+        var tags = await ingestor.FetchTagsAsync(wallpaper, run);
+        if (tags.TryGetValue(out var fetched)) await ingestor.IngestAsync(new WallpaperCandidate(wallpaper, extension), fetched, run);
     }
 
     private WallpaperIngestionContext CreateContext(string directory, HttpClient client)
@@ -273,6 +273,13 @@ public sealed class GivenANewWallpaperIngestor
             Added.Add(fileTag);
 
             return fileTag;
+        }
+
+        public Exceptional<Unit> Delete(FileTagEntity fileTag)
+        {
+            _ = Added.Remove(fileTag);
+
+            return Unit.Instance;
         }
     }
 

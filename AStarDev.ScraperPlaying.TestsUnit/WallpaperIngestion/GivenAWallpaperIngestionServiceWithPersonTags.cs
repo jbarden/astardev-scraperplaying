@@ -79,7 +79,7 @@ public sealed class GivenAWallpaperIngestionServiceWithPersonTags
     {
         using var client = new HttpClient(new StubHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1, 2, 3]) }));
 
-        await service.IngestPageAsync([new Data(id, 1920, 1080, 3, "image/jpeg", $"https://example.test/full/{id}.jpg")], new WallpaperIngestionContext(new SaveDirectories("some-directory", "famous-some-directory", ""), client, fileRepository, "Top Wallpapers", ["Celebrities", "Models", "Pornstars", "Other Figures", "Actress"]), new Progress<string>(), CancellationToken.None);
+        await service.IngestPageAsync([new Data(id, 1920, 1080, 3, "image/jpeg", $"https://example.test/full/{id}.jpg")], IngestionRuns.Create(new WallpaperIngestionContext(new SaveDirectories("some-directory", "famous-some-directory", ""), client, fileRepository, "Top Wallpapers", ["Celebrities", "Models", "Pornstars", "Other Figures", "Actress"]), new Progress<string>()));
     }
 
     private sealed class StubTagsProcessor : ITagFetcher, ITagLinker
@@ -90,7 +90,7 @@ public sealed class GivenAWallpaperIngestionServiceWithPersonTags
 
         public IReadOnlyList<Tag> LinkedTags { get; private set; } = [];
 
-        public Task<Exceptional<IReadOnlyList<Tag>>> FetchTagsAsync(string wallpaperId, HttpClient client, IReadOnlyList<string> personCategories, IProgress<string> progress, CancellationToken cancellationToken)
+        public Task<Exceptional<IReadOnlyList<Tag>>> FetchTagsAsync(string wallpaperId, IngestionRun run)
             => Task.FromResult(FetchFailure is null ? Exceptional.Success(Tags) : Exceptional.Failure<IReadOnlyList<Tag>>(FetchFailure));
 
         public Task<Exceptional<Unit>> LinkTagsAsync(FileId fileId, IReadOnlyList<Tag> tags, CancellationToken cancellationToken)

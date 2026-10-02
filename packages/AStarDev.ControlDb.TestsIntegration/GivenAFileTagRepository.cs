@@ -41,6 +41,41 @@ public sealed class GivenAFileTagRepository : IDisposable
     }
 
     [Fact]
+    public async Task when_a_file_tag_that_was_added_is_deleted_before_saving_then_it_is_not_stored()
+    {
+        var fileEntity = FileEntityFactory.CreateFileEntity();
+        var tagEntity = TagEntityFactory.CreateTagEntity();
+        await context.Files.AddAsync(fileEntity, TestContext.Current.CancellationToken);
+        await context.Tags.AddAsync(tagEntity, TestContext.Current.CancellationToken);
+        var repository = new FileTagRepository(context);
+        var fileTag = repository.Add(new FileTagEntity { FileId = fileEntity.Id, TagId = tagEntity.Id }).Match(added => added, exception => throw exception);
+
+        repository.Delete(fileTag).Match(unit => unit, exception => throw exception);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        (await context.FileTags.AnyAsync(TestContext.Current.CancellationToken)).ShouldBeFalse();
+        (await context.Files.CountAsync(TestContext.Current.CancellationToken), await context.Tags.CountAsync(TestContext.Current.CancellationToken)).ShouldBe((1, 1));
+    }
+
+    [Fact]
+    public async Task when_a_file_tag_is_deleted_after_saving_then_the_link_is_removed_and_the_file_and_tag_remain()
+    {
+        var fileEntity = FileEntityFactory.CreateFileEntity();
+        var tagEntity = TagEntityFactory.CreateTagEntity();
+        await context.Files.AddAsync(fileEntity, TestContext.Current.CancellationToken);
+        await context.Tags.AddAsync(tagEntity, TestContext.Current.CancellationToken);
+        var repository = new FileTagRepository(context);
+        var fileTag = repository.Add(new FileTagEntity { FileId = fileEntity.Id, TagId = tagEntity.Id }).Match(added => added, exception => throw exception);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        repository.Delete(fileTag).Match(unit => unit, exception => throw exception);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        (await context.FileTags.AnyAsync(TestContext.Current.CancellationToken)).ShouldBeFalse();
+        (await context.Files.CountAsync(TestContext.Current.CancellationToken), await context.Tags.CountAsync(TestContext.Current.CancellationToken)).ShouldBe((1, 1));
+    }
+
+    [Fact]
     public async Task when_a_file_and_a_tag_are_linked_then_both_read_only_navigation_collections_are_populated_on_load()
     {
         var fileEntity = FileEntityFactory.CreateFileEntity();
