@@ -1,4 +1,5 @@
 using System.IO.Abstractions;
+using AStarDev.ScraperPlaying.Scraping;
 
 namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 
@@ -11,7 +12,10 @@ public sealed class ImageDownloader(IFileSystem fileSystem, TimeProvider timePro
     private const string PartialFileExtension = ".part";
 
     /// <inheritdoc/>
-    public async Task<string> DownloadAsync(WallpaperFileRequest request, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
+    public Task<string> DownloadAsync(WallpaperFileRequest request, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
+        => RequestTimeouts.RunAsync(() => DownloadCoreAsync(request, progress, client, cancellationToken), cancellationToken);
+
+    private async Task<string> DownloadCoreAsync(WallpaperFileRequest request, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
     {
         await Task.Delay(pacing.NextDelay(), timeProvider, cancellationToken);
         using var httpRequest = new HttpRequestMessage(HttpMethod.Get, request.Wallpaper.Path);

@@ -1,8 +1,7 @@
+using System.Diagnostics.CodeAnalysis;
 using AStarDev.ControlDb;
-using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
 using AStarDev.Utilities;
-using Microsoft.EntityFrameworkCore;
 
 namespace AStarDev.ScraperPlaying.Scraping;
 
@@ -27,6 +26,7 @@ public sealed class PageIngestionStep(IWallpaperIngestionService wallpaperIngest
 
     /// <summary>Saves the wallpapers downloaded so far on a page that was cancelled part-way, ignoring the cancellation that interrupted it.</summary>
     /// <param name="progress">Receives the outcome.</param>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Any failure of this best-effort save must be reported rather than replace the cancellation that is already propagating.")]
     public async Task SavePartiallyIngestedPageAsync(IProgress<string> progress)
     {
         try
@@ -34,7 +34,7 @@ public sealed class PageIngestionStep(IWallpaperIngestionService wallpaperIngest
             _ = await unitOfWork.SaveChangesAsync(CancellationToken.None);
             progress.Report("Scrape cancelled - saved wallpapers downloaded so far this page.");
         }
-        catch (DbUpdateException ex)
+        catch (Exception ex)
         {
             progress.Report($"Scrape cancelled - failed to save wallpapers downloaded so far this page: {ex.ToMessageChain()}");
         }

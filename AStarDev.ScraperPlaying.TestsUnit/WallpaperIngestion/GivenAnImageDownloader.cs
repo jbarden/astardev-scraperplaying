@@ -156,6 +156,37 @@ public sealed class GivenAnImageDownloader
     private static Data CreateWallpaper(string id, string path = "")
         => new(id, 0, 0, 0, "", path);
 
+    [Fact]
+    public async Task when_downloading_an_image_times_out_without_a_cancellation_then_a_timeout_is_thrown_and_writes_no_file()
+    {
+        using var client = CreateClient(_ => throw new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout."));
+        var directory = fileSystem.Path.Combine("root-directory", "top-wallpapers");
+        var wallpaper = CreateWallpaper(id: "wallpaper-timeout", path: "https://example.test/image.jpg");
+
+        await Should.ThrowAsync<TimeoutException>(
+            () => downloader.DownloadAsync(new WallpaperFileRequest(wallpaper, directory, NameFor(wallpaper, ".jpg"), "Top Wallpapers"), new CapturingProgress(), client, CancellationToken.None));
+
+        fileSystem.File.Exists(fileSystem.Path.Combine(directory, "wallpaper-timeout.jpg")).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task when_the_scrape_is_cancelled_while_downloading_then_the_cancellation_is_not_turned_into_a_timeout()
+    {
+        using var cancellationTokenSource = new CancellationTokenSource();
+        using var client = CreateClient(_ =>
+        {
+            cancellationTokenSource.Cancel();
+
+            throw new TaskCanceledException("cancelled", null, cancellationTokenSource.Token);
+        });
+        var wallpaper = CreateWallpaper(id: "wallpaper-cancelled", path: "https://example.test/image.jpg");
+
+        var thrown = await Should.ThrowAsync<OperationCanceledException>(
+            () => downloader.DownloadAsync(new WallpaperFileRequest(wallpaper, "root-directory", NameFor(wallpaper, ".jpg"), "Top Wallpapers"), new CapturingProgress(), client, cancellationTokenSource.Token));
+
+        thrown.ShouldNotBeOfType<TimeoutException>();
+    }
+
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient owns and disposes the handler.")]
     private static HttpClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> responder)
         => new(new StubHttpMessageHandler(responder));

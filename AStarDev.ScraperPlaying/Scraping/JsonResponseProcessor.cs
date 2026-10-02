@@ -9,7 +9,7 @@ public sealed class JsonResponseProcessor : IJsonResponseProcessor
 {
     /// <inheritdoc/>
     public Task<Exceptional<Option<T>>> GetFromJsonAsync<T>(Uri url, HttpClient client, CancellationToken cancellationToken)
-        => Try.RunAsync<Option<T>>(async () =>
+        => Try.RunAsync<Option<T>>(() => RequestTimeouts.RunAsync<Option<T>>(async () =>
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             using var response = await client.SendAsync(request, cancellationToken);
@@ -30,5 +30,5 @@ public sealed class JsonResponseProcessor : IJsonResponseProcessor
             {
                 throw new InvalidOperationException($"Unable to deserialize response from {url} as {typeof(T).Name}.", exception);
             }
-        }, cancellationToken);
+        }, cancellationToken), cancellationToken);
 }
