@@ -73,4 +73,14 @@ public sealed class GivenARootDirectoryCheck : IDisposable
 
         thrown.ShouldBeSameAs(failure);
     }
+
+    [Fact]
+    public async Task when_the_lookup_fails_then_the_original_throw_site_is_kept_in_the_stack_trace()
+    {
+        lookup.RootDirectory = ThrownFailure.Create("query failed");
+
+        var thrown = await Should.ThrowAsync<InvalidOperationException>(() => check.ExistsAsync(TestContext.Current.CancellationToken));
+
+        ThrownFailure.TraceOf(thrown).ShouldContain(ThrownFailure.ThrowSite);
+    }
 }

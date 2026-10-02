@@ -52,4 +52,14 @@ public sealed class GivenScrapeConfigurationLoading
 
         thrown.ShouldBeSameAs(failure);
     }
+
+    [Fact]
+    public async Task when_the_lookup_fails_then_the_original_throw_site_is_kept_in_the_stack_trace()
+    {
+        repository.First = ThrownFailure.Create("query failed");
+
+        var thrown = await Should.ThrowAsync<InvalidOperationException>(() => unitOfWork.LoadScrapeConfigurationAsync(TestContext.Current.CancellationToken));
+
+        ThrownFailure.TraceOf(thrown).ShouldContain(ThrownFailure.ThrowSite);
+    }
 }
