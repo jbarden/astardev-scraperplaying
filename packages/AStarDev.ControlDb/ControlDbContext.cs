@@ -7,102 +7,24 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AStarDev.ControlDb;
 
-/// <summary>Represents the Entity Framework database context for managing file entities.</summary>
+/// <summary>Represents the Entity Framework database context and unit of work for the control database. Its repositories are resolved through <see cref="GetRepository{TAggregate, TKey}"/>.</summary>
 /// <remarks>Initializes a new instance of the <see cref="ControlDbContext"/> class with the specified options.</remarks>
 /// <param name="options">The options to be used by the DbContext.</param>
 /// <param name="scrapeConfigurationQuery">The query used to auto-include the sub-entities required by a <see cref="ScrapeConfigurationEntity"/> aggregate.</param>
 /// <param name="filesQuery">The query used to auto-include the sub-entities required by a <see cref="FileEntity"/> aggregate.</param>
 public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery<ScrapeConfigurationEntity>? scrapeConfigurationQuery = null, IQuery<FileEntity>? filesQuery = null)
-    : DbContext(options), IUnitOfWork, IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>, IRepository<FileEntity, FileId>, IRepository<TagEntity, TagId>
+    : DbContext(options), IUnitOfWork
 {
     private readonly IQuery<ScrapeConfigurationEntity> scrapeConfigurationQuery = scrapeConfigurationQuery ?? new ScrapeConfigurationQuery();
     private readonly IQuery<FileEntity> filesQuery = filesQuery ?? new FileQuery();
 
     /// <inheritdoc/>
     public IRepository<TAggregate, TKey> GetRepository<TAggregate, TKey>() where TAggregate : IAggregateRoot
-    => (IRepository<TAggregate, TKey>)this;
-
-    /// <inheritdoc/>
-    Task<Exceptional<Option<ScrapeConfigurationEntity>>> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.TryFindAsync(ScrapeConfigurationId key, CancellationToken cancellationToken) =>
-        Try.RunAsync(async () => (Option<ScrapeConfigurationEntity>)await scrapeConfigurationQuery.Apply(ScrapeConfigurations).FirstOrDefaultAsync(scrapeConfiguration => scrapeConfiguration.Id == key, cancellationToken).ConfigureAwait(false));
-
-    /// <inheritdoc/>
-    Exceptional<ScrapeConfigurationEntity> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.Add(ScrapeConfigurationEntity aggregate) =>
-        Try.Run(() =>
-        {
-            _ = ScrapeConfigurations.Add(aggregate);
-            return aggregate;
-        });
-
-    Task<Exceptional<Option<IEnumerable<ScrapeConfigurationEntity>>>> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.TryGetAllAsync(CancellationToken cancellationToken)
-    => Try.RunAsync(async () => (Option<IEnumerable<ScrapeConfigurationEntity>>)await scrapeConfigurationQuery.Apply(ScrapeConfigurations).ToListAsync(cancellationToken).ConfigureAwait(false));
-
-    Task<Exceptional<Option<ScrapeConfigurationEntity>>> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.TryGetFirstAsync(CancellationToken cancellationToken)
-    => Try.RunAsync(async () => (Option<ScrapeConfigurationEntity>)await scrapeConfigurationQuery.Apply(ScrapeConfigurations).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false));
-
-    /// <inheritdoc/>
-    Exceptional<Unit> IRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>.Delete(ScrapeConfigurationEntity aggregate) =>
-        Try.Run(() =>
-        {
-            _ = ScrapeConfigurations.Remove(aggregate);
-            return Unit.Instance;
-        });
-
-    /// <inheritdoc/>
-    Task<Exceptional<Option<FileEntity>>> IRepository<FileEntity, FileId>.TryFindAsync(FileId key, CancellationToken cancellationToken) =>
-        Try.RunAsync(async () => (Option<FileEntity>)await filesQuery.Apply(Files).FirstOrDefaultAsync(file => file.Id == key, cancellationToken).ConfigureAwait(false));
-
-    /// <inheritdoc/>
-    Task<Exceptional<Option<IEnumerable<FileEntity>>>> IRepository<FileEntity, FileId>.TryGetAllAsync(CancellationToken cancellationToken)
-    => Try.RunAsync(async () => (Option<IEnumerable<FileEntity>>)await filesQuery.Apply(Files).ToListAsync(cancellationToken).ConfigureAwait(false));
-
-    /// <inheritdoc/>
-    Task<Exceptional<Option<FileEntity>>> IRepository<FileEntity, FileId>.TryGetFirstAsync(CancellationToken cancellationToken)
-    => Try.RunAsync(async () => (Option<FileEntity>)await filesQuery.Apply(Files).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false));
-
-    /// <inheritdoc/>
-    Exceptional<FileEntity> IRepository<FileEntity, FileId>.Add(FileEntity aggregate) =>
-        Try.Run(() =>
-        {
-            _ = Files.Add(aggregate);
-            return aggregate;
-        });
-
-    /// <inheritdoc/>
-    Exceptional<Unit> IRepository<FileEntity, FileId>.Delete(FileEntity aggregate) =>
-        Try.Run(() =>
-        {
-            _ = Files.Remove(aggregate);
-            return Unit.Instance;
-        });
-
-    /// <inheritdoc/>
-    Task<Exceptional<Option<TagEntity>>> IRepository<TagEntity, TagId>.TryFindAsync(TagId key, CancellationToken cancellationToken) =>
-        Try.RunAsync(async () => (Option<TagEntity>)await Tags.FirstOrDefaultAsync(tag => tag.Id == key, cancellationToken).ConfigureAwait(false));
-
-    /// <inheritdoc/>
-    Task<Exceptional<Option<IEnumerable<TagEntity>>>> IRepository<TagEntity, TagId>.TryGetAllAsync(CancellationToken cancellationToken)
-    => Try.RunAsync(async () => (Option<IEnumerable<TagEntity>>)await Tags.ToListAsync(cancellationToken).ConfigureAwait(false));
-
-    /// <inheritdoc/>
-    Task<Exceptional<Option<TagEntity>>> IRepository<TagEntity, TagId>.TryGetFirstAsync(CancellationToken cancellationToken)
-    => Try.RunAsync(async () => (Option<TagEntity>)await Tags.FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false));
-
-    /// <inheritdoc/>
-    Exceptional<TagEntity> IRepository<TagEntity, TagId>.Add(TagEntity aggregate) =>
-        Try.Run(() =>
-        {
-            _ = Tags.Add(aggregate);
-            return aggregate;
-        });
-
-    /// <inheritdoc/>
-    Exceptional<Unit> IRepository<TagEntity, TagId>.Delete(TagEntity aggregate) =>
-        Try.Run(() =>
-        {
-            _ = Tags.Remove(aggregate);
-            return Unit.Instance;
-        });
+    => new object[] { new ScrapeConfigurationRepository(this, scrapeConfigurationQuery), new FileRepository(this, filesQuery), new TagRepository(this) }
+        .OfType<IRepository<TAggregate, TKey>>()
+        .ToList() is [var repository]
+        ? repository
+        : throw new InvalidOperationException($"There is no repository for aggregate {typeof(TAggregate).Name} with key {typeof(TKey).Name}.");
 
     /// <inheritdoc/>
     public async Task<T> InTransactionAsync<T>(Func<Task<T>> operation, CancellationToken cancellationToken = default)
