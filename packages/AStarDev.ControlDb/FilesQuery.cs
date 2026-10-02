@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
 using Microsoft.EntityFrameworkCore;
@@ -9,23 +8,6 @@ namespace AStarDev.ControlDb;
 /// <param name="context">The database context used for querying files.</param>
 public class FilesQuery(ControlDbContext context) : IFilesQuery
 {
-    /// <inheritdoc/>
-    public async Task<Exceptional<Option<FileEntity>>> TryGetByNameAsync(FileName name, CancellationToken cancellationToken = default)
-            => await context.Files
-                            .AsNoTracking()
-                            .Include(file => file.DeletionStatus)
-                            .Include(file => file.FileAccessDetail)
-                            .Include(file => file.ImageDetail)
-                            .Where(HasName(name))
-                            .Take(1)
-                            .AsAsyncEnumerable()
-                            .FirstOrNoneAsync(cancellationToken)
-                            .ConfigureAwait(false);
-
-    /// <inheritdoc/>
-    public async Task<Exceptional<bool>> CheckExistsByNameAsync(FileName name, CancellationToken cancellationToken = default)
-            => await context.Files.AnyAsync(HasName(name), cancellationToken).ConfigureAwait(false);
-
     /// <inheritdoc/>
     public Task<Exceptional<IReadOnlyList<FileHandle>>> GetExistingHandlesAsync(IReadOnlyCollection<FileHandle> fileHandles, CancellationToken cancellationToken = default)
             => Try.RunAsync<IReadOnlyList<FileHandle>>(async () =>
@@ -45,6 +27,4 @@ public class FilesQuery(ControlDbContext context) : IFilesQuery
 
                 return [.. stored, .. ignored];
             });
-
-    private static Expression<Func<FileEntity, bool>> HasName(FileName name) => file => file.FileName.Value == name.Value;
 }

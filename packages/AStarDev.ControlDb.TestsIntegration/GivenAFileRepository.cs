@@ -69,32 +69,6 @@ public sealed class GivenAFileRepository : IDisposable
     }
 
     [Fact]
-    public async Task when_multiple_files_are_added_then_get_all_returns_every_file()
-    {
-        var repository = context.GetRepository<FileEntity, FileId>();
-        var first = FileEntityFactory.CreateFileEntity();
-        var secondId = FileId.Create();
-        var second = new FileEntity
-        {
-            Id = secondId,
-            FileName = FileName.Create("second-file"),
-            DirectoryName = DirectoryName.Create("directory-name"),
-            FileHandle = FileHandle.Create("second-file-handle"),
-            FileSize = 54321,
-            FileAccessDetail = new FileAccessDetailEntity { Id = FileAccessDetailId.Create(), FileId = secondId }
-        };
-        repository.Add(first).Match(entity => entity, exception => throw exception);
-        repository.Add(second).Match(entity => entity, exception => throw exception);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        var result = await repository.TryGetAllAsync(TestContext.Current.CancellationToken);
-
-        var all = result.Match(option => option, exception => throw exception).Match(entities => entities.ToList(), () => []);
-
-        all.Count.ShouldBe(2);
-    }
-
-    [Fact]
     public async Task when_a_file_is_deleted_then_it_can_no_longer_be_found()
     {
         var repository = context.GetRepository<FileEntity, FileId>();

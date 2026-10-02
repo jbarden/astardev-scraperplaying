@@ -28,6 +28,23 @@ public sealed class GivenAControlDbContext : IDisposable
     public void when_the_model_is_built_then_no_exception_is_thrown() => context.Model.ShouldNotBeNull();
 
     [Fact]
+    public void when_a_repository_is_requested_for_an_aggregate_with_the_wrong_key_type_then_the_exception_names_both_types()
+    {
+        var exception = Should.Throw<InvalidOperationException>(() => context.GetRepository<FileEntity, TagId>());
+
+        exception.Message.ShouldContain(nameof(FileEntity));
+        exception.Message.ShouldContain(nameof(TagId));
+    }
+
+    [Fact]
+    public void when_a_repository_is_requested_for_each_supported_aggregate_then_each_is_returned()
+    {
+        context.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().ShouldNotBeNull();
+        context.GetRepository<FileEntity, FileId>().ShouldNotBeNull();
+        context.GetRepository<TagEntity, TagId>().ShouldNotBeNull();
+    }
+
+    [Fact]
     public void when_accessed_the_scrape_configuration_repository_should_be_a_dbset() => context.ScrapeConfigurations.ShouldBeAssignableTo<DbSet<ScrapeConfigurationEntity>>();
 
     [Fact]

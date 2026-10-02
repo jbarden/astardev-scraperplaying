@@ -53,31 +53,6 @@ public sealed class GivenATagRepository : IDisposable
     }
 
     [Fact]
-    public async Task when_multiple_tags_are_added_then_get_all_returns_every_tag()
-    {
-        var repository = context.GetRepository<TagEntity, TagId>();
-        repository.Add(TagEntityFactory.CreateTagEntity(wallhavenTagId: 1, name: "landscape")).Match(entity => entity, exception => throw exception);
-        repository.Add(TagEntityFactory.CreateTagEntity(wallhavenTagId: 2, name: "space")).Match(entity => entity, exception => throw exception);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        var result = await repository.TryGetAllAsync(TestContext.Current.CancellationToken);
-
-        var all = result.Match(option => option, exception => throw exception).Match(entities => entities.ToList(), () => []);
-
-        all.Count.ShouldBe(2);
-    }
-
-    [Fact]
-    public async Task when_the_cancellation_token_is_already_cancelled_then_get_all_throws_an_operation_cancelled_exception()
-    {
-        var repository = context.GetRepository<TagEntity, TagId>();
-        using var cancellation = new CancellationTokenSource();
-        await cancellation.CancelAsync();
-
-        await Should.ThrowAsync<OperationCanceledException>(() => repository.TryGetAllAsync(cancellation.Token));
-    }
-
-    [Fact]
     public async Task when_a_second_tag_with_the_same_wallhaven_id_is_added_then_saving_fails()
     {
         var repository = context.GetRepository<TagEntity, TagId>();

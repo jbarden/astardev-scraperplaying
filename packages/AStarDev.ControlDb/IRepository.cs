@@ -11,11 +11,6 @@ public interface IRepository<TAggregate, TKey> where TAggregate : IAggregateRoot
     /// <returns>An exceptional result containing an option of the aggregate if found, or an empty option if not found.</returns>
     Task<Exceptional<Option<TAggregate>>> TryFindAsync(TKey key, CancellationToken cancellationToken = default);
 
-    /// <summary>Tries to get all aggregates from the repository. Returns an exceptional result containing an option of the aggregates if found, or an empty option if not found.</summary>
-    /// <param name="cancellationToken">A cancellation token for the asynchronous operation.</param>
-    /// <returns>An exceptional result containing an option of the aggregates if found, or an empty option if not found.</returns>
-    Task<Exceptional<Option<IEnumerable<TAggregate>>>> TryGetAllAsync(CancellationToken cancellationToken = default);
-
     /// <summary>Tries to get the first aggregate from the repository. Returns an exceptional result containing an option of the aggregate if found, or an empty option if not found.</summary>
     /// <param name="cancellationToken">A cancellation token for the asynchronous operation.</param>
     /// <returns>An exceptional result containing an option of the aggregate if found, or an empty option if not found.</returns>

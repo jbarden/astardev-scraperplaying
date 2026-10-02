@@ -18,9 +18,6 @@ internal sealed class FakeRepository<TAggregate, TKey>(List<string> operations) 
     /// <summary>The result of <see cref="TryFindAsync"/>.</summary>
     public Exceptional<Option<TAggregate>> Found { get; set; } = Option<TAggregate>.None.Instance;
 
-    /// <summary>The result of <see cref="TryGetAllAsync"/>.</summary>
-    public Exceptional<Option<IEnumerable<TAggregate>>> All { get; set; } = Option<IEnumerable<TAggregate>>.None.Instance;
-
     /// <summary>The failure returned by <see cref="Add"/>, or none for it to succeed.</summary>
     public Option<Exception> AddFailure { get; set; } = Option.None<Exception>();
 
@@ -39,8 +36,6 @@ internal sealed class FakeRepository<TAggregate, TKey>(List<string> operations) 
     public Task<Exceptional<Option<TAggregate>>> TryFindAsync(TKey key, CancellationToken cancellationToken = default) => cancellationToken.IsCancellationRequested ? Task.FromCanceled<Exceptional<Option<TAggregate>>>(cancellationToken) : Task.FromResult(Found);
 
     public Task<Exceptional<Option<TAggregate>>> TryGetFirstAsync(CancellationToken cancellationToken = default) => cancellationToken.IsCancellationRequested ? Task.FromCanceled<Exceptional<Option<TAggregate>>>(cancellationToken) : Task.FromResult(First);
-
-    public Task<Exceptional<Option<IEnumerable<TAggregate>>>> TryGetAllAsync(CancellationToken cancellationToken = default) => cancellationToken.IsCancellationRequested ? Task.FromCanceled<Exceptional<Option<IEnumerable<TAggregate>>>>(cancellationToken) : Task.FromResult(All);
 
     public Exceptional<TAggregate> Add(TAggregate aggregate)
     {

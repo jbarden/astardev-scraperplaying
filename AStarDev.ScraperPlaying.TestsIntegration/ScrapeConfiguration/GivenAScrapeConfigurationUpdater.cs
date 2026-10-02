@@ -269,9 +269,8 @@ public sealed class GivenAScrapeConfigurationUpdater : IDisposable
     private async Task<IReadOnlyList<ScrapeConfigurationId>> ListIdsAsync()
     {
         using var scope = serviceProvider.CreateScope();
-        var repository = scope.ServiceProvider.GetRequiredService<IUnitOfWork>().GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>();
-        var all = (await repository.TryGetAllAsync()).Match(option => option, exception => throw exception);
+        var context = scope.ServiceProvider.GetRequiredService<ControlDbContext>();
 
-        return all.Match(entities => (IReadOnlyList<ScrapeConfigurationId>)[.. entities.Select(entity => entity.Id)], () => []);
+        return await context.ScrapeConfigurations.AsNoTracking().Select(entity => entity.Id).ToListAsync();
     }
 }
