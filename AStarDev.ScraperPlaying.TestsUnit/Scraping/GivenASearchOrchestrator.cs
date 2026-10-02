@@ -92,7 +92,7 @@ public sealed class GivenASearchOrchestrator
         await Run(configuration);
 
         var category = configuration.SearchConfiguration.SearchCategories.Single();
-        (category.LastKnownImageCount, category.LastPageVisited, category.TotalPages, unitOfWork.SaveCount).ShouldBe((50, 1, 1, 4));
+        (category.LastKnownImageCount, category.LastPageVisited, category.TotalPages, unitOfWork.SaveCount).ShouldBe((50, 1, 1, 3));
     }
 
     [Fact]
@@ -166,7 +166,7 @@ public sealed class GivenASearchOrchestrator
     {
         var pagesProcessor = new PagesProcessor(new WallpaperIngestionContextFactory(new FakeClientFactory(), unitOfWork, new FakeSaveDirectoryResolver()), pageFetcher, new PageIngestionStep(new FakeIngestionService(), unitOfWork), new ScrapeResumePolicy(limits));
 
-        return new SearchOrchestrator(pagesProcessor, unitOfWork, limits).RunSearchesAsync(configuration, progress, CancellationToken.None);
+        return new SearchOrchestrator(pagesProcessor, limits).RunSearchesAsync(configuration, progress, CancellationToken.None);
     }
 
     private sealed class FakeClientFactory : IWallhavenClientFactory

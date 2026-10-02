@@ -1,6 +1,7 @@
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
+using AStarDev.ScraperPlaying.Scraping;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.ScrapeConfiguration;
 

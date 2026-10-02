@@ -1,13 +1,8 @@
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
+using AStarDev.ScraperPlaying.Scraping;
 
 namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
-
-/// <summary>The scrape progress of an existing search category. Shown read-only and never edited.</summary>
-/// <param name="LastKnownImageCount">The number of images observed as of the last scrape.</param>
-/// <param name="LastPageVisited">The last page visited.</param>
-/// <param name="TotalPages">The total number of pages available.</param>
-public sealed record SearchCategoryProgress(int LastKnownImageCount, int LastPageVisited, int TotalPages);
 
 /// <summary>One unvalidated search category row as entered in the configuration editor.</summary>
 /// <param name="Id">The entered category identifier.</param>
