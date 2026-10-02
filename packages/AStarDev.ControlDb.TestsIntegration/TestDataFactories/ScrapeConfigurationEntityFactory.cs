@@ -4,9 +4,9 @@ namespace AStarDev.ControlDb.TestsIntegration.TestDataFactories;
 
 internal static class ScrapeConfigurationEntityFactory
 {
-    public static ScrapeConfigurationEntity CreateScrapeConfigurationEntity()
+    public static ScrapeConfigurationEntity CreateScrapeConfigurationEntity(Guid? id = null, string rootDirectory = "root-save-directory")
     {
-        var scrapeConfigurationId = new ScrapeConfigurationId(Guid.Empty);
+        var scrapeConfigurationId = new ScrapeConfigurationId(id ?? Guid.Empty);
         var userConfigurationId = new UserConfigurationId(Guid.Empty);
         var searchConfigurationId = new SearchConfigurationId(Guid.Empty);
         var scrapeDirectoriesId = new ScrapeDirectoriesId(Guid.Empty);
@@ -14,7 +14,7 @@ internal static class ScrapeConfigurationEntityFactory
         {
             UserConfiguration = new UserConfigurationEntity(userConfigurationId, scrapeConfigurationId, "user@example.com", "username", "apiKey"),
             SearchConfiguration = new SearchConfigurationEntity(searchConfigurationId, scrapeConfigurationId, "search-config", 10, []),
-            ScrapeDirectories = new ScrapeDirectoriesEntity(scrapeDirectoriesId, scrapeConfigurationId, "root-save-directory", "root-directory-famous", "sub-directory-name"),
+            ScrapeDirectories = new ScrapeDirectoriesEntity(scrapeDirectoriesId, scrapeConfigurationId, rootDirectory, "root-directory-famous", "sub-directory-name"),
             BaseUrl = new Uri("https://example.com/scrape"),
             ApiKey = "scrape-api-key",
             SearchString = "search-string",
