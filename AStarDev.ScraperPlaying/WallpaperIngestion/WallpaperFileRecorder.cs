@@ -1,6 +1,7 @@
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
+using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 using AStarDev.Utilities;
 
 namespace AStarDev.ScraperPlaying.WallpaperIngestion;
@@ -18,26 +19,32 @@ public sealed class WallpaperFileRecorder(TimeProvider timeProvider) : IWallpape
             Id = FileId.Empty,
             FileName = request.FileName,
             DirectoryName = DirectoryName.Create(request.Directory),
-            FileAccessDetail = new FileAccessDetailEntity
-            {
-                DetailsLastUpdated = now.UtcDateTime,
-                Id = FileAccessDetailId.Empty,
-                FileId = FileId.Empty
-            },
+            FileAccessDetail = NewAccessDetail(now),
             LastUpdated = now,
             FileSize = wallpaper.FileSize,
             FileHandle = FileHandle.Create(wallpaper.Id),
             FileType = wallpaper.FileType,
             IsImage = wallpaper.Path.IsImage,
-            ImageDetail = new ImageDetailEntity
-            {
-                Id = ImageId.Empty,
-                FileId = FileId.Empty,
-                Width = wallpaper.DimensionX,
-                Height = wallpaper.DimensionY,
-            }
+            ImageDetail = NewImageDetail(wallpaper)
         };
 
         return fileRepository.Add(fileEntity);
     }
+
+    private static FileAccessDetailEntity NewAccessDetail(DateTimeOffset now)
+        => new()
+        {
+            DetailsLastUpdated = now.UtcDateTime,
+            Id = FileAccessDetailId.Empty,
+            FileId = FileId.Empty
+        };
+
+    private static ImageDetailEntity NewImageDetail(Data wallpaper)
+        => new()
+        {
+            Id = ImageId.Empty,
+            FileId = FileId.Empty,
+            Width = wallpaper.DimensionX,
+            Height = wallpaper.DimensionY,
+        };
 }
