@@ -1,11 +1,11 @@
+using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.UI;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.UI;
 
 public sealed class GivenAStatusReporter
 {
-    private readonly StatusReporter reporter = new(NullLogger<StatusReporter>.Instance);
+    private readonly StatusReporter reporter = TestStatusReporter.Create();
 
     [Fact]
     public void when_messages_are_appended_then_the_text_lists_them_oldest_first()
@@ -13,7 +13,7 @@ public sealed class GivenAStatusReporter
         reporter.Append("first");
         reporter.Append("second");
 
-        reporter.Text.ShouldBe($"first{Environment.NewLine}second");
+        reporter.Text.ShouldBe($"{TestStatusReporter.Timestamp} first{Environment.NewLine}{TestStatusReporter.Timestamp} second");
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public sealed class GivenAStatusReporter
     {
         reporter.Error("Unable to do the thing.", new InvalidOperationException("it broke"));
 
-        reporter.Text.ShouldBe("Unable to do the thing. it broke");
+        reporter.Text.ShouldBe($"{TestStatusReporter.Timestamp} Unable to do the thing. it broke");
     }
 
     [Fact]
@@ -55,6 +55,36 @@ public sealed class GivenAStatusReporter
     {
         reporter.Error("Unable to save.", new InvalidOperationException("An error occurred while saving the entity changes.", new IOException("UNIQUE constraint failed: FileDetail.FileHandle")));
 
-        reporter.Text.ShouldBe("Unable to save. An error occurred while saving the entity changes. Caused by: UNIQUE constraint failed: FileDetail.FileHandle");
+        reporter.Text.ShouldBe($"{TestStatusReporter.Timestamp} Unable to save. An error occurred while saving the entity changes. Caused by: UNIQUE constraint failed: FileDetail.FileHandle");
+    }
+
+    [Fact]
+    public void when_a_message_is_appended_then_it_is_prefixed_with_the_time_as_hh_mm_ss()
+    {
+        reporter.Append("hello");
+
+        reporter.Text.ShouldBe($"{TestStatusReporter.Timestamp} hello");
+    }
+
+    [Fact]
+    public void when_the_scraper_backs_off_then_a_message_states_the_delay()
+    {
+        var notifier = new RateLimitBackoffNotifier();
+        var backoffReporter = TestStatusReporter.Create(notifier);
+
+        notifier.NotifyBackingOff(TimeSpan.FromSeconds(30));
+
+        backoffReporter.Text.ShouldBe($"{TestStatusReporter.Timestamp} Rate limited by Wallhaven (429) - waiting 30s before retrying.");
+    }
+
+    [Fact]
+    public void when_the_back_off_delay_has_a_fraction_of_a_second_then_it_is_rounded_up()
+    {
+        var notifier = new RateLimitBackoffNotifier();
+        var backoffReporter = TestStatusReporter.Create(notifier);
+
+        notifier.NotifyBackingOff(TimeSpan.FromSeconds(1.2));
+
+        backoffReporter.Text.ShouldBe($"{TestStatusReporter.Timestamp} Rate limited by Wallhaven (429) - waiting 2s before retrying.");
     }
 }

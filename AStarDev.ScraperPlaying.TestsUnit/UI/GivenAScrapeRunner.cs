@@ -7,7 +7,7 @@ namespace AStarDev.ScraperPlaying.TestsUnit.UI;
 public sealed class GivenAScrapeRunner
 {
     private readonly FakeScrapeService scrapeService = new();
-    private readonly StatusReporter status = new(NullLogger<StatusReporter>.Instance);
+    private readonly StatusReporter status = TestStatusReporter.Create();
     private readonly ScrapeRunner runner;
 
     public GivenAScrapeRunner() => runner = new(scrapeService, status);
@@ -23,7 +23,7 @@ public sealed class GivenAScrapeRunner
 
         await runner.RunAsync(ScrapeSelection.All);
 
-        status.Text.ShouldBe($"Starting scrape operation.{Environment.NewLine}Fetching categories.");
+        status.Text.ShouldBe($"{TestStatusReporter.Timestamp} Starting scrape operation.{Environment.NewLine}{TestStatusReporter.Timestamp} Fetching categories.");
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public sealed class GivenAScrapeRunner
 
         await Should.NotThrowAsync(() => runner.RunAsync(ScrapeSelection.All));
 
-        status.Text.ShouldBe("The scrape failed. Scrape configuration not found");
+        status.Text.ShouldBe($"{TestStatusReporter.Timestamp} The scrape failed. Scrape configuration not found");
     }
 
     [Fact]

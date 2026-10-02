@@ -11,7 +11,7 @@ public sealed class GivenApplicationReadiness : IDisposable
     private readonly FakeDatabaseInitialization database = new();
     private readonly FakeRootDirectoryCheck rootDirectoryCheck = new();
     private readonly OperationCoordinator coordinator = new();
-    private readonly StatusReporter status = new(NullLogger<StatusReporter>.Instance);
+    private readonly StatusReporter status = TestStatusReporter.Create();
     private readonly ApplicationReadiness readiness;
 
     public GivenApplicationReadiness() => readiness = new(database, rootDirectoryCheck, coordinator, status);
@@ -27,7 +27,7 @@ public sealed class GivenApplicationReadiness : IDisposable
     {
         var ready = await readiness.InitialiseAsync();
 
-        (ready, readiness.CanOperate, readiness.CanRunScraper, status.Text).ShouldBe((true, true, true, $"Preparing the database.{Environment.NewLine}Database ready."));
+        (ready, readiness.CanOperate, readiness.CanRunScraper, status.Text).ShouldBe((true, true, true, $"{TestStatusReporter.Timestamp} Preparing the database.{Environment.NewLine}{TestStatusReporter.Timestamp} Database ready."));
     }
 
     [Fact]

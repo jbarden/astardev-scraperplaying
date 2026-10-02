@@ -9,8 +9,9 @@ namespace AStarDev.ScraperPlaying.Scraping;
 /// Requests outside the API path (image downloads from the CDN) are not limited.
 /// </summary>
 /// <param name="limiter">The limiter shared by every request to the Wallhaven API.</param>
+/// <param name="notifier">Told how long each back-off is before it starts, so the user can be shown it.</param>
 /// <param name="timeProvider">The time source used to wait before retrying.</param>
-public sealed class WallhavenRateLimitingHandler(RateLimiter limiter, TimeProvider timeProvider) : DelegatingHandler
+public sealed class WallhavenRateLimitingHandler(RateLimiter limiter, IRateLimitBackoffNotifier notifier, TimeProvider timeProvider) : DelegatingHandler
 {
     /// <summary>The number of times a request that received a 429 is retried before the 429 is returned to the caller.</summary>
     public const int MaximumRetries = 3;
@@ -28,6 +29,7 @@ public sealed class WallhavenRateLimitingHandler(RateLimiter limiter, TimeProvid
         {
             var delay = RetryDelayFor(response);
             response.Dispose();
+            notifier.NotifyBackingOff(delay);
             await Task.Delay(delay, timeProvider, cancellationToken);
             using var retryRequest = CloneRequest(request);
             response = await SendWithPermitAsync(retryRequest, cancellationToken);

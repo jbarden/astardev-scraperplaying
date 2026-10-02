@@ -11,7 +11,7 @@ namespace AStarDev.ScraperPlaying.TestsUnit.UI;
 public sealed class GivenConfigurationActions : IDisposable
 {
     private readonly OperationCoordinator coordinator = new();
-    private readonly StatusReporter status = new(NullLogger<StatusReporter>.Instance);
+    private readonly StatusReporter status = TestStatusReporter.Create();
     private readonly FakeDialogHost dialogs = new();
     private readonly FakeImportService importService = new();
     private readonly FakeExportService exportService = new();
@@ -34,7 +34,7 @@ public sealed class GivenConfigurationActions : IDisposable
 
         await actions.ImportConfigurationAsync(dialogs);
 
-        status.Text.ShouldBe("Scrape configuration imported.");
+        status.Text.ShouldBe($"{TestStatusReporter.Timestamp} Scrape configuration imported.");
         importService.ImportedPaths.ShouldBe(["path/to/import.json"]);
     }
 
@@ -45,7 +45,7 @@ public sealed class GivenConfigurationActions : IDisposable
 
         await actions.ImportConfigurationAsync(dialogs);
 
-        status.Text.ShouldBe("Scrape configuration import cancelled.");
+        status.Text.ShouldBe($"{TestStatusReporter.Timestamp} Scrape configuration import cancelled.");
         importService.ImportedPaths.ShouldBeEmpty();
     }
 
@@ -57,7 +57,7 @@ public sealed class GivenConfigurationActions : IDisposable
 
         await Should.NotThrowAsync(() => actions.ImportConfigurationAsync(dialogs));
 
-        status.Text.ShouldBe("Unable to import scrape configuration. import failed");
+        status.Text.ShouldBe($"{TestStatusReporter.Timestamp} Unable to import scrape configuration. import failed");
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public sealed class GivenConfigurationActions : IDisposable
 
         await actions.ImportConfigurationAsync(dialogs);
 
-        status.Text.ShouldBe("Scrape configuration import cancelled.");
+        status.Text.ShouldBe($"{TestStatusReporter.Timestamp} Scrape configuration import cancelled.");
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public sealed class GivenConfigurationActions : IDisposable
 
         await actions.ExportConfigurationAsync(dialogs, apiKeys);
 
-        status.Text.ShouldBe(expected);
+        status.Text.ShouldBe($"{TestStatusReporter.Timestamp} {expected}");
         exportService.ExportedPaths.ShouldBe(["path/to/export.json"]);
         exportService.ExportedModes.ShouldBe([apiKeys]);
     }
@@ -105,7 +105,7 @@ public sealed class GivenConfigurationActions : IDisposable
 
         await actions.ExportConfigurationAsync(dialogs, ApiKeyExport.Exclude);
 
-        status.Text.ShouldBe("No scrape configuration was found to export.");
+        status.Text.ShouldBe($"{TestStatusReporter.Timestamp} No scrape configuration was found to export.");
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public sealed class GivenConfigurationActions : IDisposable
 
         await actions.ExportConfigurationAsync(dialogs, ApiKeyExport.Exclude);
 
-        status.Text.ShouldBe("Scrape configuration export cancelled.");
+        status.Text.ShouldBe($"{TestStatusReporter.Timestamp} Scrape configuration export cancelled.");
         exportService.ExportedPaths.ShouldBeEmpty();
     }
 
@@ -127,7 +127,7 @@ public sealed class GivenConfigurationActions : IDisposable
 
         await Should.NotThrowAsync(() => actions.ExportConfigurationAsync(dialogs, ApiKeyExport.Exclude));
 
-        status.Text.ShouldBe("Unable to export scrape configuration. export failed");
+        status.Text.ShouldBe($"{TestStatusReporter.Timestamp} Unable to export scrape configuration. export failed");
     }
 
     [Fact]
@@ -139,7 +139,7 @@ public sealed class GivenConfigurationActions : IDisposable
 
         await actions.ExportConfigurationAsync(dialogs, ApiKeyExport.Exclude);
 
-        status.Text.ShouldBe("Scrape configuration export cancelled.");
+        status.Text.ShouldBe($"{TestStatusReporter.Timestamp} Scrape configuration export cancelled.");
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public sealed class GivenConfigurationActions : IDisposable
     {
         await actions.EditConfigurationAsync(dialogs);
 
-        (dialogs.ShownCount, status.Text).ShouldBe((0, "There are no scrape configurations to edit."));
+        (dialogs.ShownCount, status.Text).ShouldBe((0, $"{TestStatusReporter.Timestamp} There are no scrape configurations to edit."));
     }
 
     [Fact]
@@ -157,7 +157,7 @@ public sealed class GivenConfigurationActions : IDisposable
 
         await Should.NotThrowAsync(() => actions.EditConfigurationAsync(dialogs));
 
-        (dialogs.ShownCount, status.Text).ShouldBe((0, "Unable to edit scrape configuration. catalogue broke"));
+        (dialogs.ShownCount, status.Text).ShouldBe((0, $"{TestStatusReporter.Timestamp} Unable to edit scrape configuration. catalogue broke"));
     }
 
     private sealed class FakeImportService : IScrapeConfigurationImportService

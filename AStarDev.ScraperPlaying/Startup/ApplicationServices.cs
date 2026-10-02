@@ -75,6 +75,7 @@ public static class ApplicationServices
                 QueueLimit = int.MaxValue,
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst
             }))
+            .AddSingleton<IRateLimitBackoffNotifier, RateLimitBackoffNotifier>()
             .AddTransient<WallhavenRateLimitingHandler>()
             .AddTransient<WallhavenApiKeyHandler>()
             .AddScoped<IWallhavenPageFetcher, WallhavenPageFetcher>()
