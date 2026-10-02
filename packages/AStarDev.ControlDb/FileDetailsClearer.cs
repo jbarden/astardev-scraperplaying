@@ -9,5 +9,11 @@ public class FileDetailsClearer(ControlDbContext context) : IFileDetailsClearer
 {
     /// <inheritdoc/>
     public Task<Exceptional<int>> ClearAsync(CancellationToken cancellationToken = default)
-        => Try.RunAsync(() => context.Files.ExecuteDeleteAsync(cancellationToken));
+        => Try.RunAsync(async () =>
+        {
+            var removed = await context.Files.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
+            _ = await context.IgnoredWallpapers.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
+
+            return removed;
+        });
 }

@@ -1,3 +1,4 @@
+using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Scraping;
@@ -7,7 +8,7 @@ using Tag = AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse.T
 namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 
 /// <inheritdoc/>
-public sealed class NewWallpaperIngestor(ITagFetcher tagFetcher, ITagLinker tagLinker, WallpaperSaver wallpaperSaver) : INewWallpaperIngestor
+public sealed class NewWallpaperIngestor(ITagFetcher tagFetcher, ITagLinker tagLinker, WallpaperSaver wallpaperSaver, IIgnoredWallpapers ignoredWallpapers) : INewWallpaperIngestor
 {
     /// <inheritdoc/>
     public async Task<Option<IReadOnlyList<Tag>>> FetchTagsAsync(Data wallpaper, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
@@ -31,6 +32,7 @@ public sealed class NewWallpaperIngestor(ITagFetcher tagFetcher, ITagLinker tagL
         if (tags.Any(tag => tag.IgnoreImage))
         {
             progress.Report($"Ignoring wallpaper {candidate.Wallpaper.Id}: it has a tag flagged to ignore images.");
+            RememberIgnored(candidate.Wallpaper.Id, progress);
 
             return IngestOutcome.Complete;
         }
@@ -45,6 +47,18 @@ public sealed class NewWallpaperIngestor(ITagFetcher tagFetcher, ITagLinker tagL
                     return IngestOutcome.Incomplete;
                 });
     }
+
+    /// <summary>Remembers the ignored wallpaper so later scrapes skip it before fetching its tags. A failure only costs those later fetches, so it is reported and the wallpaper is still ignored.</summary>
+    private void RememberIgnored(string wallpaperId, IProgress<string> progress)
+        => _ = ignoredWallpapers.Record(FileHandle.Create(wallpaperId))
+            .Match(
+                unit => unit,
+                exception =>
+                {
+                    progress.Report($"Failed to remember that wallpaper {wallpaperId} is ignored: {exception.Message}");
+
+                    return Unit.Instance;
+                });
 
     private async Task<IngestOutcome> IngestStepsAsync(WallpaperCandidate candidate, IReadOnlyList<Tag> tags, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
     {

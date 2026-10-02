@@ -142,6 +142,21 @@ public sealed class GivenAFilesQuery : IDisposable
     }
 
     [Fact]
+    public async Task when_a_handle_was_recorded_as_ignored_then_it_is_reported_as_existing_alongside_stored_files()
+    {
+        var file = FileEntityFactory.CreateFileEntity(FileName.Create("stored.jpg"));
+        file.FileHandle = FileHandle.Create("stored");
+        await context.Files.AddAsync(file, TestContext.Current.CancellationToken);
+        await context.IgnoredWallpapers.AddAsync(new IgnoredWallpaperEntity { FileHandle = FileHandle.Create("ignoredone") }, TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var query = new FilesQuery(context);
+
+        var result = await query.GetExistingHandlesAsync([FileHandle.Create("stored"), FileHandle.Create("ignoredone"), FileHandle.Create("missing")], TestContext.Current.CancellationToken);
+
+        result.Match(handles => handles.Select(handle => handle.Value).Order().ToList(), exception => throw exception).ShouldBe(["ignoredone", "stored"]);
+    }
+
+    [Fact]
     public async Task when_no_handles_are_supplied_then_get_existing_handles_returns_an_empty_list()
     {
         var query = new FilesQuery(context);

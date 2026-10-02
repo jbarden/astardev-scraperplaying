@@ -25,6 +25,7 @@ public sealed class GivenANewWallpaperIngestor
     private readonly FakeRepository<TagEntity, TagId> tagRepository;
     private readonly FakeFileTagRepository fileTagRepository = new();
     private readonly FakeTagsQuery tagsQuery = new();
+    private readonly FakeIgnoredWallpapers ignoredWallpapers = new();
     private readonly TagFlagStore flagStore = new();
     private readonly ImageDownloadNotifier notifier = new();
     private readonly List<WallpaperDownloadDetails> notifications = [];
@@ -51,7 +52,8 @@ public sealed class GivenANewWallpaperIngestor
         ingestor = new(
             new TagFetcher(new JsonResponseProcessor(), tagsQuery, flagStore),
             new TagLinker(tagsQuery, unitOfWork, fileTagRepository, flagStore),
-            new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None, ScrapeTimeouts.Default), new WallpaperFileRecorder(System.TimeProvider.System), notifier));
+            new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None, ScrapeTimeouts.Default), new WallpaperFileRecorder(System.TimeProvider.System), notifier),
+            ignoredWallpapers);
     }
 
     [Fact]
@@ -82,6 +84,40 @@ public sealed class GivenANewWallpaperIngestor
 
         progress.Messages.ShouldContain("Ignoring wallpaper ignored-wallpaper: it has a tag flagged to ignore images.");
         (fileSystem.Directory.Exists("some-directory"), fileRepository.Added.Count, fileTagRepository.Added.Count, notifications.Count).ShouldBe((false, 0, 0, 0));
+    }
+
+    [Fact]
+    public async Task when_a_wallpaper_is_ignored_then_its_handle_is_recorded_so_later_scrapes_skip_it()
+    {
+        wallhaven.Tags = [WallhavenTag(2, "unwanted")];
+        tagsQuery.Tags.Add(new TagEntity { Id = TagId.Create(), WallhavenTagId = 2, Name = "unwanted", IgnoreImage = true });
+
+        await Ingest(CreateWallpaper("ignored-wallpaper"), ".jpg");
+
+        ignoredWallpapers.Recorded.ShouldBe([FileHandle.Create("ignored-wallpaper")]);
+    }
+
+    [Fact]
+    public async Task when_a_wallpaper_is_not_ignored_then_no_handle_is_recorded_as_ignored()
+    {
+        wallhaven.Tags = [WallhavenTag(1, "landscape")];
+
+        await Ingest(CreateWallpaper("kept-wallpaper"), ".jpg");
+
+        ignoredWallpapers.Recorded.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task when_recording_the_ignored_handle_fails_then_the_failure_is_reported_and_the_wallpaper_is_still_ignored()
+    {
+        wallhaven.Tags = [WallhavenTag(2, "unwanted")];
+        tagsQuery.Tags.Add(new TagEntity { Id = TagId.Create(), WallhavenTagId = 2, Name = "unwanted", IgnoreImage = true });
+        ignoredWallpapers.RecordResult = new InvalidOperationException("record failed");
+
+        await Ingest(CreateWallpaper("ignored-wallpaper"), ".jpg");
+
+        progress.Messages.ShouldContain("Failed to remember that wallpaper ignored-wallpaper is ignored: record failed");
+        (fileSystem.Directory.Exists("some-directory"), fileRepository.Added.Count).ShouldBe((false, 0));
     }
 
     [Fact]

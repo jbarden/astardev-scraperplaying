@@ -18,9 +18,9 @@ public interface IFilesQuery
     /// <returns>An exceptional result containing a boolean indicating whether the file exists.</returns>
     Task<Exceptional<bool>> CheckExistsByNameAsync(FileName name, CancellationToken cancellationToken = default);
 
-    /// <summary>Gets, in a single query, the handles among those supplied that identify a stored file. Handles are matched using the database collation, so the returned handles may differ in case from those supplied.</summary>
+    /// <summary>Gets the handles among those supplied that identify a stored file or a wallpaper remembered as ignored (see <see cref="IIgnoredWallpapers"/>), so neither is fetched again. Handles are matched using the database collation, so the returned handles may differ in case from those supplied.</summary>
     /// <param name="fileHandles">The handles of the files to search for. A file's handle is stable across renames, unlike its file name.</param>
     /// <param name="cancellationToken">A cancellation token for the asynchronous operation.</param>
-    /// <returns>An exceptional result containing the stored handles of the files that exist.</returns>
+    /// <returns>An exceptional result containing the stored handles of the files that exist and of the wallpapers remembered as ignored.</returns>
     Task<Exceptional<IReadOnlyList<FileHandle>>> GetExistingHandlesAsync(IReadOnlyCollection<FileHandle> fileHandles, CancellationToken cancellationToken = default);
 }
