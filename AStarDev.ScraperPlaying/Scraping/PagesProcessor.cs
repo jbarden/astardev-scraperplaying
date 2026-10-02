@@ -21,11 +21,6 @@ public sealed class PagesProcessor(IWallpaperIngestionContextFactory contextFact
 
             throw;
         }
-        catch (Exception ex)
-        {
-            progress.Report($"An error occurred during the fetching and processing of pages: {ex.ToMessageChain()}");
-            throw;
-        }
     }
 
     private async Task<Option<SearchCategoryProgress>> ScrapeAsync(PageScrapeRequest request, IProgress<string> progress, CancellationToken cancellationToken)

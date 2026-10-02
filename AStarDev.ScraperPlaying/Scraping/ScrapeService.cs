@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using AStarDev.ControlDb;
 using AStarDev.FunctionalParadigm;
 using AStarDev.LoggingExtensions;
@@ -10,10 +11,11 @@ using Microsoft.Extensions.Logging;
 
 namespace AStarDev.ScraperPlaying.Scraping;
 
-/// <summary>Runs a scrape as the single active operation: owns its lifecycle, timing and error reporting, and leaves the choice of searches to <see cref="ISearchOrchestrator"/>.</summary>
+/// <summary>Runs a scrape as the single active operation: owns its lifecycle, timing and the one report of any failure (the whole message chain, once), and leaves the choice of searches to <see cref="ISearchOrchestrator"/>.</summary>
 public sealed class ScrapeService(OperationCoordinator operationCoordinator, IScopedRunner scopedRunner, ILogger<ScrapeService> logger) : IScrapeService
 {
     /// <inheritdoc/>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "This is the single place a scrape failure is reported: every failure, including start-up ones, is reported once with its whole message chain rather than escaping.")]
     public async Task RunScraperAsync(IProgress<string> progress)
     {
         if (!operationCoordinator.TryStart(out var cancellationToken)) return;
@@ -32,13 +34,18 @@ public sealed class ScrapeService(OperationCoordinator operationCoordinator, ISc
         }
         catch (HttpRequestException e)
         {
-            progress.Report($"Request error: {e.Message}");
+            progress.Report($"The scrape failed: {e.ToMessageChain()}");
             LogMessage.Error(logger, "Scrape failed with a request error", e);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             progress.Report("Search cancelled.");
             LogMessage.Information(logger, "Scrape cancelled");
+        }
+        catch (Exception e)
+        {
+            progress.Report($"The scrape failed: {e.ToMessageChain()}");
+            LogMessage.Error(logger, "Scrape failed", e);
         }
         finally
         {

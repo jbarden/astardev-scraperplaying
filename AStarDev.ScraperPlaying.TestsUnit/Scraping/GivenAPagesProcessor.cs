@@ -59,7 +59,7 @@ public sealed class GivenAPagesProcessor
     }
 
     [Fact]
-    public async Task when_ingesting_a_wallpaper_fails_then_the_page_still_completes()
+    public async Task when_ingesting_a_wallpaper_fails_then_the_failure_is_rethrown_unreported()
     {
         var wallpaper = CreateWallpaper("wallpaper-2");
         SetUpPage(1, CreateSearchResponse(lastPage: 1, wallpaper));
@@ -67,7 +67,7 @@ public sealed class GivenAPagesProcessor
 
         await Should.ThrowAsync<InvalidOperationException>(Run);
 
-        progress.Messages.ShouldContain("An error occurred during the fetching and processing of pages: ingestion failed");
+        progress.Messages.ShouldNotContain(message => message.Contains("ingestion failed", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -249,18 +249,18 @@ public sealed class GivenAPagesProcessor
     }
 
     [Fact]
-    public async Task when_saving_a_page_fails_with_a_database_update_error_then_the_inner_cause_is_reported_and_the_failure_rethrown()
+    public async Task when_saving_a_page_fails_with_a_database_update_error_then_the_failure_is_rethrown_for_the_scrape_service_to_report()
     {
         SetUpPage(1, CreateSearchResponse(lastPage: 1, CreateWallpaper("wallpaper-duplicate")));
         unitOfWork.OnSave = _ => throw new DbUpdateException("An error occurred while saving the entity changes. See the inner exception for details.", new InvalidOperationException("UNIQUE constraint failed: FileDetail.FileHandle"));
 
         _ = await Should.ThrowAsync<DbUpdateException>(Run);
 
-        progress.Messages.ShouldContain("An error occurred during the fetching and processing of pages: An error occurred while saving the entity changes. See the inner exception for details. Caused by: UNIQUE constraint failed: FileDetail.FileHandle");
+        progress.Messages.ShouldNotContain(message => message.Contains("UNIQUE constraint failed", StringComparison.Ordinal));
     }
 
     [Fact]
-    public async Task when_fetching_a_page_fails_then_the_failure_is_reported_and_rethrown()
+    public async Task when_fetching_a_page_fails_then_the_failure_is_rethrown_unreported()
     {
         var exception = new InvalidOperationException("page fetch failed");
         jsonResponseProcessor.Response = exception;
@@ -268,7 +268,7 @@ public sealed class GivenAPagesProcessor
         var thrown = await Should.ThrowAsync<InvalidOperationException>(Run);
 
         thrown.ShouldBeSameAs(exception);
-        progress.Messages.ShouldContain("An error occurred during the fetching and processing of pages: page fetch failed");
+        progress.Messages.ShouldNotContain(message => message.Contains("page fetch failed", StringComparison.Ordinal));
     }
 
     private PagesProcessor CreateProcessor(ScrapeLimits limits)

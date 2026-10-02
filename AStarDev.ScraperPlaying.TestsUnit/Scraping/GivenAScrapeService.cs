@@ -59,39 +59,50 @@ public sealed class GivenAScrapeService : IDisposable
     }
 
     [Fact]
-    public async Task when_no_configuration_row_exists_then_it_throws_and_still_completes_the_operation()
+    public async Task when_no_configuration_row_exists_then_the_failure_is_reported_once_and_the_operation_still_completes()
     {
         repository.First = Option<ScrapeConfigurationEntity>.None.Instance;
 
-        await Should.ThrowAsync<InvalidOperationException>(Run);
+        await Should.NotThrowAsync(Run);
 
         progress.Messages.ShouldContain("Starting scrape operation.");
+        progress.Messages.Count(message => message.StartsWith("The scrape failed: ", StringComparison.Ordinal)).ShouldBe(1);
         progress.Messages.ShouldNotContain(message => message.StartsWith("Searched configuration", StringComparison.Ordinal));
         operationCoordinator.IsOperationRunning.ShouldBeFalse();
     }
 
     [Fact]
-    public async Task when_looking_up_the_configuration_fails_then_the_failure_is_rethrown_and_the_operation_still_completes()
+    public async Task when_looking_up_the_configuration_fails_then_the_failure_is_reported_once_and_the_operation_still_completes()
     {
-        var exception = new InvalidOperationException("query failed");
-        repository.First = exception;
+        repository.First = new InvalidOperationException("query failed");
 
-        var thrown = await Should.ThrowAsync<InvalidOperationException>(Run);
+        await Should.NotThrowAsync(Run);
 
-        thrown.ShouldBeSameAs(exception);
-        progress.Messages.ShouldNotContain(message => message.Contains("not found"));
+        progress.Messages.Count(message => message.Contains("query failed", StringComparison.Ordinal)).ShouldBe(1);
+        progress.Messages.ShouldContain("The scrape failed: query failed");
         operationCoordinator.IsOperationRunning.ShouldBeFalse();
     }
 
     [Fact]
-    public async Task when_searching_raises_a_request_error_then_it_is_reported_not_thrown()
+    public async Task when_searching_fails_then_the_whole_message_chain_is_reported_once()
+    {
+        repository.First = (Option<ScrapeConfigurationEntity>)ScrapeConfigurationTestData.CreateConfiguration();
+        searchOrchestrator.OnSearch = () => throw new InvalidOperationException("save failed", new InvalidOperationException("UNIQUE constraint failed"));
+
+        await Should.NotThrowAsync(Run);
+
+        progress.Messages.Where(message => message.Contains("failed", StringComparison.Ordinal) && !message.StartsWith("Searched", StringComparison.Ordinal)).ShouldBe(["The scrape failed: save failed Caused by: UNIQUE constraint failed"]);
+    }
+
+    [Fact]
+    public async Task when_searching_raises_a_request_error_then_it_is_reported_once_not_thrown()
     {
         repository.First = (Option<ScrapeConfigurationEntity>)ScrapeConfigurationTestData.CreateConfiguration();
         searchOrchestrator.OnSearch = () => throw new HttpRequestException("boom");
 
         await Run();
 
-        progress.Messages.ShouldContain("Request error: boom");
+        progress.Messages.Where(message => message.Contains("boom", StringComparison.Ordinal)).ShouldBe(["The scrape failed: boom"]);
         operationCoordinator.IsOperationRunning.ShouldBeFalse();
     }
 
@@ -147,6 +158,17 @@ public sealed class GivenAScrapeService : IDisposable
         await Run();
 
         logger.Entries.ShouldBe([(LogLevel.Information, "Scrape started."), (LogLevel.Error, "Error occurred : `Scrape failed with a request error`")]);
+    }
+
+    [Fact]
+    public async Task when_a_scrape_fails_unexpectedly_then_the_failure_is_logged_as_an_error()
+    {
+        repository.First = (Option<ScrapeConfigurationEntity>)ScrapeConfigurationTestData.CreateConfiguration();
+        searchOrchestrator.OnSearch = () => throw new InvalidOperationException("boom");
+
+        await Run();
+
+        logger.Entries.ShouldBe([(LogLevel.Information, "Scrape started."), (LogLevel.Error, "Error occurred : `Scrape failed`")]);
     }
 
     [Fact]
