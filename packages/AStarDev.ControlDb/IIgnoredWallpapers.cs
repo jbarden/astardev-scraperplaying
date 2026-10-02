@@ -11,7 +11,7 @@ public interface IIgnoredWallpapers
     /// <returns>An exceptional result that is a failure when the handle could not be tracked.</returns>
     Exceptional<Unit> Record(FileHandle fileHandle);
 
-    /// <summary>Forgets every ignored wallpaper immediately, so each is evaluated again on the next scrape. Used when the ignore flags change, because a remembered wallpaper may no longer have a tag that is ignored.</summary>
+    /// <summary>Forgets every ignored wallpaper immediately, so each is evaluated again on the next scrape. Used when a tag stops being flagged to ignore, because a remembered wallpaper may no longer have a tag that is ignored.</summary>
     /// <param name="cancellationToken">A cancellation token for the asynchronous operation.</param>
     /// <returns>An exceptional result containing the number of ignored wallpapers forgotten.</returns>
     Task<Exceptional<int>> ForgetAllAsync(CancellationToken cancellationToken = default);
