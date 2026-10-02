@@ -4,7 +4,7 @@ namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 public static class ScrapeConfigurationImportMapper
 {
-    public static ScrapeConfigurationEntity ToEntity(this ScrapeConfigurationImportDocument document)
+    public static ScrapeConfigurationEntity ToEntity(this ScrapeConfigurationImportDocument document, DateTimeOffset now)
     {
         var search = document.SearchConfiguration;
         var categories = search.SearchCategories.Select(category => new SearchCategoryEntity
@@ -18,8 +18,8 @@ public static class ScrapeConfigurationImportMapper
             IncludeInSearch = category.IncludeInSearch,
             IsFamous = category.IsFamous,
             IsInternet = category.IsInternet,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            CreatedAt = now,
+            UpdatedAt = now
         }).ToList();
 
         var searchEntity = new SearchConfigurationEntity(
@@ -31,7 +31,7 @@ public static class ScrapeConfigurationImportMapper
 
         foreach (var name in search.PersonCategories)
         {
-            searchEntity.PersonCategories.Add(new PersonCategoryEntity { SearchConfigurationId = searchEntity.Id, Name = name, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow });
+            searchEntity.PersonCategories.Add(new PersonCategoryEntity { SearchConfigurationId = searchEntity.Id, Name = name, CreatedAt = now, UpdatedAt = now });
         }
 
         return new ScrapeConfigurationEntity(new ScrapeConfigurationId(document.Id))

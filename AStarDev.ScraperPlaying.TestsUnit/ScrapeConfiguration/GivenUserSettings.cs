@@ -10,7 +10,7 @@ public sealed class GivenUserSettings
         var entity = GivenAUserSettingsInput.CreateEntity();
         var userConfigurationId = entity.UserConfiguration.Id;
 
-        new UserSettings("new@example.test", "new-user", "new-key").ApplyTo(entity);
+        new UserSettings("new@example.test", "new-user", "new-key").ApplyTo(entity, DateTimeOffset.UnixEpoch);
 
         entity.UserConfiguration.EmailAddress.ShouldBe("new@example.test");
         entity.UserConfiguration.Username.ShouldBe("new-user");

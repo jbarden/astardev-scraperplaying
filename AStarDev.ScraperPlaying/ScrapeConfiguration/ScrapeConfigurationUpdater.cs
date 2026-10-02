@@ -6,7 +6,7 @@ using AStarDev.ScraperPlaying.Scoping;
 namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 /// <inheritdoc/>
-public sealed class ScrapeConfigurationUpdater(IScopedRunner scopedRunner) : IScrapeConfigurationUpdater
+public sealed class ScrapeConfigurationUpdater(IScopedRunner scopedRunner, TimeProvider timeProvider) : IScrapeConfigurationUpdater
 {
     /// <inheritdoc/>
     public async Task<Exceptional<Option<Unit>>> SaveAsync(ScrapeConfigurationId id, IReadOnlyList<IScrapeConfigurationSectionEdit> edits, CancellationToken cancellationToken)
@@ -16,7 +16,8 @@ public sealed class ScrapeConfigurationUpdater(IScopedRunner scopedRunner) : ISc
             var found = (await unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().TryFindAsync(id, cancellationToken)).GetOrThrow();
             if (found is not Option<ScrapeConfigurationEntity>.Some some) return Option.None<Unit>();
 
-            foreach (var edit in edits) edit.ApplyTo(some.Value);
+            var now = timeProvider.GetUtcNow();
+            foreach (var edit in edits) edit.ApplyTo(some.Value, now);
 
             _ = await unitOfWork.SaveChangesAsync(cancellationToken);
 

@@ -15,10 +15,10 @@ public sealed record SearchSettings(string SearchTerm, Option<int> MaxResults) :
         entity.SearchConfiguration.MaxResults is { } maxResults ? Option.Some(maxResults) : Option.None<int>());
 
     /// <inheritdoc/>
-    public void ApplyTo(ScrapeConfigurationEntity entity)
+    public void ApplyTo(ScrapeConfigurationEntity entity, DateTimeOffset now)
     {
         entity.SearchConfiguration.SearchTerm = SearchTerm;
         entity.SearchConfiguration.MaxResults = MaxResults.Match(maxResults => (int?)maxResults, () => null);
-        entity.SearchConfiguration.UpdatedAt = DateTimeOffset.UtcNow;
+        entity.SearchConfiguration.UpdatedAt = now;
     }
 }

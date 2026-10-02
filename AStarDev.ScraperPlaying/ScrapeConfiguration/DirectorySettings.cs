@@ -16,7 +16,7 @@ public sealed record DirectorySettings(string RootDirectory, string RootDirector
         entity.ScrapeDirectories.SubDirectoryName);
 
     /// <inheritdoc/>
-    public void ApplyTo(ScrapeConfigurationEntity entity)
+    public void ApplyTo(ScrapeConfigurationEntity entity, DateTimeOffset now)
     {
         entity.ScrapeDirectories.RootDirectory = RootDirectory;
         entity.ScrapeDirectories.RootDirectoryFamous = RootDirectoryFamous;

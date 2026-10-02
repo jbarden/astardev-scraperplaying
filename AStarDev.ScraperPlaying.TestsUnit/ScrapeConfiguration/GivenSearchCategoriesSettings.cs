@@ -11,9 +11,9 @@ public sealed class GivenSearchCategoriesSettings
         var entity = CreateEntity();
         var original = entity.SearchConfiguration.SearchCategories.Single();
         original.UpdatedAt = DateTimeOffset.UnixEpoch;
-        var before = DateTimeOffset.UtcNow;
+        var now = new DateTimeOffset(2026, 3, 4, 5, 6, 7, TimeSpan.Zero);
 
-        new SearchCategoriesSettings([new SearchCategorySettings("100", "Renamed", false, true, true)]).ApplyTo(entity);
+        new SearchCategoriesSettings([new SearchCategorySettings("100", "Renamed", false, true, true)]).ApplyTo(entity, now);
 
         var edited = entity.SearchConfiguration.SearchCategories.Single();
         edited.ShouldBeSameAs(original);
@@ -22,7 +22,7 @@ public sealed class GivenSearchCategoriesSettings
         edited.IsFamous.ShouldBeTrue();
         edited.IsInternet.ShouldBeTrue();
         (edited.LastKnownImageCount, edited.LastPageVisited, edited.TotalPages).ShouldBe((7, 3, 9));
-        edited.UpdatedAt.ShouldBeGreaterThanOrEqualTo(before);
+        edited.UpdatedAt.ShouldBe(now);
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public sealed class GivenSearchCategoriesSettings
     {
         var entity = CreateEntity("Abc");
 
-        new SearchCategoriesSettings([new SearchCategorySettings("aBC", "Renamed", true, false, false)]).ApplyTo(entity);
+        new SearchCategoriesSettings([new SearchCategorySettings("aBC", "Renamed", true, false, false)]).ApplyTo(entity, DateTimeOffset.UnixEpoch);
 
         var edited = entity.SearchConfiguration.SearchCategories.Single();
         edited.Id.ShouldBe("Abc");
@@ -45,7 +45,7 @@ public sealed class GivenSearchCategoriesSettings
         new SearchCategoriesSettings([
             new SearchCategorySettings("100", "Nature", true, false, false),
             new SearchCategorySettings("200", "People", false, true, true)
-        ]).ApplyTo(entity);
+        ]).ApplyTo(entity, DateTimeOffset.UnixEpoch);
 
         var added = entity.SearchConfiguration.SearchCategories.Single(category => category.Id == "200");
         added.Name.ShouldBe("People");
@@ -63,7 +63,7 @@ public sealed class GivenSearchCategoriesSettings
         var entity = CreateEntity();
         entity.SearchConfiguration.SearchCategories.Add(new SearchCategoryEntity { Id = "200", Name = "People" });
 
-        new SearchCategoriesSettings([new SearchCategorySettings("200", "People", true, false, false)]).ApplyTo(entity);
+        new SearchCategoriesSettings([new SearchCategorySettings("200", "People", true, false, false)]).ApplyTo(entity, DateTimeOffset.UnixEpoch);
 
         entity.SearchConfiguration.SearchCategories.Select(category => category.Id).ShouldBe(["200"]);
     }
@@ -73,7 +73,7 @@ public sealed class GivenSearchCategoriesSettings
     {
         var entity = CreateEntity();
 
-        new SearchCategoriesSettings([]).ApplyTo(entity);
+        new SearchCategoriesSettings([]).ApplyTo(entity, DateTimeOffset.UnixEpoch);
 
         entity.SearchConfiguration.SearchCategories.ShouldBeEmpty();
     }
@@ -84,7 +84,7 @@ public sealed class GivenSearchCategoriesSettings
         var entity = CreateEntity();
         entity.SearchConfiguration.PersonCategories.Add(new PersonCategoryEntity { Name = "Models" });
 
-        new SearchCategoriesSettings([]).ApplyTo(entity);
+        new SearchCategoriesSettings([]).ApplyTo(entity, DateTimeOffset.UnixEpoch);
 
         entity.SearchConfiguration.SearchTerm.ShouldBe("term");
         entity.SearchConfiguration.PersonCategories.Single().Name.ShouldBe("Models");

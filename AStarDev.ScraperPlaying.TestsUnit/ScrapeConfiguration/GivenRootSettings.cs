@@ -41,7 +41,7 @@ public sealed class GivenRootSettings
             new PageRanges(new PageRange(4, 50), new PageRange(5, 60), new PageRange(6, 70), new PageRange(8, 90)),
             new BrowserOptions(false, Option.None<float>()));
 
-        settings.ApplyTo(entity);
+        settings.ApplyTo(entity, DateTimeOffset.UnixEpoch);
 
         entity.BaseUrl.ShouldBe(new Uri("https://other.example/api"));
         entity.LoginUrl.ShouldBe("https://other.example/login");

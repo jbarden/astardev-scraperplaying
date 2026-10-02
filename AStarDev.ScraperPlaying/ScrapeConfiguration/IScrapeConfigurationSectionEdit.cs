@@ -7,5 +7,6 @@ public interface IScrapeConfigurationSectionEdit
 {
     /// <summary>Applies this edit to the specified scrape configuration.</summary>
     /// <param name="entity">The tracked scrape configuration to change.</param>
-    void ApplyTo(ScrapeConfigurationEntity entity);
+    /// <param name="now">The time to record as the modified time of anything this edit changes.</param>
+    void ApplyTo(ScrapeConfigurationEntity entity, DateTimeOffset now);
 }
