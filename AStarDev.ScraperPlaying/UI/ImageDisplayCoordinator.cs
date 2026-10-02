@@ -7,7 +7,7 @@ namespace AStarDev.ScraperPlaying.UI;
 /// <summary>
 /// Bridges <see cref="IImageDownloadNotifier"/> to a display-ready preview: decodes each downloaded
 /// wallpaper's image at preview size and raises <see cref="ImageReady"/> with the result. Decoding happens off
-/// the notifying (ingestion) thread, is skipped entirely while <see cref="IsEnabled"/> is <c>false</c>, and when
+/// the notifying (ingestion) thread, is skipped while <see cref="IsEnabled"/> is <c>false</c> (only the details are raised, through <see cref="DetailsReady"/>), and when
 /// downloads outpace decoding only the most recent waiting image is decoded. A decode failure is swallowed - a
 /// missing preview for one wallpaper isn't worth interrupting the scrape over.
 /// </summary>
@@ -25,6 +25,9 @@ public sealed class ImageDisplayCoordinator
     /// <summary>Raised with the decoded, display-ready image once a downloaded wallpaper's image is ready.</summary>
     public event EventHandler<WallpaperPreviewImage>? ImageReady;
 
+    /// <summary>Raised with the details of a downloaded wallpaper when <see cref="IsEnabled"/> is <c>false</c>, so the details stay up to date without decoding the image.</summary>
+    public event EventHandler<WallpaperInfo>? DetailsReady;
+
     public ImageDisplayCoordinator(IImageDownloadNotifier notifier, IDownloadedImageDecoder decoder)
     {
         this.decoder = decoder;
@@ -40,7 +43,12 @@ public sealed class ImageDisplayCoordinator
 
     private void OnImageDownloaded(WallpaperDownloadDetails details)
     {
-        if (!isEnabled) return;
+        if (!isEnabled)
+        {
+            DetailsReady?.Invoke(this, details.Info);
+
+            return;
+        }
 
         lock (gate)
         {
