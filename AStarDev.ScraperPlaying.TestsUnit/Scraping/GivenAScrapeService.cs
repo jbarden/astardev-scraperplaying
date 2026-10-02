@@ -157,7 +157,7 @@ public sealed class GivenAScrapeService : IDisposable
 
         await Run();
 
-        logger.Entries.ShouldBe([(LogLevel.Information, "Scrape started."), (LogLevel.Error, "Error occurred : `Scrape failed with a request error`")]);
+        logger.Entries.ShouldBe([(LogLevel.Information, "Scrape started."), (LogLevel.Error, "Error occurred : `Scrape failed`")]);
     }
 
     [Fact]
@@ -172,13 +172,13 @@ public sealed class GivenAScrapeService : IDisposable
     }
 
     [Fact]
-    public async Task when_an_operation_is_already_running_then_a_second_call_is_a_no_op()
+    public async Task when_an_operation_is_already_running_then_a_second_call_reports_it_and_leaves_the_running_operation_alone()
     {
         _ = operationCoordinator.TryStart(out _);
 
         await Run();
 
-        progress.Messages.ShouldBeEmpty();
+        progress.Messages.ShouldBe(["An operation is already running."]);
         operationCoordinator.IsOperationRunning.ShouldBeTrue();
     }
 

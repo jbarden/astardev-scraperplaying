@@ -18,7 +18,12 @@ public sealed class ScrapeService(OperationCoordinator operationCoordinator, ISc
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "This is the single place a scrape failure is reported: every failure, including start-up ones, is reported once with its whole message chain rather than escaping.")]
     public async Task RunScraperAsync(IProgress<string> progress)
     {
-        if (!operationCoordinator.TryStart(out var cancellationToken)) return;
+        if (!operationCoordinator.TryStart(out var cancellationToken))
+        {
+            progress.Report("An operation is already running.");
+
+            return;
+        }
 
         var startTime = Stopwatch.GetTimestamp();
         try
@@ -31,11 +36,6 @@ public sealed class ScrapeService(OperationCoordinator operationCoordinator, ISc
             progress.Report($"Search completed in: {duration}.");
             var completedMessage = $"Scrape completed in {duration}";
             LogMessage.Information(logger, completedMessage);
-        }
-        catch (HttpRequestException e)
-        {
-            progress.Report($"The scrape failed: {e.ToMessageChain()}");
-            LogMessage.Error(logger, "Scrape failed with a request error", e);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

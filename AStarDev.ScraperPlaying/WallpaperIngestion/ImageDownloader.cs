@@ -10,7 +10,6 @@ public sealed class ImageDownloader(IFileSystem fileSystem, TimeProvider timePro
 {
     private const string PartialFileExtension = ".part";
 
-
     /// <inheritdoc/>
     public async Task<string> DownloadAsync(WallpaperFileRequest request, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
     {
