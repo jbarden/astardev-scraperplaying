@@ -28,4 +28,31 @@ public sealed class GivenGetOrThrow
 
         thrown.ShouldBeSameAs(exception);
     }
+
+    [Fact]
+    public void when_exceptional_is_failure_then_original_throw_site_is_kept_in_the_stack_trace()
+    {
+        Exceptional<int> exceptional = new Failure<int>(CaptureThrownException());
+
+        var thrown = Should.Throw<InvalidOperationException>(() => exceptional.GetOrThrow());
+
+        thrown.StackTrace.ShouldNotBeNull().ShouldContain(nameof(ThrowFromOriginalSite));
+    }
+
+    private static InvalidOperationException CaptureThrownException()
+    {
+        try
+        {
+            ThrowFromOriginalSite();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return exception;
+        }
+
+        throw new InvalidOperationException("The original site did not throw.");
+    }
+
+    private static void ThrowFromOriginalSite()
+        => throw new InvalidOperationException("boom");
 }
