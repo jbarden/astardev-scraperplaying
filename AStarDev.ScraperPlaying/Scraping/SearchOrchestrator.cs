@@ -37,7 +37,7 @@ public sealed class SearchOrchestrator(IPagesProcessor pagesProcessor, ScrapeLim
     {
         try
         {
-            _ = await pagesProcessor.FetchAndProcessPagesAsync(request, progress, cancellationToken);
+            await pagesProcessor.FetchAndProcessPagesAsync(request, progress, cancellationToken);
         }
         catch (PageFetchException exception) when (!cancellationToken.IsCancellationRequested)
         {

@@ -56,42 +56,73 @@ public sealed class GivenAPageIngestionStep : IDisposable
     }
 
     [Fact]
-    public async Task when_partially_ingested_wallpapers_are_saved_then_the_save_ignores_cancellation_and_is_reported()
+    public async Task when_ingesting_is_cancelled_mid_page_then_the_partial_page_is_saved_ignoring_cancellation_and_the_cancellation_propagates()
     {
-        await step.SavePartiallyIngestedPageAsync(new Progress(messages));
+        using var cancellationTokenSource = new CancellationTokenSource();
+        ingestionService.OnIngest = () => ThrowCancelled(cancellationTokenSource);
+
+        await Should.ThrowAsync<OperationCanceledException>(() => step.IngestPageAsync(CreateCancellableRun(_ => { }, cancellationTokenSource.Token), CreatePage(), recordProgress: true));
 
         unitOfWork.SaveTokens.Single().CanBeCanceled.ShouldBeFalse();
         messages.ShouldBe(["Scrape cancelled - saved wallpapers downloaded so far this page."]);
     }
 
     [Fact]
-    public async Task when_saving_partially_ingested_wallpapers_fails_then_the_failure_is_reported_not_thrown()
+    public async Task when_saving_partially_ingested_wallpapers_fails_then_the_failure_is_reported_and_the_cancellation_still_propagates()
     {
+        using var cancellationTokenSource = new CancellationTokenSource();
+        ingestionService.OnIngest = () => ThrowCancelled(cancellationTokenSource);
         unitOfWork.OnSave = _ => throw new DbUpdateException("save failed");
 
-        await step.SavePartiallyIngestedPageAsync(new Progress(messages));
+        await Should.ThrowAsync<OperationCanceledException>(() => step.IngestPageAsync(CreateCancellableRun(_ => { }, cancellationTokenSource.Token), CreatePage(), recordProgress: true));
 
         messages.ShouldBe(["Scrape cancelled - failed to save wallpapers downloaded so far this page: save failed"]);
     }
 
     [Fact]
-    public async Task when_saving_partially_ingested_wallpapers_fails_for_any_other_reason_then_the_failure_is_reported_not_thrown()
+    public async Task when_saving_partially_ingested_wallpapers_fails_for_any_other_reason_then_the_failure_is_reported_and_the_cancellation_still_propagates()
     {
+        using var cancellationTokenSource = new CancellationTokenSource();
+        ingestionService.OnIngest = () => ThrowCancelled(cancellationTokenSource);
         unitOfWork.OnSave = _ => throw new InvalidOperationException("context disposed");
 
-        await step.SavePartiallyIngestedPageAsync(new Progress(messages));
+        await Should.ThrowAsync<OperationCanceledException>(() => step.IngestPageAsync(CreateCancellableRun(_ => { }, cancellationTokenSource.Token), CreatePage(), recordProgress: true));
 
         messages.ShouldBe(["Scrape cancelled - failed to save wallpapers downloaded so far this page: context disposed"]);
     }
 
+    [Fact]
+    public async Task when_ingesting_fails_for_a_reason_other_than_cancellation_then_the_failure_propagates_without_a_partial_save()
+    {
+        ingestionService.OnIngest = () => throw new InvalidOperationException("ingestion failed");
+
+        await Should.ThrowAsync<InvalidOperationException>(() => step.IngestPageAsync(CreateRun(_ => { }), CreatePage(), recordProgress: true));
+
+        unitOfWork.SaveCount.ShouldBe(0);
+        messages.ShouldBeEmpty();
+    }
+
     public void Dispose() => client.Dispose();
 
+    private static void ThrowCancelled(CancellationTokenSource cancellationTokenSource)
+    {
+        cancellationTokenSource.Cancel();
+
+        throw new OperationCanceledException(cancellationTokenSource.Token);
+    }
+
+    private static FetchedPage CreatePage()
+        => new(1, new SearchResponse([new Data("w", 0, 0, 0, "", "")], new Meta(5, 40)));
+
     private IngestionRun CreateRun(Action<SearchCategoryProgress> onPageCompleted)
+        => CreateCancellableRun(onPageCompleted, CancellationToken.None);
+
+    private IngestionRun CreateCancellableRun(Action<SearchCategoryProgress> onPageCompleted, CancellationToken cancellationToken)
         => new(
             new PageScrapeRequest(new ScrapeLabel("label", Option.None<string>()), Option.None<SearchCategoryProgress>(), new PageHooks(onPageCompleted, page => new Uri($"https://example.test/page/{page}")), new ScrapeTarget(new WallhavenConnection("api-key", new Uri("https://example.test")), [])),
             new WallpaperIngestionContext(new SaveDirectories("root", "famous", "segment"), client, new FakeRepository<FileEntity, FileId>(), "Top Wallpapers", []),
-            new Progress([]),
-            CancellationToken.None);
+            new Progress(messages),
+            cancellationToken);
 
     private sealed class Progress(List<string> messages) : IProgress<string>
     {
