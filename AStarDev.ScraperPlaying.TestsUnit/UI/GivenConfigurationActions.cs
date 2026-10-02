@@ -22,8 +22,7 @@ public sealed class GivenConfigurationActions : IDisposable
         => actions = new(
             new UserOperationRunner(coordinator, status),
             status,
-            importService,
-            exportService,
+            new ConfigurationTransfer(importService, exportService),
             new ConfigurationBrowser(configurationCatalogue, new ConfigurationEditorWindowFactory(new ConfigurationEditSaver(new FakeUpdater()), new MockFileSystem()), status, NullLogger<ConfigurationBrowser>.Instance));
 
     public void Dispose() => coordinator.Dispose();
