@@ -6,6 +6,7 @@ using AStarDev.ScraperPlaying.Downloads;
 using AStarDev.ScraperPlaying.TestsUnit.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Testably.Abstractions.Testing;
+using Testably.Abstractions.Testing.FileSystem;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.Downloads;
 
@@ -76,6 +77,19 @@ public sealed class GivenADownloadsClearer : IDisposable
         var result = await clearer.ClearAsync(TestContext.Current.CancellationToken);
 
         (result.Match(_ => (Exception?)null, exception => exception), fileSystem.File.Exists("/scrapes/root/one.jpg")).ShouldBe((failure, true));
+    }
+
+    [Fact]
+    public async Task when_the_directories_cannot_be_emptied_then_the_failure_reports_that_the_file_records_were_already_cleared()
+    {
+        fileDetailsClearer.Count = 3;
+        await AddFileAsync("/scrapes/root/locked.jpg", "locked");
+        _ = fileSystem.Intercept.Deleting(FileSystemTypes.File, _ => throw new IOException("The file is in use."));
+
+        var result = await clearer.ClearAsync(TestContext.Current.CancellationToken);
+
+        var failure = result.Match(_ => (Exception?)null, exception => exception).ShouldNotBeNull();
+        (failure.Message.Contains("File records cleared: 3", StringComparison.Ordinal), failure.InnerException is IOException).ShouldBe((true, true));
     }
 
     [Fact]

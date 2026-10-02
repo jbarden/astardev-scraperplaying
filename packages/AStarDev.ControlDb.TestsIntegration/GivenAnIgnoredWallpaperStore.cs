@@ -55,6 +55,20 @@ public sealed class GivenAnIgnoredWallpaperStore : IDisposable
     }
 
     [Fact]
+    public async Task when_a_handle_is_recorded_again_after_the_context_is_saved_then_it_is_still_stored_once()
+    {
+        var store = new IgnoredWallpapers(context);
+        _ = store.Record(FileHandle.Create("abc123"));
+        _ = await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        _ = store.Record(FileHandle.Create("ABC123"));
+        _ = store.Record(FileHandle.Create("def456"));
+        _ = await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        (await context.IgnoredWallpapers.ToListAsync(TestContext.Current.CancellationToken)).Select(ignored => ignored.FileHandle.Value).ShouldBe(["abc123", "def456"], ignoreOrder: true);
+    }
+
+    [Fact]
     public async Task when_forgetting_then_every_recorded_handle_is_removed_and_the_count_is_returned()
     {
         await context.IgnoredWallpapers.AddRangeAsync([new IgnoredWallpaperEntity { FileHandle = FileHandle.Create("first") }, new IgnoredWallpaperEntity { FileHandle = FileHandle.Create("second") }], TestContext.Current.CancellationToken);

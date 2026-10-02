@@ -54,13 +54,33 @@ public sealed class GivenATagCatalogue : IDisposable
     }
 
     [Fact]
-    public async Task when_a_tag_starts_being_ignored_then_the_remembered_ignored_wallpapers_are_forgotten()
+    public async Task when_a_tag_starts_being_ignored_then_the_remembered_ignored_wallpapers_are_kept()
     {
         query.Tags.Add(CreateTag(1, "cats", ignoreImage: false));
 
         _ = await catalogue.SaveFlagsAsync(new Dictionary<int, TagFlags> { [1] = new(true, false, false) }, TestContext.Current.CancellationToken);
 
+        ignoredWallpapers.ForgetCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task when_one_tag_starts_and_another_stops_being_ignored_then_the_remembered_ignored_wallpapers_are_forgotten_once()
+    {
+        query.Tags.AddRange([CreateTag(1, "cats", ignoreImage: false), CreateTag(2, "dogs", ignoreImage: true)]);
+
+        _ = await catalogue.SaveFlagsAsync(new Dictionary<int, TagFlags> { [1] = new(true, false, false), [2] = new(false, false, false) }, TestContext.Current.CancellationToken);
+
         ignoredWallpapers.ForgetCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task when_ignored_wallpapers_are_forgotten_then_the_flag_save_and_the_forgetting_share_one_transaction()
+    {
+        query.Tags.Add(CreateTag(1, "cats", ignoreImage: true));
+
+        _ = await catalogue.SaveFlagsAsync(new Dictionary<int, TagFlags> { [1] = new(false, false, false) }, TestContext.Current.CancellationToken);
+
+        (unitOfWork.TransactionCount, unitOfWork.SaveCount, ignoredWallpapers.ForgetCount).ShouldBe((1, 1, 1));
     }
 
     [Fact]
@@ -98,10 +118,10 @@ public sealed class GivenATagCatalogue : IDisposable
     public async Task when_forgetting_the_ignored_wallpapers_fails_then_the_failure_is_returned()
     {
         var failure = new InvalidOperationException("forget failed");
-        query.Tags.Add(CreateTag(1, "cats", ignoreImage: false));
+        query.Tags.Add(CreateTag(1, "cats", ignoreImage: true));
         ignoredWallpapers.ForgetResult = failure;
 
-        var result = await catalogue.SaveFlagsAsync(new Dictionary<int, TagFlags> { [1] = new(true, false, false) }, TestContext.Current.CancellationToken);
+        var result = await catalogue.SaveFlagsAsync(new Dictionary<int, TagFlags> { [1] = new(false, false, false) }, TestContext.Current.CancellationToken);
 
         result.Match(_ => (Exception?)null, exception => exception).ShouldBeSameAs(failure);
     }

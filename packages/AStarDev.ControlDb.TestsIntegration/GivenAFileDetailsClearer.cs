@@ -58,6 +58,18 @@ public sealed class GivenAFileDetailsClearer : IDisposable
     }
 
     [Fact]
+    public async Task when_the_ignored_wallpapers_cannot_be_forgotten_then_the_failure_is_returned_and_no_file_is_removed()
+    {
+        await context.Files.AddAsync(FileEntityFactory.CreateFileEntity(), TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _ = await context.Database.ExecuteSqlRawAsync("DROP TABLE IgnoredWallpaper", TestContext.Current.CancellationToken);
+
+        var result = await new FileDetailsClearer(context).ClearAsync(TestContext.Current.CancellationToken);
+
+        (result.Match(_ => false, _ => true), await context.Files.CountAsync(TestContext.Current.CancellationToken)).ShouldBe((true, 1));
+    }
+
+    [Fact]
     public async Task when_files_are_cleared_then_the_tags_are_left_alone()
     {
         var tag = TagEntityFactory.CreateTagEntity();
