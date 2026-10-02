@@ -21,8 +21,9 @@ public static class DataServices
     /// <returns>The <paramref name="services" /> collection to allow further chaining.</returns>
     public static IServiceCollection AddDataServices(this IServiceCollection services, string databasePath)
     {
-        _ = services.AddScoped<IQuery<ScrapeConfigurationEntity>, ScrapeConfigurationQuery>()
-            .AddScoped<IQuery<FileEntity>, FileQuery>()
+        // The queries are stateless and must be singletons: the DbContext factory is a singleton and builds ControlDbContext from the root provider.
+        _ = services.AddSingleton<IQuery<ScrapeConfigurationEntity>, ScrapeConfigurationQuery>()
+            .AddSingleton<IQuery<FileEntity>, FileQuery>()
             .AddScoped<IUnitOfWork, ControlDbContext>()
             .AddScoped<IScrapeConfigurationLookup, ScrapeConfigurationLookup>()
             .AddScoped<IFilesQuery, FilesQuery>()

@@ -2,6 +2,8 @@ using System.Net;
 using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.Startup;
 using AStarDev.ScraperPlaying.UI;
+using AStarDev.ControlDb;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
@@ -41,6 +43,35 @@ public sealed class GivenTheApplicationServices : IDisposable
             .BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
 
         validated.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task when_the_database_context_is_created_from_a_scope_validated_provider_then_it_is_created()
+    {
+        using var validated = BuildValidated(out _);
+
+        await using var context = await validated.GetRequiredService<IDbContextFactory<ControlDbContext>>().CreateDbContextAsync(TestContext.Current.CancellationToken);
+
+        context.ShouldNotBeNull();
+    }
+
+    // MainWindow is excluded: it is an Avalonia window and cannot be constructed without a windowing platform.
+    [Fact]
+    public void when_every_registered_service_is_resolved_from_a_scope_validated_provider_then_none_fails_to_resolve()
+    {
+        using var validated = BuildValidated(out var services);
+        using var scope = validated.CreateScope();
+
+        var failures = services
+            .Where(descriptor => !descriptor.ServiceType.ContainsGenericParameters && !descriptor.IsKeyedService && descriptor.ServiceType != typeof(MainWindow))
+            .Select(descriptor => descriptor.Lifetime is ServiceLifetime.Singleton ? validated : scope.ServiceProvider)
+            .Zip(services.Where(descriptor => !descriptor.ServiceType.ContainsGenericParameters && !descriptor.IsKeyedService && descriptor.ServiceType != typeof(MainWindow)))
+            .Select(pair => TryResolve(pair.First, pair.Second.ServiceType))
+            .OfType<string>()
+            .Distinct()
+            .ToList();
+
+        failures.ShouldBeEmpty();
     }
 
     [Fact]
@@ -107,6 +138,33 @@ public sealed class GivenTheApplicationServices : IDisposable
         disposed = true;
         serviceProvider.Dispose();
         if (File.Exists(databasePath)) File.Delete(databasePath);
+    }
+
+    private ServiceProvider BuildValidated(out IServiceCollection services)
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        services = new ServiceCollection()
+            .AddConfigurationServices(configuration)
+            .AddDataServices(databasePath)
+            .AddInfrastructureServices()
+            .AddApplicationServices(configuration)
+            .AddLogging();
+
+        return services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
+    }
+
+    private static string? TryResolve(IServiceProvider provider, Type serviceType)
+    {
+        try
+        {
+            _ = provider.GetService(serviceType);
+
+            return null;
+        }
+        catch (InvalidOperationException ex)
+        {
+            return $"{serviceType.Name}: {ex.Message}";
+        }
     }
 
     private sealed class CapturingHandler : HttpMessageHandler
