@@ -53,12 +53,15 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
     }
 
     [Fact]
-    public async Task when_the_operation_is_cancelled_after_the_download_then_the_image_is_saved_but_no_rows_are_stored_or_linked()
+    public async Task when_the_operation_is_cancelled_once_the_image_is_downloaded_then_the_image_is_saved_but_no_rows_are_stored_or_linked()
     {
         using var cancellationTokenSource = new CancellationTokenSource();
-        notifier.ImageDownloaded += (_, _) => cancellationTokenSource.Cancel();
+        progress.OnReport = message =>
+        {
+            if (message == "Downloaded image data for wallpaper cancelled-wallpaper") cancellationTokenSource.Cancel();
+        };
 
-        _ = await Should.ThrowAsync<OperationCanceledException>(() => Ingest("cancelled-wallpaper", HttpStatusCode.OK, [WallhavenTag(1, "landscape")], cancellationTokenSource.Token));
+        _ = await Should.ThrowAsync<OperationCanceledException>(() => Ingest("cancelled-wallpaper", HttpStatusCode.OK, [WallhavenTag(1, "landscape")], cancellationTokenSource.Token, saveOnCancellation: true));
 
         fileSystem.File.Exists(fileSystem.Path.Combine("save-directory", "cancelled-wallpaper.jpg")).ShouldBeTrue();
         (await ReadStoredAsync()).IsEmpty.ShouldBeTrue();
@@ -311,6 +314,12 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
     {
         public List<string> Messages { get; } = [];
 
-        public void Report(string value) => Messages.Add(value);
+        public Action<string> OnReport { get; set; } = _ => { };
+
+        public void Report(string value)
+        {
+            Messages.Add(value);
+            OnReport(value);
+        }
     }
 }
