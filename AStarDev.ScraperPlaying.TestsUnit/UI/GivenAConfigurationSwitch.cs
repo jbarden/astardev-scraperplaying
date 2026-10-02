@@ -19,7 +19,7 @@ public sealed class GivenAConfigurationSwitch
 
         var result = await ConfigurationSwitch.ResolveAsync(Requested, () => Task.FromResult(true), Session(_ => Task.FromResult(Option.Some(requested))));
 
-        (result.Loaded is Option<LoadedConfiguration>.Some some && ReferenceEquals(some.Value, requested), result.Error).ShouldBe((true, string.Empty));
+        (result.Loaded is Option<LoadedConfiguration>.Some some && ReferenceEquals(some.Value, requested), result.Error is Option<string>.None).ShouldBe((true, true));
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public sealed class GivenAConfigurationSwitch
             return Task.FromResult(Option.None<LoadedConfiguration>());
         }));
 
-        (result.Loaded is Option<LoadedConfiguration>.None, result.Error, loadCalled).ShouldBe((true, string.Empty, false));
+        (result.Loaded is Option<LoadedConfiguration>.None, result.Error is Option<string>.None, loadCalled).ShouldBe((true, true, false));
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class GivenAConfigurationSwitch
     {
         var result = await ConfigurationSwitch.ResolveAsync(Requested, () => Task.FromResult(true), Session(_ => Task.FromResult(Option.None<LoadedConfiguration>())));
 
-        (result.Loaded is Option<LoadedConfiguration>.None, result.Error).ShouldBe((true, string.Empty));
+        (result.Loaded is Option<LoadedConfiguration>.None, result.Error is Option<string>.None).ShouldBe((true, true));
     }
 
     [Fact]
@@ -50,15 +50,15 @@ public sealed class GivenAConfigurationSwitch
     {
         var result = await ConfigurationSwitch.ResolveAsync(Requested, () => Task.FromResult(true), Session(_ => throw new InvalidOperationException("load failed")));
 
-        (result.Loaded is Option<LoadedConfiguration>.None, result.Error).ShouldBe((true, "Unable to load the scrape configuration. load failed"));
+        (result.Loaded is Option<LoadedConfiguration>.None, result.Error).ShouldBe((true, Option.Some("Unable to load the scrape configuration. load failed")));
     }
 
     [Fact]
-    public async Task when_the_confirmation_throws_then_nothing_is_loaded_and_the_failure_is_shown()
+    public async Task when_the_confirmation_throws_then_nothing_is_loaded_and_the_dialog_failure_is_shown_without_calling_it_a_load_failure()
     {
         var result = await ConfigurationSwitch.ResolveAsync(Requested, () => throw new InvalidOperationException("dialog failed"), Session(_ => Task.FromResult(Option.None<LoadedConfiguration>())));
 
-        (result.Loaded is Option<LoadedConfiguration>.None, result.Error).ShouldBe((true, "Unable to load the scrape configuration. dialog failed"));
+        (result.Loaded is Option<LoadedConfiguration>.None, result.Error).ShouldBe((true, Option.Some("Unable to confirm discarding the unsaved edits. dialog failed")));
     }
 
     private ConfigurationEditorSession Session(Func<ScrapeConfigurationSummary, Task<Option<LoadedConfiguration>>> load) => new(current, [Requested], load);
