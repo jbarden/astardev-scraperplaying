@@ -1,4 +1,5 @@
 using AStarDev.FunctionalParadigm;
+using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 using Tag = AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse.Tag;
 
@@ -13,21 +14,17 @@ public interface INewWallpaperIngestor
 {
     /// <summary>Fetches the wallpaper's tags. A failure to fetch them is reported and gives none rather than throwing, so the caller can leave the wallpaper to be retried on a later scrape; a cancellation is not swallowed.</summary>
     /// <param name="wallpaper">The wallpaper whose tags to fetch.</param>
-    /// <param name="context">The per-page state, supplying the HTTP client.</param>
-    /// <param name="progress">The progress reporter to report progress.</param>
-    /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
+    /// <param name="run">The scrape being run: supplies the HTTP client, the progress reporter and the cancellation token.</param>
     /// <returns>The wallpaper's tags, or <see cref="Option{T}.None"/> if they could not be fetched.</returns>
-    Task<Option<IReadOnlyList<Tag>>> FetchTagsAsync(Data wallpaper, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken);
+    Task<Option<IReadOnlyList<Tag>>> FetchTagsAsync(Data wallpaper, IngestionRun run);
 
     /// <summary>
-    /// Downloads the wallpaper into <paramref name="context"/>'s directory, records it and links <paramref name="tags"/> (or, if any tag is flagged to ignore images, does nothing), reporting a failure at any step without throwing so the
+    /// Downloads the wallpaper into the run's directory, records it and links <paramref name="tags"/> (or, if any tag is flagged to ignore images, does nothing), reporting a failure at any step without throwing so the
     /// caller can continue with the rest of the page. If tags cannot be linked the recorded file is discarded rather than left untagged. A cancellation is not swallowed (a file recorded but not yet tagged is discarded first).
     /// </summary>
     /// <param name="candidate">The wallpaper data to ingest, and the file extension to save the image under.</param>
     /// <param name="tags">The wallpaper's tags, from <see cref="FetchTagsAsync"/>.</param>
-    /// <param name="context">The per-page state to ingest the wallpaper into.</param>
-    /// <param name="progress">The progress reporter to report ingestion progress.</param>
-    /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
+    /// <param name="run">The scrape being run: supplies the per-page state to ingest the wallpaper into, the progress reporter and the cancellation token.</param>
     /// <returns><see cref="IngestOutcome.Incomplete"/> if a step failed, in which case nothing is left recorded for the wallpaper so a later scrape retries it; otherwise <see cref="IngestOutcome.Complete"/>.</returns>
-    Task<IngestOutcome> IngestAsync(WallpaperCandidate candidate, IReadOnlyList<Tag> tags, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken);
+    Task<IngestOutcome> IngestAsync(WallpaperCandidate candidate, IReadOnlyList<Tag> tags, IngestionRun run);
 }

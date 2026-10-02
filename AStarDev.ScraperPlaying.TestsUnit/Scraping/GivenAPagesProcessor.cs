@@ -444,8 +444,9 @@ public sealed class GivenAPagesProcessor
         /// <summary>The outcome for each page (by the first wallpaper's id) that should not be complete.</summary>
         public HashSet<string> IncompletePages { get; } = [];
 
-        public Task<IngestOutcome> IngestPageAsync(IReadOnlyList<Data> wallpapers, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+        public Task<IngestOutcome> IngestPageAsync(IReadOnlyList<Data> wallpapers, IngestionRun run)
         {
+            var (context, progress) = (run.Context, run.Progress);
             progress.Report($"Ingested page of {wallpapers.Count}.");
             foreach (var wallpaper in wallpapers) progress.Report($"Ingested {wallpaper.Id} into {context.Directories.Root}|{context.Directories.FamousRoot}|{context.Directories.CategorySegment} as {context.CategoryLabel} with people {string.Join(",", context.PersonCategories)}.");
 

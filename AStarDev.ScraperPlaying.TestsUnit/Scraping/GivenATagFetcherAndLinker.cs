@@ -5,6 +5,7 @@ using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse;
 using AStarDev.ScraperPlaying.TestsUnit.Fakes;
+using AStarDev.ScraperPlaying.WallpaperIngestion;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.Scraping;
 
@@ -145,7 +146,7 @@ public sealed class GivenATagFetcherAndLinker
 
         using var client = new HttpClient();
 
-        var result = await fetcher.FetchTagsAsync("wallpaper-1", client, PersonCategories, progress, CancellationToken.None);
+        var result = await fetcher.FetchTagsAsync("wallpaper-1", CreateRun(client));
 
         result.Match(tags => tags, ex => throw ex).ShouldBe([new Tag(9, "Max Verstappen", "max-verstappen", 51, "Other Figures", "sfw")]);
         tagRepository.Added.ShouldBeEmpty();
@@ -158,7 +159,7 @@ public sealed class GivenATagFetcherAndLinker
         tagsQuery.Ignored.Add(20);
 
         using var client = new HttpClient();
-        var result = await fetcher.FetchTagsAsync("wallpaper-1", client, PersonCategories, progress, CancellationToken.None);
+        var result = await fetcher.FetchTagsAsync("wallpaper-1", CreateRun(client));
 
         result.Match(tags => tags.Select(tag => (tag.Id, tag.IgnoreImage)).ToList(), ex => throw ex).ShouldBe([(20, true), (21, false)]);
     }
@@ -170,7 +171,7 @@ public sealed class GivenATagFetcherAndLinker
         tagsQuery.Names.Add(24);
 
         using var client = new HttpClient();
-        var result = await fetcher.FetchTagsAsync("wallpaper-1", client, PersonCategories, progress, CancellationToken.None);
+        var result = await fetcher.FetchTagsAsync("wallpaper-1", CreateRun(client));
 
         result.Match(tags => tags.Select(tag => (tag.Id, tag.IsName)).ToList(), ex => throw ex).ShouldBe([(24, true), (25, false)]);
     }
@@ -182,7 +183,7 @@ public sealed class GivenATagFetcherAndLinker
         SetUpDetailResponse(new Tag(30, "plain", "plain", 1, "Nature", "sfw"));
 
         using var client = new HttpClient();
-        var result = await fetcher.FetchTagsAsync("wallpaper-1", client, PersonCategories, progress, CancellationToken.None);
+        var result = await fetcher.FetchTagsAsync("wallpaper-1", CreateRun(client));
 
         result.Match(tags => tags.Single().IsFamous, ex => throw ex).ShouldBeTrue();
     }
@@ -194,7 +195,7 @@ public sealed class GivenATagFetcherAndLinker
         SetUpDetailResponse(new Tag(31, "Emma Watson", "emma-watson", 1, "Celebrities", "sfw"));
 
         using var client = new HttpClient();
-        var result = await fetcher.FetchTagsAsync("wallpaper-1", client, PersonCategories, progress, CancellationToken.None);
+        var result = await fetcher.FetchTagsAsync("wallpaper-1", CreateRun(client));
 
         result.Match(tags => tags.Single().IsFamous, ex => throw ex).ShouldBeFalse();
     }
@@ -205,7 +206,7 @@ public sealed class GivenATagFetcherAndLinker
         SetUpDetailResponse(new Tag(32, "Emma Watson", "emma-watson", 1, "Celebrities", "sfw"), new Tag(33, "outside", "outside", 1, "Nature", "sfw"));
 
         using var client = new HttpClient();
-        var result = await fetcher.FetchTagsAsync("wallpaper-1", client, PersonCategories, progress, CancellationToken.None);
+        var result = await fetcher.FetchTagsAsync("wallpaper-1", CreateRun(client));
 
         result.Match(tags => tags.Select(tag => (tag.Id, tag.IsFamous)).ToList(), ex => throw ex).ShouldBe([(32, true), (33, false)]);
     }
@@ -227,8 +228,8 @@ public sealed class GivenATagFetcherAndLinker
         jsonResponseProcessor.Responses["wallpaper-b"] = CreateDetailResponse(CreateTag(wallhavenTagId: 23, name: "two"));
 
         using var client = new HttpClient();
-        _ = await fetcher.FetchTagsAsync("wallpaper-a", client, PersonCategories, progress, CancellationToken.None);
-        _ = await fetcher.FetchTagsAsync("wallpaper-b", client, PersonCategories, progress, CancellationToken.None);
+        _ = await fetcher.FetchTagsAsync("wallpaper-a", CreateRun(client));
+        _ = await fetcher.FetchTagsAsync("wallpaper-b", CreateRun(client));
 
         tagsQuery.FlagsQueryCount.ShouldBe(1);
     }
@@ -299,9 +300,12 @@ public sealed class GivenATagFetcherAndLinker
     {
         using var client = new HttpClient();
 
-        return await (await fetcher.FetchTagsAsync(wallpaperId, client, PersonCategories, progress, CancellationToken.None))
+        return await (await fetcher.FetchTagsAsync(wallpaperId, CreateRun(client)))
             .Match(tags => linker.LinkTagsAsync(fileId, tags, CancellationToken.None), exception => Task.FromResult((Exceptional<Unit>)exception));
     }
+
+    private IngestionRun CreateRun(HttpClient client)
+        => IngestionRuns.Create(new WallpaperIngestionContext(new SaveDirectories("root", "famous", "segment"), client, new FakeRepository<FileEntity, FileId>(), "category", PersonCategories), progress);
 
     private void SetUpDetailResponse(params Tag[] tags)
         => jsonResponseProcessor.Responses["wallpaper-1"] = CreateDetailResponse(tags);

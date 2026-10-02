@@ -1,3 +1,4 @@
+using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 
 namespace AStarDev.ScraperPlaying.WallpaperIngestion;
@@ -10,14 +11,12 @@ namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 public interface IWallpaperIngestionService
 {
     /// <summary>
-    /// Ingests a page of wallpapers into <paramref name="context"/>'s directory, reporting progress and any
+    /// Ingests a page of wallpapers into the run's directory, reporting progress and any
     /// failure at each step without throwing - a failure at any step is reported and that wallpaper is skipped,
     /// allowing the caller to continue processing the rest of the page.
     /// </summary>
     /// <param name="wallpapers">The wallpaper data to ingest.</param>
-    /// <param name="context">The per-page state (save directory, HTTP client, file repository) to ingest the wallpaper into.</param>
-    /// <param name="progress">The progress reporter to report ingestion progress.</param>
-    /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
+    /// <param name="run">The scrape being run: supplies the per-page state (save directory, HTTP client, file repository) to ingest the wallpapers into, the progress reporter and the cancellation token.</param>
     /// <returns><see cref="IngestOutcome.Incomplete"/> if any wallpaper on the page was skipped because a step failed (so the page must be visited again), otherwise <see cref="IngestOutcome.Complete"/>.</returns>
-    Task<IngestOutcome> IngestPageAsync(IReadOnlyList<Data> wallpapers, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken);
+    Task<IngestOutcome> IngestPageAsync(IReadOnlyList<Data> wallpapers, IngestionRun run);
 }

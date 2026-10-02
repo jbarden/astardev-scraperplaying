@@ -5,6 +5,7 @@ using AStarDev.ControlDb;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.ControlDb.TagDetail;
+using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 using AStarDev.ScraperPlaying.Startup;
@@ -168,7 +169,7 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
         using var client = CreateClient(HttpStatusCode.OK, tags);
         var context = new WallpaperIngestionContext(new SaveDirectories("save-directory", "famous-save-directory", ""), client, unitOfWork.GetRepository<FileEntity, FileId>(), "category", PersonCategories);
 
-        _ = await service.IngestPageAsync([new Data(wallpaperId, 0, 0, 0, "", "https://example.test/image.jpg")], context, progress, cancellationToken);
+        _ = await service.IngestPageAsync([new Data(wallpaperId, 0, 0, 0, "", "https://example.test/image.jpg")], CreateRun(context, cancellationToken));
         _ = await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
@@ -183,8 +184,9 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
 
         try
         {
-            var fetchedTags = await ingestor.FetchTagsAsync(wallpaper, context, progress, cancellationToken);
-            if (fetchedTags.TryGetValue(out var tagsToLink)) await ingestor.IngestAsync(new WallpaperCandidate(wallpaper, ".jpg"), tagsToLink, context, progress, cancellationToken);
+            var run = CreateRun(context, cancellationToken);
+            var fetchedTags = await ingestor.FetchTagsAsync(wallpaper, run);
+            if (fetchedTags.TryGetValue(out var tagsToLink)) await ingestor.IngestAsync(new WallpaperCandidate(wallpaper, ".jpg"), tagsToLink, run);
             _ = await unitOfWork.SaveChangesAsync(cancellationToken);
         }
         catch (OperationCanceledException) when (saveOnCancellation)
@@ -195,6 +197,13 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
             throw;
         }
     }
+
+    private IngestionRun CreateRun(WallpaperIngestionContext context, CancellationToken cancellationToken)
+        => new(
+            new PageScrapeRequest(new ScrapeLabel("category", Option.None<string>()), Option.None<SearchCategoryProgress>(), new PageHooks(_ => { }, page => new Uri($"https://example.test/page/{page}")), new ScrapeTarget(new WallhavenConnection("api-key", new Uri("https://example.test")), [])),
+            context,
+            progress,
+            cancellationToken);
 
     private async Task<StoredRows> ReadStoredAsync()
     {

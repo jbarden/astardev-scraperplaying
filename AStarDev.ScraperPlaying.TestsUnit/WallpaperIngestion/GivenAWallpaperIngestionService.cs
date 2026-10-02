@@ -1,6 +1,7 @@
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.FileDetail;
 using AStarDev.FunctionalParadigm;
+using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 using AStarDev.ScraperPlaying.TestsUnit.Fakes;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
@@ -37,9 +38,11 @@ public sealed class GivenAWallpaperIngestionService
         using var client = new HttpClient();
         var context = new WallpaperIngestionContext(new SaveDirectories("resolved-directory", "famous-resolved-directory", ""), client, fileRepository, "resolved-category", []);
 
-        await service.IngestPageAsync([wallpaper], context, progress, CancellationToken.None);
+        var run = IngestionRuns.Create(context, progress, TestContext.Current.CancellationToken);
 
-        newWallpaperIngestor.Ingested.ShouldBe([(wallpaper, ".jpg", context, (IProgress<string>)progress)]);
+        await service.IngestPageAsync([wallpaper], run);
+
+        newWallpaperIngestor.Ingested.ShouldBe([(wallpaper, ".jpg", run)]);
     }
 
     [Fact]
@@ -223,7 +226,7 @@ public sealed class GivenAWallpaperIngestionService
         };
         using var client = new HttpClient();
 
-        _ = await Should.ThrowAsync<OperationCanceledException>(() => service.IngestPageAsync([CreateWallpaper("first"), CreateWallpaper("second")], new WallpaperIngestionContext(new SaveDirectories("some-directory", "famous-some-directory", ""), client, fileRepository, "resolved-category", []), progress, cancellationTokenSource.Token));
+        _ = await Should.ThrowAsync<OperationCanceledException>(() => service.IngestPageAsync([CreateWallpaper("first"), CreateWallpaper("second")], IngestionRuns.Create(new WallpaperIngestionContext(new SaveDirectories("some-directory", "famous-some-directory", ""), client, fileRepository, "resolved-category", []), progress, cancellationTokenSource.Token)));
 
         (await Task.WhenAny(prefetchEnded.Task, Task.Delay(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken))).ShouldBe(prefetchEnded.Task);
     }
@@ -242,7 +245,7 @@ public sealed class GivenAWallpaperIngestionService
     {
         using var client = new HttpClient();
 
-        return await service.IngestPageAsync(wallpapers, new WallpaperIngestionContext(new SaveDirectories("some-directory", "famous-some-directory", ""), client, fileRepository, "resolved-category", []), progress, CancellationToken.None);
+        return await service.IngestPageAsync(wallpapers, IngestionRuns.Create(new WallpaperIngestionContext(new SaveDirectories("some-directory", "famous-some-directory", ""), client, fileRepository, "resolved-category", []), progress));
     }
 
     private static Data CreateWallpaper(string id, string path = "")
@@ -252,7 +255,7 @@ public sealed class GivenAWallpaperIngestionService
     {
         private readonly Lock gate = new();
         private readonly List<string> fetched = [];
-        private readonly List<(Data Wallpaper, string Extension, WallpaperIngestionContext Context, IProgress<string> Progress)> ingested = [];
+        private readonly List<(Data Wallpaper, string Extension, IngestionRun Run)> ingested = [];
         private readonly Dictionary<string, IReadOnlyList<Tag>> tagsIngested = [];
         private int concurrentFetches;
         private int concurrentIngests;
@@ -265,7 +268,7 @@ public sealed class GivenAWallpaperIngestionService
             }
         }
 
-        public IReadOnlyList<(Data Wallpaper, string Extension, WallpaperIngestionContext Context, IProgress<string> Progress)> Ingested
+        public IReadOnlyList<(Data Wallpaper, string Extension, IngestionRun Run)> Ingested
         {
             get
             {
@@ -295,7 +298,7 @@ public sealed class GivenAWallpaperIngestionService
 
         public static Tag TagFor(Data wallpaper) => new(1, wallpaper.Id, wallpaper.Id, 1, "Other Figures", "sfw");
 
-        public async Task<Option<IReadOnlyList<Tag>>> FetchTagsAsync(Data wallpaper, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+        public async Task<Option<IReadOnlyList<Tag>>> FetchTagsAsync(Data wallpaper, IngestionRun run)
         {
             lock (gate)
             {
@@ -305,7 +308,7 @@ public sealed class GivenAWallpaperIngestionService
 
             try
             {
-                await OnFetch(wallpaper, cancellationToken);
+                await OnFetch(wallpaper, run.CancellationToken);
 
                 return FailedFetches.Contains(wallpaper.Id) ? Option.None<IReadOnlyList<Tag>>() : Option.Some<IReadOnlyList<Tag>>([TagFor(wallpaper)]);
             }
@@ -315,16 +318,16 @@ public sealed class GivenAWallpaperIngestionService
             }
         }
 
-        public async Task<IngestOutcome> IngestAsync(WallpaperCandidate candidate, IReadOnlyList<Tag> tags, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+        public async Task<IngestOutcome> IngestAsync(WallpaperCandidate candidate, IReadOnlyList<Tag> tags, IngestionRun run)
         {
             lock (gate) MaximumConcurrentIngests = Math.Max(MaximumConcurrentIngests, ++concurrentIngests);
 
             try
             {
-                await OnIngest(candidate.Wallpaper, cancellationToken);
+                await OnIngest(candidate.Wallpaper, run.CancellationToken);
                 lock (gate)
                 {
-                    ingested.Add((candidate.Wallpaper, candidate.Extension, context, progress));
+                    ingested.Add((candidate.Wallpaper, candidate.Extension, run));
                     tagsIngested[candidate.Wallpaper.Id] = tags;
                 }
 

@@ -19,7 +19,7 @@ public sealed class PageIngestionStep(IWallpaperIngestionService wallpaperIngest
     {
         try
         {
-            var outcome = await wallpaperIngestionService.IngestPageAsync(page.Response.Data, run.Context, run.Progress, run.CancellationToken);
+            var outcome = await wallpaperIngestionService.IngestPageAsync(page.Response.Data, run);
             if (recordProgress && outcome == IngestOutcome.Complete) run.Request.Hooks.OnPageCompleted(new SearchCategoryProgress(page.Response.Meta.Total, page.Number, page.Response.Meta.LastPage));
             _ = await unitOfWork.SaveChangesAsync(run.CancellationToken);
 
