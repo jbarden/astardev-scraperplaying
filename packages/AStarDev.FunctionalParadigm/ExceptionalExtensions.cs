@@ -16,6 +16,10 @@ public static class ExceptionalExtensions
                 _ => throw new InvalidOperationException(UnexpectedExceptionalTypeMessage + $" Type: {exceptional.GetType().FullName}")
             };
 
+        /// <summary>Returns the value of a <see cref="Success{T}" />, or throws the captured exception of a <see cref="Failure{T}" />.</summary>
+        public T GetOrThrow()
+            => exceptional.Match(value => value, exception => throw exception);
+
         /// <summary>Asynchronously pattern matches on the <see cref="Exceptional{T}" />, invoking the async success handler.</summary>
         public async Task<TOut> MatchAsync<TOut>(Func<T, Task<TOut>> onSuccess, Func<Exception, TOut> onFailure)
             => exceptional switch

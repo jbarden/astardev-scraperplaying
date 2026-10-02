@@ -30,7 +30,7 @@ public sealed class TagFetcher(IJsonResponseProcessor jsonResponseProcessor, ITa
     {
         if (flagStore.IsLoaded) return;
 
-        flagStore.Load(TagFlagCache.From((await tagsQuery.GetFlagsAsync(cancellationToken)).Match(found => found, exception => throw exception)));
+        flagStore.Load(TagFlagCache.From((await tagsQuery.GetFlagsAsync(cancellationToken)).GetOrThrow()));
     }
 
     private static bool IsFamous(TagFlagCache flagCache, Tag tag, IReadOnlyList<string> personCategories)

@@ -15,9 +15,9 @@ public sealed class DownloadsClearer(IScopedRunner scopedRunner, IFileSystem fil
         return await scopedRunner.RunAsync<IScrapeConfigurationLookup, IFileDetailsClearer, Exceptional<ClearedDownloads>>((lookup, detailsClearer) => Try.RunAsync(async () =>
         {
             var directories = (await lookup.TryGetRootDirectoriesAsync(cancellationToken))
-                .Match(found => found, exception => throw exception)
+                .GetOrThrow()
                 .Match(found => found, () => throw new InvalidOperationException("No scrape configuration exists."));
-            var fileRecords = (await detailsClearer.ClearAsync(cancellationToken)).Match(count => count, exception => throw exception);
+            var fileRecords = (await detailsClearer.ClearAsync(cancellationToken)).GetOrThrow();
 
             fileSystem.EmptyDirectory(directories.Root);
             fileSystem.EmptyDirectory(directories.FamousRoot);

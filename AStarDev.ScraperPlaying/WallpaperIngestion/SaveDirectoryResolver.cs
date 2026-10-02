@@ -27,7 +27,7 @@ public sealed class SaveDirectoryResolver(IScrapeConfigurationLookup lookup) : I
         if (rootDirectories is Option<RootDirectories>.Some cached) return cached.Value;
 
         var loaded = (await lookup.TryGetRootDirectoriesAsync(cancellationToken))
-            .Match(found => found, exception => throw exception)
+            .GetOrThrow()
             .Match(directories => directories, () => throw new InvalidOperationException("No scrape configuration exists."));
 
         rootDirectories = Option.Some(loaded);

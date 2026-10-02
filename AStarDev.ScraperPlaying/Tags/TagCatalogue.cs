@@ -21,7 +21,7 @@ public sealed class TagCatalogue(IScopedRunner scopedRunner) : ITagCatalogue
 
         return await scopedRunner.RunAsync<ITagsQuery, IUnitOfWork, Exceptional<Unit>>((query, unitOfWork) => Try.RunAsync(async () =>
         {
-            var tags = (await query.FindByWallhavenIdsAsync([.. flagsByWallhavenId.Keys], cancellationToken)).Match(found => found, exception => throw exception);
+            var tags = (await query.FindByWallhavenIdsAsync([.. flagsByWallhavenId.Keys], cancellationToken)).GetOrThrow();
             foreach (var tag in tags)
             {
                 var flags = flagsByWallhavenId[tag.WallhavenTagId];

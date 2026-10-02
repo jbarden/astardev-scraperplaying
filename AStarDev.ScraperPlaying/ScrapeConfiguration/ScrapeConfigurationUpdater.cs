@@ -13,7 +13,7 @@ public sealed class ScrapeConfigurationUpdater(IScopedRunner scopedRunner) : ISc
     {
         return await scopedRunner.RunAsync<IUnitOfWork, Exceptional<Option<Unit>>>(unitOfWork => Try.RunAsync(async () =>
         {
-            var found = (await unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().TryFindAsync(id, cancellationToken)).Match(option => option, exception => throw exception);
+            var found = (await unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>().TryFindAsync(id, cancellationToken)).GetOrThrow();
             if (found is not Option<ScrapeConfigurationEntity>.Some some) return Option.None<Unit>();
 
             foreach (var edit in edits) edit.ApplyTo(some.Value);

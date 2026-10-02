@@ -21,7 +21,7 @@ public sealed class WallpaperSaver(IImageDownloader imageDownloader, IWallpaperF
         progress.Report($"Downloaded image data for wallpaper {request.Wallpaper.Id}");
         cancellationToken.ThrowIfCancellationRequested();
 
-        var entity = fileRecorder.Record(context.FileRepository, request).Match(recorded => recorded, exception => throw exception);
+        var entity = fileRecorder.Record(context.FileRepository, request).GetOrThrow();
         imageDownloadNotifier.NotifyImageDownloaded(new WallpaperDownloadDetails(savedPath, new WallpaperInfo(request.FileName.Value, request.CategoryLabel, request.Wallpaper.FileSize, request.Wallpaper.DimensionX, request.Wallpaper.DimensionY)));
 
         return entity;
