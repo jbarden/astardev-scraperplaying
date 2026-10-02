@@ -91,6 +91,49 @@ public sealed class GivenAScrapeConfigurationLookup : IDisposable
         result.Match(option => option, exception => throw exception).ShouldBe(Option.None<RootDirectories>());
     }
 
+    [Fact]
+    public async Task when_several_configurations_exist_then_the_root_directory_comes_from_the_one_with_the_lowest_id()
+    {
+        await AddConfigurationsHighestIdFirstAsync();
+        var lookup = new ScrapeConfigurationLookup(context);
+
+        var result = await lookup.TryGetRootDirectoryAsync(TestContext.Current.CancellationToken);
+
+        result.Match(option => option, exception => throw exception).ShouldBe(Option.Some("root-of-lowest"));
+    }
+
+    [Fact]
+    public async Task when_several_configurations_exist_then_the_root_directories_come_from_the_one_with_the_lowest_id()
+    {
+        await AddConfigurationsHighestIdFirstAsync();
+        var lookup = new ScrapeConfigurationLookup(context);
+
+        var result = await lookup.TryGetRootDirectoriesAsync(TestContext.Current.CancellationToken);
+
+        result.Match(option => option, exception => throw exception).ShouldBe(Option.Some(new RootDirectories("root-of-lowest", "root-directory-famous")));
+    }
+
+    [Fact]
+    public async Task when_several_configurations_exist_then_the_headers_are_listed_in_id_order()
+    {
+        await AddConfigurationsHighestIdFirstAsync();
+        var lookup = new ScrapeConfigurationLookup(context);
+
+        var result = await lookup.ListHeadersAsync(TestContext.Current.CancellationToken);
+
+        result.Match(list => list, exception => throw exception).Select(header => header.Id.Value).ShouldBe([LowestId, HighestId]);
+    }
+
+    private static readonly Guid LowestId = Guid.Parse("11111111-1111-7111-8111-111111111111");
+    private static readonly Guid HighestId = Guid.Parse("eeeeeeee-eeee-7eee-8eee-eeeeeeeeeeee");
+
+    private async Task AddConfigurationsHighestIdFirstAsync()
+    {
+        _ = await context.ScrapeConfigurations.AddAsync(ScrapeConfigurationEntityFactory.CreateScrapeConfigurationEntity(HighestId, "root-of-highest"), TestContext.Current.CancellationToken);
+        _ = await context.ScrapeConfigurations.AddAsync(ScrapeConfigurationEntityFactory.CreateScrapeConfigurationEntity(LowestId, "root-of-lowest"), TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
     public void Dispose()
     {
         if (disposed) return;

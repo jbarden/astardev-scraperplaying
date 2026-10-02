@@ -13,6 +13,7 @@ public sealed class ScrapeConfigurationLookup(ControlDbContext context) : IScrap
         {
             var rows = await context.ScrapeConfigurations
                 .AsNoTracking()
+                .InFirstOrder()
                 .Select(configuration => new { configuration.Id, configuration.BaseUrl, configuration.SearchConfiguration.SearchTerm })
                 .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
@@ -26,6 +27,7 @@ public sealed class ScrapeConfigurationLookup(ControlDbContext context) : IScrap
         {
             var rootDirectories = await context.ScrapeConfigurations
                 .AsNoTracking()
+                .InFirstOrder()
                 .Select(configuration => configuration.ScrapeDirectories.RootDirectory)
                 .Take(1)
                 .ToListAsync(cancellationToken)
@@ -40,6 +42,7 @@ public sealed class ScrapeConfigurationLookup(ControlDbContext context) : IScrap
         {
             var rows = await context.ScrapeConfigurations
                 .AsNoTracking()
+                .InFirstOrder()
                 .Select(configuration => new { configuration.ScrapeDirectories.RootDirectory, configuration.ScrapeDirectories.RootDirectoryFamous })
                 .Take(1)
                 .ToListAsync(cancellationToken)
