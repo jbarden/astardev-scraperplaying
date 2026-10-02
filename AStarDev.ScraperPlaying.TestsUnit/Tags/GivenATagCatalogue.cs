@@ -12,12 +12,13 @@ public sealed class GivenATagCatalogue : IDisposable
 {
     private readonly FakeTagsQuery query = new();
     private readonly FakeUnitOfWork unitOfWork = new();
+    private readonly FakeIgnoredWallpapers ignoredWallpapers = new();
     private readonly ServiceProvider serviceProvider;
     private readonly TagCatalogue catalogue;
 
     public GivenATagCatalogue()
     {
-        serviceProvider = new ServiceCollection().AddScoped<ITagsQuery>(_ => query).AddScoped<IUnitOfWork>(_ => unitOfWork).BuildServiceProvider();
+        serviceProvider = new ServiceCollection().AddScoped<ITagsQuery>(_ => query).AddScoped<IUnitOfWork>(_ => unitOfWork).AddScoped<IIgnoredWallpapers>(_ => ignoredWallpapers).BuildServiceProvider();
         catalogue = new TagCatalogue(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()));
     }
 
@@ -50,6 +51,59 @@ public sealed class GivenATagCatalogue : IDisposable
         var result = await catalogue.SaveFlagsAsync(new Dictionary<int, TagFlags> { [1] = new(true, false, true), [2] = new(false, true, false) }, TestContext.Current.CancellationToken);
 
         (result.Match(_ => true, _ => false), string.Join(",", query.Tags.Select(tag => $"{tag.IgnoreImage}/{tag.IsName}/{tag.IsFamous}")), unitOfWork.SaveCount).ShouldBe((true, "True/False/True,False/True/False,False/False/False", 1));
+    }
+
+    [Fact]
+    public async Task when_a_tag_starts_being_ignored_then_the_remembered_ignored_wallpapers_are_forgotten()
+    {
+        query.Tags.Add(CreateTag(1, "cats", ignoreImage: false));
+
+        _ = await catalogue.SaveFlagsAsync(new Dictionary<int, TagFlags> { [1] = new(true, false, false) }, TestContext.Current.CancellationToken);
+
+        ignoredWallpapers.ForgetCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task when_a_tag_stops_being_ignored_then_the_remembered_ignored_wallpapers_are_forgotten()
+    {
+        query.Tags.Add(CreateTag(1, "cats", ignoreImage: true));
+
+        _ = await catalogue.SaveFlagsAsync(new Dictionary<int, TagFlags> { [1] = new(false, false, false) }, TestContext.Current.CancellationToken);
+
+        ignoredWallpapers.ForgetCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task when_no_ignore_flag_changes_then_the_remembered_ignored_wallpapers_are_kept()
+    {
+        query.Tags.AddRange([CreateTag(1, "cats", ignoreImage: true), CreateTag(2, "dogs", ignoreImage: false)]);
+
+        _ = await catalogue.SaveFlagsAsync(new Dictionary<int, TagFlags> { [1] = new(true, true, true), [2] = new(false, true, false) }, TestContext.Current.CancellationToken);
+
+        ignoredWallpapers.ForgetCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task when_saving_the_flags_fails_then_the_remembered_ignored_wallpapers_are_kept()
+    {
+        query.Tags.Add(CreateTag(1, "cats", ignoreImage: false));
+        unitOfWork.OnSave = _ => throw new InvalidOperationException("save failed");
+
+        _ = await catalogue.SaveFlagsAsync(new Dictionary<int, TagFlags> { [1] = new(true, false, false) }, TestContext.Current.CancellationToken);
+
+        ignoredWallpapers.ForgetCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task when_forgetting_the_ignored_wallpapers_fails_then_the_failure_is_returned()
+    {
+        var failure = new InvalidOperationException("forget failed");
+        query.Tags.Add(CreateTag(1, "cats", ignoreImage: false));
+        ignoredWallpapers.ForgetResult = failure;
+
+        var result = await catalogue.SaveFlagsAsync(new Dictionary<int, TagFlags> { [1] = new(true, false, false) }, TestContext.Current.CancellationToken);
+
+        result.Match(_ => (Exception?)null, exception => exception).ShouldBeSameAs(failure);
     }
 
     [Fact]

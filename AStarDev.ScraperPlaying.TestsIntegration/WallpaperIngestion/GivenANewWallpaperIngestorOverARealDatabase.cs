@@ -28,6 +28,7 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
     private readonly MockFileSystem fileSystem = new();
     private readonly ImageDownloadNotifier notifier = new();
     private readonly CapturingProgress progress = new();
+    private int detailRequests;
     private bool disposed;
 
     public GivenANewWallpaperIngestorOverARealDatabase()
@@ -83,6 +84,32 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
         stored.LinkedTags.ShouldBeEmpty();
     }
 
+    [Fact]
+    public async Task when_a_wallpaper_is_ignored_then_it_is_recorded_once_and_the_next_scrape_does_not_fetch_its_tags_again()
+    {
+        await SeedIgnoredTagAsync(2, "unwanted");
+        object[] tags = [WallhavenTag(1, "landscape"), WallhavenTag(2, "unwanted")];
+
+        await IngestPage("ignored-wallpaper", tags, TestContext.Current.CancellationToken);
+        var detailRequestsAfterFirstScrape = detailRequests;
+        await IngestPage("ignored-wallpaper", tags, TestContext.Current.CancellationToken);
+
+        (detailRequestsAfterFirstScrape, detailRequests).ShouldBe((1, 1));
+        (await ReadIgnoredHandlesAsync()).ShouldBe(["ignored-wallpaper"]);
+        (await ReadStoredAsync()).Files.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task when_a_wallpaper_is_not_ignored_then_it_is_stored_and_not_remembered_as_ignored()
+    {
+        await SeedIgnoredTagAsync(2, "unwanted");
+
+        await IngestPage("kept-wallpaper", [WallhavenTag(1, "landscape")], TestContext.Current.CancellationToken);
+
+        (await ReadStoredAsync()).Files.ShouldBe(["kept-wallpaper.jpg"]);
+        (await ReadIgnoredHandlesAsync()).ShouldBeEmpty();
+    }
+
     public void Dispose()
     {
         Dispose(true);
@@ -101,16 +128,36 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
         if (File.Exists(databasePath)) File.Delete(databasePath);
     }
 
+    private NewWallpaperIngestor CreateIngestor(IServiceProvider scopedServices, Exception? linkFailure = null)
+    {
+        var unitOfWork = scopedServices.GetRequiredService<IUnitOfWork>();
+        var tagsQuery = scopedServices.GetRequiredService<ITagsQuery>();
+        var flagStore = new TagFlagStore();
+
+        return new NewWallpaperIngestor(
+            new TagFetcher(new JsonResponseProcessor(), tagsQuery, flagStore),
+            new TagLinker(tagsQuery, unitOfWork, linkFailure is null ? scopedServices.GetRequiredService<IFileTagRepository>() : new FailingFileTagRepository(linkFailure), flagStore),
+            new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None, ScrapeTimeouts.Default), new WallpaperFileRecorder(System.TimeProvider.System), notifier),
+            scopedServices.GetRequiredService<IIgnoredWallpapers>());
+    }
+
+    private async Task IngestPage(string wallpaperId, object[] tags, CancellationToken cancellationToken)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+        var service = new WallpaperIngestionService(scope.ServiceProvider.GetRequiredService<IFilesQuery>(), CreateIngestor(scope.ServiceProvider));
+        using var client = CreateClient(HttpStatusCode.OK, tags);
+        var context = new WallpaperIngestionContext(new SaveDirectories("save-directory", "famous-save-directory", ""), client, unitOfWork.GetRepository<FileEntity, FileId>(), "category", PersonCategories);
+
+        _ = await service.IngestPageAsync([new Data(wallpaperId, 0, 0, 0, "", "https://example.test/image.jpg")], context, progress, cancellationToken);
+        _ = await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
     private async Task Ingest(string wallpaperId, HttpStatusCode imageStatus, object[] tags, CancellationToken cancellationToken, Exception? linkFailure = null)
     {
         using var scope = serviceProvider.CreateScope();
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-        var tagsQuery = scope.ServiceProvider.GetRequiredService<ITagsQuery>();
-        var flagStore = new TagFlagStore();
-        var ingestor = new NewWallpaperIngestor(
-            new TagFetcher(new JsonResponseProcessor(), tagsQuery, flagStore),
-            new TagLinker(tagsQuery, unitOfWork, linkFailure is null ? scope.ServiceProvider.GetRequiredService<IFileTagRepository>() : new FailingFileTagRepository(linkFailure), flagStore),
-            new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None, ScrapeTimeouts.Default), new WallpaperFileRecorder(System.TimeProvider.System), notifier));
+        var ingestor = CreateIngestor(scope.ServiceProvider, linkFailure);
         using var client = CreateClient(imageStatus, tags);
         var wallpaper = new Data(wallpaperId, 0, 0, 0, "", "https://example.test/image.jpg");
         var context = new WallpaperIngestionContext(new SaveDirectories("save-directory", "famous-save-directory", ""), client, unitOfWork.GetRepository<FileEntity, FileId>(), "category", PersonCategories);
@@ -135,13 +182,36 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
     }
 
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient owns and disposes the handler.")]
-    private static HttpClient CreateClient(HttpStatusCode imageStatus, object[] tags)
+    private HttpClient CreateClient(HttpStatusCode imageStatus, object[] tags)
         => new(new StubHttpMessageHandler(request => Respond(request, imageStatus, tags))) { BaseAddress = new Uri("https://example.test/") };
 
-    private static HttpResponseMessage Respond(HttpRequestMessage request, HttpStatusCode imageStatus, object[] tags)
-        => request.RequestUri!.AbsolutePath.StartsWith($"/{ApplicationConstants.WallhavenDetailPathTemplate}", StringComparison.Ordinal)
-            ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(new { data = new { tags } }), System.Text.Encoding.UTF8, "application/json") }
-            : new HttpResponseMessage(imageStatus) { Content = new ByteArrayContent(ImageBytes) };
+    private HttpResponseMessage Respond(HttpRequestMessage request, HttpStatusCode imageStatus, object[] tags)
+    {
+        if (!IsDetailRequest(request)) return new HttpResponseMessage(imageStatus) { Content = new ByteArrayContent(ImageBytes) };
+
+        _ = Interlocked.Increment(ref detailRequests);
+
+        return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(new { data = new { tags } }), System.Text.Encoding.UTF8, "application/json") };
+    }
+
+    private static bool IsDetailRequest(HttpRequestMessage request)
+        => request.RequestUri!.AbsolutePath.StartsWith($"/{ApplicationConstants.WallhavenDetailPathTemplate}", StringComparison.Ordinal);
+
+    private async Task SeedIgnoredTagAsync(int wallhavenTagId, string name)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ControlDbContext>();
+        _ = await context.Tags.AddAsync(new TagEntity { WallhavenTagId = wallhavenTagId, Name = name, IgnoreImage = true }, TestContext.Current.CancellationToken);
+        _ = await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    private async Task<IReadOnlyList<string>> ReadIgnoredHandlesAsync()
+    {
+        using var scope = serviceProvider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ControlDbContext>();
+
+        return [.. (await context.IgnoredWallpapers.ToListAsync(TestContext.Current.CancellationToken)).Select(ignored => ignored.FileHandle.Value)];
+    }
 
     private static object WallhavenTag(int id, string name)
         => new { id, name, alias = name, category_id = 1, category = "Nature", purity = "sfw" };

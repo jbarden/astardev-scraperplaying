@@ -23,7 +23,7 @@ public sealed class GivenAWallpaperIngestionServiceWithPersonTags
 
     public GivenAWallpaperIngestionServiceWithPersonTags()
     {
-        var newWallpaperIngestor = new NewWallpaperIngestor(tagsProcessor, tagsProcessor, new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None, ScrapeTimeouts.Default), new WallpaperFileRecorder(new FakeTimeProvider(DateTimeOffset.UnixEpoch)), new ImageDownloadNotifier()));
+        var newWallpaperIngestor = new NewWallpaperIngestor(tagsProcessor, tagsProcessor, new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None, ScrapeTimeouts.Default), new WallpaperFileRecorder(new FakeTimeProvider(DateTimeOffset.UnixEpoch)), new ImageDownloadNotifier()), new FakeIgnoredWallpapers());
         service = new(filesQuery, newWallpaperIngestor);
     }
 

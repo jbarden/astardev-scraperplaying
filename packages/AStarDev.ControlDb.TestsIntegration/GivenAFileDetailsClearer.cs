@@ -46,6 +46,18 @@ public sealed class GivenAFileDetailsClearer : IDisposable
     }
 
     [Fact]
+    public async Task when_files_are_cleared_then_the_remembered_ignored_wallpapers_are_forgotten_but_not_counted()
+    {
+        await context.Files.AddAsync(FileEntityFactory.CreateFileEntity(), TestContext.Current.CancellationToken);
+        await context.IgnoredWallpapers.AddRangeAsync([new IgnoredWallpaperEntity { FileHandle = FileHandle.Create("first") }, new IgnoredWallpaperEntity { FileHandle = FileHandle.Create("second") }], TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await new FileDetailsClearer(context).ClearAsync(TestContext.Current.CancellationToken);
+
+        (result.Match(count => count, exception => throw exception), await context.IgnoredWallpapers.CountAsync(TestContext.Current.CancellationToken)).ShouldBe((1, 0));
+    }
+
+    [Fact]
     public async Task when_files_are_cleared_then_the_tags_are_left_alone()
     {
         var tag = TagEntityFactory.CreateTagEntity();

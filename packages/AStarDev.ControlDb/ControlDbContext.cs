@@ -122,6 +122,9 @@ public class ControlDbContext(DbContextOptions<ControlDbContext> options, IQuery
 
     public DbSet<TagEntity> Tags => Set<TagEntity>();
 
+    /// <summary>Gets the handles of the wallpapers that were ignored because of a tag flagged to ignore images.</summary>
+    public DbSet<IgnoredWallpaperEntity> IgnoredWallpapers => Set<IgnoredWallpaperEntity>();
+
     public DbSet<FileTagEntity> FileTags => Set<FileTagEntity>();
 
     /// <inheritdoc />

@@ -27,6 +27,7 @@ public static class DataServices
             .AddScoped<IScrapeConfigurationLookup, ScrapeConfigurationLookup>()
             .AddScoped<IFilesQuery, FilesQuery>()
             .AddScoped<IFileDetailsClearer, FileDetailsClearer>()
+            .AddScoped<IIgnoredWallpapers, IgnoredWallpapers>()
             .AddScoped<ITagsQuery, TagsQuery>()
             .AddScoped<IFileTagRepository, FileTagRepository>()
             .AddDbContextFactory<ControlDbContext>((serviceProvider, options) => options.UseSqlite($"Data Source={databasePath}"))
