@@ -36,6 +36,16 @@ public sealed class GivenAPageIngestionStep : IDisposable
     }
 
     [Fact]
+    public async Task when_a_page_is_ingested_then_the_search_total_is_made_available_to_the_ingestion()
+    {
+        var run = CreateRun(_ => { });
+
+        await step.IngestPageAsync(run, new FetchedPage(1, new SearchResponse([new Data("w", 0, 0, 0, "", "")], new Meta(47, 1124))), recordProgress: true);
+
+        ingestionService.TotalSeen.ShouldBe(1124);
+    }
+
+    [Fact]
     public async Task when_a_wallpaper_on_the_page_was_not_ingested_then_no_progress_is_reported_but_the_page_is_still_saved_and_reported_incomplete()
     {
         ingestionService.Outcome = IngestOutcome.Incomplete;
@@ -135,9 +145,12 @@ public sealed class GivenAPageIngestionStep : IDisposable
 
         public IngestOutcome Outcome { get; set; } = IngestOutcome.Complete;
 
+        public int TotalSeen { get; private set; }
+
         public Task<IngestOutcome> IngestPageAsync(IReadOnlyList<Data> wallpapers, IngestionRun run)
         {
             OnIngest();
+            TotalSeen = run.Tally.Total;
 
             return Task.FromResult(Outcome);
         }

@@ -39,8 +39,22 @@ public sealed class GivenAWallpaperFiler
         var outcome = await File("filed-wallpaper", CancellationToken.None);
 
         (outcome, fileRepository.Added.Single().Id).ShouldBe((IngestOutcome.Complete, recorded));
-        notifications.ShouldBe([new WallpaperDownloadDetails("saved.jpg", new WallpaperInfo("filed-wallpaper.jpg", "category", 5, 1920, 1080))]);
+        notifications.ShouldBe([new WallpaperDownloadDetails("saved.jpg", new WallpaperInfo("filed-wallpaper.jpg", "category", 5, 1920, 1080, new SearchCount(1, 0)))]);
         fileRepository.Deleted.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task when_several_wallpapers_of_a_search_are_filed_then_each_is_announced_with_its_running_count_and_the_search_total()
+    {
+        using var client = new HttpClient();
+        var context = new WallpaperIngestionContext(new SearchOutput(new SaveDirectories("some-directory", "famous-some-directory", ""), "category"), client, fileRepository, []);
+        var run = IngestionRuns.Create(context, progress, TestContext.Current.CancellationToken);
+        run.Tally.Total = 1124;
+
+        await filer.FileAsync(new WallpaperCandidate(new Data("first", 1920, 1080, 5, "image/jpeg", "https://example.test/first.jpg"), ".jpg"), [], run);
+        await filer.FileAsync(new WallpaperCandidate(new Data("second", 1920, 1080, 5, "image/jpeg", "https://example.test/second.jpg"), ".jpg"), [], run);
+
+        notifications.Select(details => details.Info.Count).ShouldBe([new SearchCount(1, 1124), new SearchCount(2, 1124)]);
     }
 
     [Fact]

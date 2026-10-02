@@ -126,7 +126,7 @@ public sealed class GivenANewWallpaperIngestor
 
         await Ingest(wallpaper, ".jpg");
 
-        notifications.ShouldBe([new WallpaperDownloadDetails(fileSystem.Path.Combine("some-directory", "wallpaper-3.jpg"), new WallpaperInfo("wallpaper-3.jpg", "resolved-category", 5, 1920, 1080))]);
+        notifications.ShouldBe([new WallpaperDownloadDetails(fileSystem.Path.Combine("some-directory", "wallpaper-3.jpg"), new WallpaperInfo("wallpaper-3.jpg", "resolved-category", 5, 1920, 1080, new SearchCount(1, 0)))]);
     }
 
     [Fact]

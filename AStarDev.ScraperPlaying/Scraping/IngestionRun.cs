@@ -7,4 +7,8 @@ namespace AStarDev.ScraperPlaying.Scraping;
 /// <param name="Context">The per-scrape ingestion state, including the HTTP client.</param>
 /// <param name="Progress">Receives status messages.</param>
 /// <param name="CancellationToken">Cancels the scrape.</param>
-public sealed record IngestionRun(PageScrapeRequest Request, WallpaperIngestionContext Context, IProgress<string> Progress, CancellationToken CancellationToken);
+public sealed record IngestionRun(PageScrapeRequest Request, WallpaperIngestionContext Context, IProgress<string> Progress, CancellationToken CancellationToken)
+{
+    /// <summary>Gets the running count of the wallpapers this scrape has downloaded.</summary>
+    public ScrapeTally Tally { get; } = new();
+}
