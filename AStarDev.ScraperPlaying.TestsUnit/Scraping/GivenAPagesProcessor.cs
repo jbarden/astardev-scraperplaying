@@ -6,6 +6,7 @@ using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 using AStarDev.ScraperPlaying.TestsUnit.Fakes;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Time.Testing;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.Scraping;
 
@@ -95,6 +96,34 @@ public sealed class GivenAPagesProcessor
         progress.Messages.ShouldContain("Fetching wallpapers page 4.");
         progress.Messages.ShouldNotContain(message => message.Contains("page 5"));
         unitOfWork.SaveCount.ShouldBe(4);
+    }
+
+    [Fact]
+    public async Task when_the_scrape_resumes_part_way_then_the_wallpapers_on_the_pages_resumed_past_count_as_skipped()
+    {
+        SetUpPage(3, CreateSearchResponse(lastPage: 3, total: 6, CreateWallpaper("a"), CreateWallpaper("b")));
+
+        await Fetch(Option.Some(new SearchCategoryProgress(6, 2, 3)), CancellationToken.None);
+
+        wallpaperIngestionService.CountsSeen.ShouldBe([4]);
+    }
+
+    [Fact]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2025:Ensure tasks using 'IDisposable' instances complete before the instances are disposed", Justification = "The fetch is awaited before the test ends; the clock must advance while it is pending.")]
+    public async Task when_there_is_another_page_then_the_pacing_delay_passes_before_it_is_fetched()
+    {
+        var clock = new FakeTimeProvider();
+        var pacedProcessor = new PagesProcessor(new WallpaperIngestionContextFactory(new FakeClientFactory(), unitOfWork, new FakeSaveDirectoryResolver()), pageFetcher, new PageIngestionStep(wallpaperIngestionService, unitOfWork), new ScrapeResumePolicy(new ScrapeLimits(3, 4)), new DownloadPacing(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2)), clock);
+        SetUpPage(page: null, CreateSearchResponse(lastPage: 2));
+
+        var fetch = pacedProcessor.FetchAndProcessPagesAsync(CreateRequest("wallpapers", Option.None<string>(), Option.None<SearchCategoryProgress>(), _ => { }), progress, TestContext.Current.CancellationToken);
+        await Task.Yield();
+        clock.Advance(TimeSpan.FromSeconds(1.9));
+        var fetchedBeforeTheDelay = progress.Messages.Count(message => message.StartsWith("Fetched ", StringComparison.Ordinal) || message.Contains("page 2", StringComparison.Ordinal));
+        clock.Advance(TimeSpan.FromSeconds(0.2));
+        await fetch;
+
+        (fetchedBeforeTheDelay, progress.Messages.Count(message => message.Contains("page 2", StringComparison.Ordinal))).ShouldBe((0, 1));
     }
 
     [Fact]
@@ -351,7 +380,7 @@ public sealed class GivenAPagesProcessor
     }
 
     private PagesProcessor CreateProcessor(ScrapeLimits limits)
-        => new(new WallpaperIngestionContextFactory(new FakeClientFactory(), unitOfWork, new FakeSaveDirectoryResolver()), pageFetcher, new PageIngestionStep(wallpaperIngestionService, unitOfWork), new ScrapeResumePolicy(limits));
+        => new(new WallpaperIngestionContextFactory(new FakeClientFactory(), unitOfWork, new FakeSaveDirectoryResolver()), pageFetcher, new PageIngestionStep(wallpaperIngestionService, unitOfWork), new ScrapeResumePolicy(limits), DownloadPacing.None, TimeProvider.System);
 
     private Task FetchWithCancellation(CancellationToken cancellationToken)
         => Fetch(Option.None<SearchCategoryProgress>(), cancellationToken);
@@ -441,11 +470,15 @@ public sealed class GivenAPagesProcessor
     {
         public Action OnIngest { get; set; } = () => { };
 
+        /// <summary>The wallpapers the scrape had got through when each page was handed over for ingestion.</summary>
+        public List<int> CountsSeen { get; } = [];
+
         /// <summary>The outcome for each page (by the first wallpaper's id) that should not be complete.</summary>
         public HashSet<string> IncompletePages { get; } = [];
 
         public Task<IngestOutcome> IngestPageAsync(IReadOnlyList<Data> wallpapers, IngestionRun run)
         {
+            CountsSeen.Add(run.Tally.Current);
             var (context, progress) = (run.Context, run.Progress);
             progress.Report($"Ingested page of {wallpapers.Count}.");
             foreach (var wallpaper in wallpapers) progress.Report($"Ingested {wallpaper.Id} into {context.Output.Directories.Root}|{context.Output.Directories.FamousRoot}|{context.Output.Directories.CategorySegment} as {context.Output.CategoryLabel} with people {string.Join(",", context.PersonCategories)}.");

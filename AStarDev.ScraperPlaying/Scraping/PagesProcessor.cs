@@ -7,7 +7,7 @@ using AStarDev.Utilities;
 namespace AStarDev.ScraperPlaying.Scraping;
 
 /// <inheritdoc/>
-public sealed class PagesProcessor(IWallpaperIngestionContextFactory contextFactory, IWallhavenPageFetcher pageFetcher, PageIngestionStep ingestionStep, ScrapeResumePolicy resumePolicy) : IPagesProcessor
+public sealed class PagesProcessor(IWallpaperIngestionContextFactory contextFactory, IWallhavenPageFetcher pageFetcher, PageIngestionStep ingestionStep, ScrapeResumePolicy resumePolicy, DownloadPacing pacing, TimeProvider timeProvider) : IPagesProcessor
 {
     /// <inheritdoc/>
     public async Task FetchAndProcessPagesAsync(PageScrapeRequest request, IProgress<string> progress, CancellationToken cancellationToken)
@@ -34,10 +34,11 @@ public sealed class PagesProcessor(IWallpaperIngestionContextFactory contextFact
         return fetched;
     }
 
-    /// <summary>Visits each page in turn. Once a page is not fully ingested, no later page records progress either, so the next scrape resumes at that page and retries it. Recording itself is left to <see cref="PageIngestionStep"/>; the withheld-progress message is only given when there is stored progress to withhold (not for hot and top, which always restart at page 1).</summary>
+    /// <summary>Visits each page in turn, waiting before every page after the first so a run of pages that need no downloads does not hit the API rate limit, and counting the pages resumed past as skipped. Once a page is not fully ingested, no later page records progress either, so the next scrape resumes at that page and retries it. Recording itself is left to <see cref="PageIngestionStep"/>; the withheld-progress message is only given when there is stored progress to withhold (not for hot and top, which always restart at page 1).</summary>
     private async Task IngestPagesAsync(IngestionRun run, FetchedPage startPage)
     {
         var current = startPage;
+        run.Tally.RecordSkipped((startPage.Number - 1) * startPage.Response.Data.Count);
         var progressWithheld = false;
         while (true)
         {
@@ -47,6 +48,7 @@ public sealed class PagesProcessor(IWallpaperIngestionContextFactory contextFact
             progressWithheld |= outcome == IngestOutcome.Incomplete;
             if (resumePolicy.IsLastPageToVisit(current.Number, current.Response.Meta)) return;
 
+            await Task.Delay(pacing.NextDelay(), timeProvider, run.CancellationToken);
             current = await FetchPageAsync(run, current.Number + 1);
         }
     }

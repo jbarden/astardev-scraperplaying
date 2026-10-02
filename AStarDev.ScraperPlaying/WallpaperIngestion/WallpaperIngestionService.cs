@@ -22,7 +22,7 @@ public sealed class WallpaperIngestionService(IFilesQuery filesQuery, INewWallpa
 
         return await (await filesQuery.GetExistingHandlesAsync(handles, run.CancellationToken))
         .Match(
-            existingHandles => IngestNewWallpapersAsync(SplitNewCandidates(candidates, existingHandles, run.Progress), run),
+            existingHandles => IngestNewWallpapersAsync(SplitNewCandidates(candidates, existingHandles, run), run),
             exception =>
             {
                 run.Progress.Report($"Failed to check whether the file details already exist for this page of wallpapers: {exception.Message}");
@@ -35,14 +35,21 @@ public sealed class WallpaperIngestionService(IFilesQuery filesQuery, INewWallpa
     private static IReadOnlyList<WallpaperCandidate> BuildCandidates(IReadOnlyList<Data> wallpapers)
         => [.. wallpapers.Select(wallpaper => new WallpaperCandidate(wallpaper, wallpaper.Path.ToFileExtension()))];
 
-    private static List<WallpaperCandidate> SplitNewCandidates(IReadOnlyList<WallpaperCandidate> candidates, IReadOnlyCollection<FileHandle> existingHandles, IProgress<string> progress)
+    private static List<WallpaperCandidate> SplitNewCandidates(IReadOnlyList<WallpaperCandidate> candidates, IReadOnlyCollection<FileHandle> existingHandles, IngestionRun run)
     {
         var existing = existingHandles.Select(handle => handle.Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
         List<WallpaperCandidate> newWallpapers = [];
         foreach (var candidate in candidates)
         {
-            if (existing.Contains(candidate.Wallpaper.Id)) progress.Report($"The file details already exist for wallpaper {candidate.Wallpaper.Id} - no need to fetch again.");
-            else newWallpapers.Add(candidate);
+            if (existing.Contains(candidate.Wallpaper.Id))
+            {
+                run.Progress.Report($"The file details already exist for wallpaper {candidate.Wallpaper.Id} - no need to fetch again.");
+                run.Tally.RecordSkipped(1);
+            }
+            else
+            {
+                newWallpapers.Add(candidate);
+            }
         }
 
         return newWallpapers;
