@@ -16,8 +16,7 @@ public sealed class WallhavenPageFetcher(IJsonResponseProcessor jsonResponseProc
         LogMessage.PageView(logger, pageName);
 
         return (await jsonResponseProcessor.GetFromJsonAsync<SearchResponse>(request.PageUrl, client, cancellationToken))
-            .Match(
-                option => option.Match(value => value, () => throw new InvalidOperationException($"No response body received for {request.PageUrl}.")),
-                exception => throw exception);
+            .Map(option => option.Match(value => value, () => throw new InvalidOperationException($"No response body received for {request.PageUrl}.")))
+            .GetOrThrow();
     }
 }

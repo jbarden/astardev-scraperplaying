@@ -58,6 +58,16 @@ public sealed class GivenAWallhavenPageFetcher
         thrown.ShouldBeSameAs(failure);
     }
 
+    [Fact]
+    public async Task when_the_fetch_fails_then_the_original_throw_site_is_kept_in_the_stack_trace()
+    {
+        jsonResponseProcessor.Response = ThrownFailure.Create("page fetch failed");
+
+        var thrown = await Should.ThrowAsync<InvalidOperationException>(Fetch);
+
+        ThrownFailure.TraceOf(thrown).ShouldContain(ThrownFailure.ThrowSite);
+    }
+
     private async Task<SearchResponse> Fetch()
     {
         using var client = new HttpClient();

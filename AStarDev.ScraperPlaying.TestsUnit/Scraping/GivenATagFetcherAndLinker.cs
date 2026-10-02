@@ -247,6 +247,16 @@ public sealed class GivenATagFetcherAndLinker
     }
 
     [Fact]
+    public async Task when_the_detail_fetch_fails_then_the_original_throw_site_is_kept_in_the_stack_trace()
+    {
+        jsonResponseProcessor.Failure = Option.Some<Exception>(ThrownFailure.Create("boom"));
+
+        var result = await Run();
+
+        result.Match(_ => string.Empty, ThrownFailure.TraceOf).ShouldContain(ThrownFailure.ThrowSite);
+    }
+
+    [Fact]
     public async Task when_a_wallpaper_has_no_tags_then_it_is_a_no_op_success()
     {
         SetUpDetailResponse();
