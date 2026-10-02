@@ -8,7 +8,7 @@ using Tag = AStarDev.ScraperPlaying.Scraping.WallhavenResponses.DetailResponse.T
 namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 
 /// <inheritdoc/>
-public sealed class NewWallpaperIngestor(ITagFetcher tagFetcher, ITagLinker tagLinker, WallpaperSaver wallpaperSaver, IIgnoredWallpapers ignoredWallpapers) : INewWallpaperIngestor
+public sealed class NewWallpaperIngestor(ITagFetcher tagFetcher, ITagLinker tagLinker, WallpaperSaver wallpaperSaver, IImageDownloadNotifier imageDownloadNotifier, IIgnoredWallpapers ignoredWallpapers) : INewWallpaperIngestor
 {
     /// <inheritdoc/>
     public async Task<Option<IReadOnlyList<Tag>>> FetchTagsAsync(Data wallpaper, IngestionRun run)
@@ -64,30 +64,35 @@ public sealed class NewWallpaperIngestor(ITagFetcher tagFetcher, ITagLinker tagL
     {
         var request = new WallpaperFileRequest(candidate.Wallpaper, run.Context.Directories.For(tags), WallpaperFileNamer.Create(candidate.Wallpaper.Id, candidate.Extension, tags), run.Context.CategoryLabel);
 
-        var fileEntity = await wallpaperSaver.SaveAsync(request, run.Context, run.Progress, run.CancellationToken);
+        var saved = await wallpaperSaver.SaveAsync(request, run.Context, run.Progress, run.CancellationToken);
 
-        return await LinkTagsAsync(candidate.Wallpaper.Id, fileEntity, tags, run);
+        return await LinkTagsAsync(candidate.Wallpaper.Id, saved, tags, run);
     }
 
-    /// <summary>Links the tags to the recorded file. The file is recorded first, so if linking fails or is cancelled it is discarded: left tracked, the page save would persist an untagged file that later scrapes treat as already ingested.</summary>
-    private async Task<IngestOutcome> LinkTagsAsync(string wallpaperId, FileEntity fileEntity, IReadOnlyList<Tag> tags, IngestionRun run)
+    /// <summary>Links the tags to the recorded file, then announces the download. The file is recorded first, so if linking fails or is cancelled it is discarded: left tracked, the page save would persist an untagged file that later scrapes treat as already ingested. Listeners are only told of a wallpaper that survives linking, so a preview never shows a discarded image.</summary>
+    private async Task<IngestOutcome> LinkTagsAsync(string wallpaperId, SavedWallpaper saved, IReadOnlyList<Tag> tags, IngestionRun run)
     {
         try
         {
-            return (await tagLinker.LinkTagsAsync(fileEntity.Id, tags, run.CancellationToken))
+            return (await tagLinker.LinkTagsAsync(saved.Entity.Id, tags, run.CancellationToken))
                 .Match(
-                    _ => IngestOutcome.Complete,
+                    _ =>
+                    {
+                        imageDownloadNotifier.NotifyImageDownloaded(saved.Details);
+
+                        return IngestOutcome.Complete;
+                    },
                     exception =>
                     {
                         run.Progress.Report($"Failed to link tags for wallpaper {wallpaperId}: {exception.Message}");
-                        Discard(fileEntity, wallpaperId, run);
+                        Discard(saved.Entity, wallpaperId, run);
 
                         return IngestOutcome.Incomplete;
                     });
         }
         catch (OperationCanceledException)
         {
-            Discard(fileEntity, wallpaperId, run);
+            Discard(saved.Entity, wallpaperId, run);
 
             throw;
         }

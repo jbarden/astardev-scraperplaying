@@ -75,6 +75,30 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
     }
 
     [Fact]
+    public async Task when_a_wallpaper_is_ingested_then_the_download_is_announced_once_its_file_and_links_are_stored()
+    {
+        var announced = new List<string>();
+        notifier.ImageDownloaded += (_, details) => announced.Add(details.FilePath);
+
+        await Ingest("announced-wallpaper", HttpStatusCode.OK, [WallhavenTag(1, "landscape")], TestContext.Current.CancellationToken);
+
+        announced.ShouldBe([fileSystem.Path.Combine("save-directory", "announced-wallpaper.jpg")]);
+        (await ReadStoredAsync()).LinkedTags.ShouldBe([("announced-wallpaper.jpg", "landscape")]);
+    }
+
+    [Fact]
+    public async Task when_linking_the_tags_fails_then_the_download_is_not_announced_and_no_file_row_is_stored()
+    {
+        var announced = new List<string>();
+        notifier.ImageDownloaded += (_, details) => announced.Add(details.FilePath);
+
+        await Ingest("unannounced-wallpaper", HttpStatusCode.OK, [WallhavenTag(1, "landscape")], TestContext.Current.CancellationToken, linkFailure: new InvalidOperationException("link failed"));
+
+        announced.ShouldBeEmpty();
+        (await ReadStoredAsync()).Files.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task when_linking_the_tags_fails_then_the_failure_is_reported_and_no_untagged_file_row_is_stored()
     {
         await Ingest("untagged-wallpaper", HttpStatusCode.OK, [WallhavenTag(1, "landscape")], TestContext.Current.CancellationToken, linkFailure: new InvalidOperationException("link failed"));
@@ -157,7 +181,8 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
         return new NewWallpaperIngestor(
             new TagFetcher(new JsonResponseProcessor(), tagsQuery, flagStore),
             new TagLinker(tagsQuery, unitOfWork, linkFailure is null ? scopedServices.GetRequiredService<IFileTagRepository>() : new FailingFileTagRepository(scopedServices.GetRequiredService<IFileTagRepository>(), linkFailure, succeedingLinks, onLinkFailure ?? (() => { })), flagStore),
-            new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None, ScrapeTimeouts.Default), new WallpaperFileRecorder(System.TimeProvider.System), notifier),
+            new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None, ScrapeTimeouts.Default), new WallpaperFileRecorder(System.TimeProvider.System)),
+            notifier,
             scopedServices.GetRequiredService<IIgnoredWallpapers>());
     }
 
