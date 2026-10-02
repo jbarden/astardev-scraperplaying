@@ -164,8 +164,8 @@ public sealed class GivenAnImageDownloader
 
     private static FileName NameFor(Data wallpaper, string extension) => new($"{wallpaper.Id}{extension}");
 
-    private static Data CreateWallpaper(string id, string path = "")
-        => new(id, 0, 0, 0, "", path);
+    private static Data CreateWallpaper(string id, string path = "", int fileSize = 0)
+        => new(id, 0, 0, fileSize, "", path);
 
     [Fact]
     public async Task when_downloading_an_image_times_out_without_a_cancellation_then_a_timeout_is_thrown_and_writes_no_file()
@@ -244,7 +244,7 @@ public sealed class GivenAnImageDownloader
         var slowStream = new SlowStream(new byte[2048]);
         using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(slowStream) });
         var progress = new CapturingProgress();
-        var wallpaper = CreateWallpaper(id: "slow-1", path: "https://example.test/image.jpg");
+        var wallpaper = CreateWallpaper(id: "slow-1", path: "https://example.test/image.jpg", fileSize: 4096);
 
         var download = slowDownloader.DownloadAsync(new WallpaperFileRequest(wallpaper, "root-directory", NameFor(wallpaper, ".jpg"), "Top Wallpapers"), progress, client, TestContext.Current.CancellationToken);
         await slowStream.WaitingForMoreData.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
@@ -257,9 +257,30 @@ public sealed class GivenAnImageDownloader
 
         progress.Messages.Skip(1).ShouldBe(
         [
-            "Still downloading wallpaper slow-1 - 2 KB received so far.",
-            "Still downloading wallpaper slow-1 - 2 KB received so far."
+            "Still downloading wallpaper slow-1 - 2 KB of 4 KB received so far.",
+            "Still downloading wallpaper slow-1 - 2 KB of 4 KB received so far."
         ]);
+    }
+
+    [Fact]
+    [SuppressMessage("Reliability", "CA2025:Ensure tasks using 'IDisposable' instances complete before the instances are disposed", Justification = "The download is awaited before the client goes out of scope; the clock must advance while it is pending.")]
+    public async Task when_the_total_size_is_not_known_then_the_progress_message_omits_it()
+    {
+        var clock = new FakeTimeProvider();
+        var slowDownloader = new ImageDownloader(fileSystem, clock, DownloadPacing.None, ScrapeTimeouts.Default);
+        var slowStream = new SlowStream(new byte[2048]);
+        using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(slowStream) });
+        var progress = new CapturingProgress();
+        var wallpaper = CreateWallpaper(id: "slow-2", path: "https://example.test/image.jpg", fileSize: 0);
+
+        var download = slowDownloader.DownloadAsync(new WallpaperFileRequest(wallpaper, "root-directory", NameFor(wallpaper, ".jpg"), "Top Wallpapers"), progress, client, TestContext.Current.CancellationToken);
+        await slowStream.WaitingForMoreData.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        clock.Advance(ImageDownloader.ProgressEvery);
+        await WaitForMessageCountAsync(progress, 2);
+        slowStream.Finish();
+        _ = await download;
+
+        progress.Messages.Skip(1).ShouldBe(["Still downloading wallpaper slow-2 - 2 KB received so far."]);
     }
 
     [Fact]

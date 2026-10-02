@@ -1,4 +1,5 @@
-<Window xmlns="https://github.com/avaloniaui"
+<Window Icon="/Assets/astar.png"
+        xmlns="https://github.com/avaloniaui"
         xmlns:ui="using:AStarDev.ScraperPlaying.UI"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="AStarDev.ScraperPlaying.UI.ConfigurationEditorWindow"
