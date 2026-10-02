@@ -72,6 +72,17 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
         (await ReadStoredAsync()).IsEmpty.ShouldBeTrue();
     }
 
+    [Fact]
+    public async Task when_linking_the_tags_fails_then_the_failure_is_reported_and_no_untagged_file_row_is_stored()
+    {
+        await Ingest("untagged-wallpaper", HttpStatusCode.OK, [WallhavenTag(1, "landscape")], TestContext.Current.CancellationToken, linkFailure: new InvalidOperationException("link failed"));
+
+        progress.Messages.ShouldContain("Failed to link tags for wallpaper untagged-wallpaper: link failed");
+        var stored = await ReadStoredAsync();
+        stored.Files.ShouldBeEmpty();
+        stored.LinkedTags.ShouldBeEmpty();
+    }
+
     public void Dispose()
     {
         Dispose(true);
@@ -90,7 +101,7 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
         if (File.Exists(databasePath)) File.Delete(databasePath);
     }
 
-    private async Task Ingest(string wallpaperId, HttpStatusCode imageStatus, object[] tags, CancellationToken cancellationToken)
+    private async Task Ingest(string wallpaperId, HttpStatusCode imageStatus, object[] tags, CancellationToken cancellationToken, Exception? linkFailure = null)
     {
         using var scope = serviceProvider.CreateScope();
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
@@ -98,7 +109,7 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
         var flagStore = new TagFlagStore();
         var ingestor = new NewWallpaperIngestor(
             new TagFetcher(new JsonResponseProcessor(), tagsQuery, flagStore),
-            new TagLinker(tagsQuery, unitOfWork, scope.ServiceProvider.GetRequiredService<IFileTagRepository>(), flagStore),
+            new TagLinker(tagsQuery, unitOfWork, linkFailure is null ? scope.ServiceProvider.GetRequiredService<IFileTagRepository>() : new FailingFileTagRepository(linkFailure), flagStore),
             new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None), new WallpaperFileRecorder(System.TimeProvider.System), notifier));
         using var client = CreateClient(imageStatus, tags);
         var wallpaper = new Data(wallpaperId, 0, 0, 0, "", "https://example.test/image.jpg");
@@ -138,6 +149,11 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
     private sealed record StoredRows(IReadOnlyList<string> Files, IReadOnlyList<string> Tags, IReadOnlyList<(string FileName, string TagName)> LinkedTags)
     {
         public bool IsEmpty => Files.Count + Tags.Count + LinkedTags.Count == 0;
+    }
+
+    private sealed class FailingFileTagRepository(Exception failure) : IFileTagRepository
+    {
+        public Exceptional<FileTagEntity> Add(FileTagEntity fileTag) => failure;
     }
 
     private sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler

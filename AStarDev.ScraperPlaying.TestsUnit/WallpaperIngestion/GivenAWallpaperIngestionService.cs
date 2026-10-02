@@ -160,6 +160,44 @@ public sealed class GivenAWallpaperIngestionService
     }
 
     [Fact]
+    public async Task when_every_wallpaper_on_the_page_is_ingested_or_already_exists_then_the_page_is_complete()
+    {
+        filesQuery.ExistingHandles.Add(new FileHandle("existing"));
+
+        (await Ingest(CreateWallpaper("existing"), CreateWallpaper("fresh"))).ShouldBe(IngestOutcome.Complete);
+    }
+
+    [Fact]
+    public async Task when_a_page_has_no_wallpapers_then_it_is_complete()
+        => (await Ingest()).ShouldBe(IngestOutcome.Complete);
+
+    [Fact]
+    public async Task when_a_wallpapers_tags_cannot_be_fetched_then_the_page_is_incomplete()
+    {
+        newWallpaperIngestor.FailedFetches.Add("b");
+
+        (await Ingest(CreateWallpaper("a"), CreateWallpaper("b"), CreateWallpaper("c"))).ShouldBe(IngestOutcome.Incomplete);
+    }
+
+    [Fact]
+    public async Task when_a_wallpaper_fails_to_ingest_then_the_page_is_incomplete_but_the_rest_of_the_page_is_still_ingested()
+    {
+        newWallpaperIngestor.FailedIngests.Add("a");
+
+        var outcome = await Ingest(CreateWallpaper("a"), CreateWallpaper("b"));
+
+        (outcome, string.Join(",", newWallpaperIngestor.Ingested.Select(call => call.Wallpaper.Id))).ShouldBe((IngestOutcome.Incomplete, "a,b"));
+    }
+
+    [Fact]
+    public async Task when_checking_whether_wallpapers_exist_fails_then_the_page_is_incomplete()
+    {
+        filesQuery.ExistsResult = new InvalidOperationException("query failed");
+
+        (await Ingest(CreateWallpaper("check-fails"))).ShouldBe(IngestOutcome.Incomplete);
+    }
+
+    [Fact]
     public async Task when_the_operation_is_cancelled_while_a_wallpaper_is_ingesting_then_the_cancellation_propagates_and_the_prefetch_is_not_left_running()
     {
         using var cancellationTokenSource = new CancellationTokenSource();
@@ -200,11 +238,11 @@ public sealed class GivenAWallpaperIngestionService
         condition().ShouldBeTrue();
     }
 
-    private async Task Ingest(params Data[] wallpapers)
+    private async Task<IngestOutcome> Ingest(params Data[] wallpapers)
     {
         using var client = new HttpClient();
 
-        await service.IngestPageAsync(wallpapers, new WallpaperIngestionContext(new SaveDirectories("some-directory", "famous-some-directory", ""), client, fileRepository, "resolved-category", []), progress, CancellationToken.None);
+        return await service.IngestPageAsync(wallpapers, new WallpaperIngestionContext(new SaveDirectories("some-directory", "famous-some-directory", ""), client, fileRepository, "resolved-category", []), progress, CancellationToken.None);
     }
 
     private static Data CreateWallpaper(string id, string path = "")
@@ -245,6 +283,8 @@ public sealed class GivenAWallpaperIngestionService
 
         public HashSet<string> FailedFetches { get; } = [];
 
+        public HashSet<string> FailedIngests { get; } = [];
+
         public int MaximumConcurrentFetches { get; private set; }
 
         public int MaximumConcurrentIngests { get; private set; }
@@ -275,7 +315,7 @@ public sealed class GivenAWallpaperIngestionService
             }
         }
 
-        public async Task IngestAsync(WallpaperCandidate candidate, IReadOnlyList<Tag> tags, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+        public async Task<IngestOutcome> IngestAsync(WallpaperCandidate candidate, IReadOnlyList<Tag> tags, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
         {
             lock (gate) MaximumConcurrentIngests = Math.Max(MaximumConcurrentIngests, ++concurrentIngests);
 
@@ -287,6 +327,8 @@ public sealed class GivenAWallpaperIngestionService
                     ingested.Add((candidate.Wallpaper, candidate.Extension, context, progress));
                     tagsIngested[candidate.Wallpaper.Id] = tags;
                 }
+
+                return FailedIngests.Contains(candidate.Wallpaper.Id) ? IngestOutcome.Incomplete : IngestOutcome.Complete;
             }
             finally
             {

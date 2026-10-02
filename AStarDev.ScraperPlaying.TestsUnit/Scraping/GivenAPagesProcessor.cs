@@ -163,6 +163,33 @@ public sealed class GivenAPagesProcessor
     }
 
     [Fact]
+    public async Task when_a_later_page_has_a_wallpaper_that_was_not_ingested_then_progress_stays_at_the_last_fully_ingested_page_so_it_is_retried()
+    {
+        SetUpPage(1, CreateSearchResponse(lastPage: 2, total: 50, CreateWallpaper("page-1-wallpaper")));
+        SetUpPage(2, CreateSearchResponse(lastPage: 2, total: 50, CreateWallpaper("page-2-wallpaper")));
+        wallpaperIngestionService.IncompletePages.Add("page-2-wallpaper");
+
+        var result = await Fetch(Option.None<SearchCategoryProgress>(), CancellationToken.None);
+
+        completedProgress.ShouldBe([new SearchCategoryProgress(50, 1, 2)]);
+        (result, unitOfWork.SaveCount).ShouldBe((Option.Some(new SearchCategoryProgress(50, 1, 2)), 2));
+        progress.Messages.ShouldContain("Not every wallpaper on page 2 was ingested - progress stays before that page so it is retried on the next scrape.");
+    }
+
+    [Fact]
+    public async Task when_the_first_page_has_a_wallpaper_that_was_not_ingested_then_no_page_reports_progress_even_if_later_pages_are_fully_ingested()
+    {
+        SetUpPage(1, CreateSearchResponse(lastPage: 2, total: 50, CreateWallpaper("page-1-wallpaper")));
+        SetUpPage(2, CreateSearchResponse(lastPage: 2, total: 50, CreateWallpaper("page-2-wallpaper")));
+        wallpaperIngestionService.IncompletePages.Add("page-1-wallpaper");
+
+        var result = await Fetch(Option.None<SearchCategoryProgress>(), CancellationToken.None);
+
+        completedProgress.ShouldBeEmpty();
+        (result, IngestedPages.Count()).ShouldBe((Option.None<SearchCategoryProgress>(), 2));
+    }
+
+    [Fact]
     public async Task when_the_previous_scrape_stopped_part_way_then_paging_resumes_after_the_last_page_visited()
     {
         SetUpPage(page: null, CreateSearchResponse(lastPage: 3, total: 50, CreateWallpaper("wallpaper-1")));
@@ -356,14 +383,17 @@ public sealed class GivenAPagesProcessor
     {
         public Action OnIngest { get; set; } = () => { };
 
-        public Task IngestPageAsync(IReadOnlyList<Data> wallpapers, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+        /// <summary>The outcome for each page (by the first wallpaper's id) that should not be complete.</summary>
+        public HashSet<string> IncompletePages { get; } = [];
+
+        public Task<IngestOutcome> IngestPageAsync(IReadOnlyList<Data> wallpapers, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
         {
             progress.Report($"Ingested page of {wallpapers.Count}.");
             foreach (var wallpaper in wallpapers) progress.Report($"Ingested {wallpaper.Id} into {context.Directories.Root}|{context.Directories.FamousRoot}|{context.Directories.CategorySegment} as {context.CategoryLabel} with people {string.Join(",", context.PersonCategories)}.");
 
             OnIngest();
 
-            return Task.CompletedTask;
+            return Task.FromResult(wallpapers.Count > 0 && IncompletePages.Contains(wallpapers[0].Id) ? IngestOutcome.Incomplete : IngestOutcome.Complete);
         }
     }
 

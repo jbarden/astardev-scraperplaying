@@ -26,43 +26,66 @@ public sealed class NewWallpaperIngestor(ITagFetcher tagFetcher, ITagLinker tagL
     }
 
     /// <inheritdoc/>
-    public async Task IngestAsync(WallpaperCandidate candidate, IReadOnlyList<Tag> tags, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+    public async Task<IngestOutcome> IngestAsync(WallpaperCandidate candidate, IReadOnlyList<Tag> tags, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
     {
         if (tags.Any(tag => tag.IgnoreImage))
         {
             progress.Report($"Ignoring wallpaper {candidate.Wallpaper.Id}: it has a tag flagged to ignore images.");
 
-            return;
+            return IngestOutcome.Complete;
         }
 
-        await Try.RunAsync(() => IngestStepsAsync(candidate, tags, context, progress, cancellationToken))
-            .MatchAsync(
-                _ => Task.CompletedTask,
+        return (await Try.RunAsync(() => IngestStepsAsync(candidate, tags, context, progress, cancellationToken)))
+            .Match(
+                outcome => outcome,
                 exception =>
                 {
                     progress.Report($"Failed to process image for wallpaper {candidate.Wallpaper.Id}: {exception.Message}");
 
-                    return Unit.Instance;
+                    return IngestOutcome.Incomplete;
                 });
     }
 
-    private async Task<Unit> IngestStepsAsync(WallpaperCandidate candidate, IReadOnlyList<Tag> tags, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+    private async Task<IngestOutcome> IngestStepsAsync(WallpaperCandidate candidate, IReadOnlyList<Tag> tags, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
     {
         var request = new WallpaperFileRequest(candidate.Wallpaper, context.Directories.For(tags), WallpaperFileNamer.Create(candidate.Wallpaper.Id, candidate.Extension, tags), context.CategoryLabel);
 
         var fileEntity = await wallpaperSaver.SaveAsync(request, context, progress, cancellationToken);
-        await LinkTagsAsync(candidate.Wallpaper.Id, fileEntity.Id, tags, progress, cancellationToken);
 
-        return Unit.Instance;
+        return await LinkTagsAsync(candidate.Wallpaper.Id, fileEntity, tags, context, progress, cancellationToken);
     }
 
-    private async Task LinkTagsAsync(string wallpaperId, FileId fileId, IReadOnlyList<Tag> tags, IProgress<string> progress, CancellationToken cancellationToken)
-        => await tagLinker.LinkTagsAsync(fileId, tags, cancellationToken)
-            .MatchAsync(
-                _ => Task.CompletedTask,
+    /// <summary>Links the tags to the recorded file. The file is recorded first, so if linking fails or is cancelled it is discarded: left tracked, the page save would persist an untagged file that later scrapes treat as already ingested.</summary>
+    private async Task<IngestOutcome> LinkTagsAsync(string wallpaperId, FileEntity fileEntity, IReadOnlyList<Tag> tags, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return (await tagLinker.LinkTagsAsync(fileEntity.Id, tags, cancellationToken))
+                .Match(
+                    _ => IngestOutcome.Complete,
+                    exception =>
+                    {
+                        progress.Report($"Failed to link tags for wallpaper {wallpaperId}: {exception.Message}");
+                        Discard(fileEntity, wallpaperId, context, progress);
+
+                        return IngestOutcome.Incomplete;
+                    });
+        }
+        catch (OperationCanceledException)
+        {
+            Discard(fileEntity, wallpaperId, context, progress);
+
+            throw;
+        }
+    }
+
+    private static void Discard(FileEntity fileEntity, string wallpaperId, WallpaperIngestionContext context, IProgress<string> progress)
+        => _ = context.FileRepository.Delete(fileEntity)
+            .Match(
+                unit => unit,
                 exception =>
                 {
-                    progress.Report($"Failed to link tags for wallpaper {wallpaperId}: {exception.Message}");
+                    progress.Report($"Failed to discard the untagged file record for wallpaper {wallpaperId}: {exception.Message}");
 
                     return Unit.Instance;
                 });

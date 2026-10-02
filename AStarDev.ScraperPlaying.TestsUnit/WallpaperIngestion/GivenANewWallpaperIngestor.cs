@@ -153,7 +153,18 @@ public sealed class GivenANewWallpaperIngestor
 
         progress.Messages.ShouldContain("Failed to link tags for wallpaper failing-link: link failed");
         progress.Messages.ShouldNotContain(message => message.Contains("Failed to process image"));
-        fileRepository.Added.Count.ShouldBe(1);
+        fileRepository.Deleted.ShouldBe(fileRepository.Added);
+    }
+
+    [Fact]
+    public async Task when_the_operation_is_cancelled_while_linking_the_tags_then_the_recorded_file_is_discarded_and_the_cancellation_propagates()
+    {
+        wallhaven.Tags = [WallhavenTag(1, "landscape")];
+        fileTagRepository.Failure = Option.Some<Exception>(new OperationCanceledException());
+
+        _ = await Should.ThrowAsync<OperationCanceledException>(() => Ingest(CreateWallpaper("cancelled-link"), ".jpg"));
+
+        fileRepository.Deleted.ShouldBe(fileRepository.Added);
     }
 
     [Fact]

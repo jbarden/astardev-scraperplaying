@@ -30,9 +30,29 @@ public sealed class GivenAPageIngestionStep : IDisposable
     [Fact]
     public async Task when_a_page_is_ingested_then_the_wallpapers_are_ingested_the_progress_reported_and_the_page_saved_in_that_order()
     {
-        await step.IngestPageAsync(CreateRun(progress => events.Add($"hook {progress.LastKnownImageCount}/{progress.LastPageVisited}/{progress.TotalPages}")), new FetchedPage(2, new SearchResponse([new Data("w", 0, 0, 0, "", "")], new Meta(5, 40))));
+        await step.IngestPageAsync(CreateRun(progress => events.Add($"hook {progress.LastKnownImageCount}/{progress.LastPageVisited}/{progress.TotalPages}")), new FetchedPage(2, new SearchResponse([new Data("w", 0, 0, 0, "", "")], new Meta(5, 40))), recordProgress: true);
 
         events.ShouldBe(["ingest", "hook 40/2/5", "save"]);
+    }
+
+    [Fact]
+    public async Task when_a_wallpaper_on_the_page_was_not_ingested_then_no_progress_is_reported_but_the_page_is_still_saved_and_reported_incomplete()
+    {
+        ingestionService.Outcome = IngestOutcome.Incomplete;
+
+        var outcome = await step.IngestPageAsync(CreateRun(progress => events.Add("hook")), new FetchedPage(2, new SearchResponse([new Data("w", 0, 0, 0, "", "")], new Meta(5, 40))), recordProgress: true);
+
+        outcome.ShouldBe(IngestOutcome.Incomplete);
+        events.ShouldBe(["ingest", "save"]);
+    }
+
+    [Fact]
+    public async Task when_progress_is_being_withheld_then_a_fully_ingested_page_does_not_report_progress()
+    {
+        var outcome = await step.IngestPageAsync(CreateRun(progress => events.Add("hook")), new FetchedPage(3, new SearchResponse([new Data("w", 0, 0, 0, "", "")], new Meta(5, 40))), recordProgress: false);
+
+        outcome.ShouldBe(IngestOutcome.Complete);
+        events.ShouldBe(["ingest", "save"]);
     }
 
     [Fact]
@@ -72,11 +92,13 @@ public sealed class GivenAPageIngestionStep : IDisposable
     {
         public Action OnIngest { get; set; } = () => { };
 
-        public Task IngestPageAsync(IReadOnlyList<Data> wallpapers, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+        public IngestOutcome Outcome { get; set; } = IngestOutcome.Complete;
+
+        public Task<IngestOutcome> IngestPageAsync(IReadOnlyList<Data> wallpapers, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
         {
             OnIngest();
 
-            return Task.CompletedTask;
+            return Task.FromResult(Outcome);
         }
     }
 }
