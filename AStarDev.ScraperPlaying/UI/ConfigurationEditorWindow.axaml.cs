@@ -15,6 +15,7 @@ public sealed partial class ConfigurationEditorWindow : Window
     private readonly ConfigurationEditSaver saver = null!;
     private readonly IFileSystem fileSystem = null!;
     private ScrapeConfigurationId configurationId;
+    private ConfigurationEditInputs loadedInputs = null!;
 
     /// <summary>Initializes the window for the design-time previewer.</summary>
     public ConfigurationEditorWindow() => InitializeComponent();
@@ -42,6 +43,13 @@ public sealed partial class ConfigurationEditorWindow : Window
         ShowError(string.Empty);
         try
         {
+            if (!await CanDiscardEditsAsync())
+            {
+                ConfigurationPicker.SelectedItem = session.Summaries.FirstOrDefault(current => current.Id == configurationId);
+
+                return;
+            }
+
             if (await session.LoadAsync(summary) is Option<LoadedConfiguration>.Some loaded) Load(loaded.Value);
         }
         catch (Exception exception)
@@ -68,9 +76,14 @@ public sealed partial class ConfigurationEditorWindow : Window
 
     public void Cancel(object? sender, RoutedEventArgs eventArgs) => Close(false);
 
+    private Task<bool> CanDiscardEditsAsync() => UnsavedEdits.Exist(loadedInputs, ReadInputs)
+        ? new ConfirmationWindow("Unsaved changes", "Switching configuration discards the edits made to this one.", "Discard").ShowDialog<bool>(this)
+        : Task.FromResult(true);
+
     private void Load(LoadedConfiguration configuration)
     {
         configurationId = configuration.Id;
+        loadedInputs = configuration.Inputs;
         RootSettingsTabContent.Load(configuration.Inputs.Root);
         UserTabContent.Load(configuration.Inputs.User);
         SearchTabContent.Load(configuration.Inputs.Search);
