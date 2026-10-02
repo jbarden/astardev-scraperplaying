@@ -11,7 +11,7 @@ public sealed class GivenSearchSettings
         var entity = GivenAUserSettingsInput.CreateEntity();
         var searchId = entity.SearchConfiguration.Id;
 
-        new SearchSettings("dogs", Option.Some(50)).ApplyTo(entity);
+        new SearchSettings("dogs", Option.Some(50)).ApplyTo(entity, DateTimeOffset.UnixEpoch);
 
         entity.SearchConfiguration.SearchTerm.ShouldBe("dogs");
         entity.SearchConfiguration.MaxResults.ShouldBe(50);
@@ -25,11 +25,11 @@ public sealed class GivenSearchSettings
     {
         var entity = GivenAUserSettingsInput.CreateEntity();
         entity.SearchConfiguration.UpdatedAt = DateTimeOffset.UnixEpoch;
-        var before = DateTimeOffset.UtcNow;
+        var now = new DateTimeOffset(2026, 3, 4, 5, 6, 7, TimeSpan.Zero);
 
-        new SearchSettings("dogs", Option.Some(50)).ApplyTo(entity);
+        new SearchSettings("dogs", Option.Some(50)).ApplyTo(entity, now);
 
-        entity.SearchConfiguration.UpdatedAt.ShouldBeGreaterThanOrEqualTo(before);
+        entity.SearchConfiguration.UpdatedAt.ShouldBe(now);
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public sealed class GivenSearchSettings
     {
         var entity = GivenAUserSettingsInput.CreateEntity();
 
-        new SearchSettings("dogs", Option.None<int>()).ApplyTo(entity);
+        new SearchSettings("dogs", Option.None<int>()).ApplyTo(entity, DateTimeOffset.UnixEpoch);
 
         entity.SearchConfiguration.MaxResults.ShouldBeNull();
     }

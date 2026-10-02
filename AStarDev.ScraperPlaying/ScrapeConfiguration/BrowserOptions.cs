@@ -14,7 +14,7 @@ public sealed record BrowserOptions(bool UseHeadless, Option<float> SlowMotionDe
 
     /// <summary>Replaces the browser options of the specified scrape configuration.</summary>
     /// <param name="entity">The scrape configuration to update.</param>
-    public void ApplyTo(ScrapeConfigurationEntity entity)
+    public void ApplyTo(ScrapeConfigurationEntity entity, DateTimeOffset now)
     {
         entity.UseHeadless = UseHeadless;
         entity.SlowMotionDelay = SlowMotionDelay.Match(delay => (float?)delay, () => null);

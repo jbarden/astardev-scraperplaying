@@ -161,7 +161,7 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
         {
             databasePath = Path.Combine(Path.GetTempPath(), $"astardev-scraperplaying-roundtrip-{name}-{Guid.CreateVersion7():N}.db");
             serviceProvider = new ServiceCollection().AddDataServices(databasePath).BuildServiceProvider();
-            Updater = new ScrapeConfigurationUpdater(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()));
+            Updater = new ScrapeConfigurationUpdater(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()), TimeProvider.System);
         }
 
         public ScrapeConfigurationUpdater Updater { get; }
@@ -194,7 +194,7 @@ public sealed class GivenAConfigurationRoundTrip : IDisposable
         {
             using var scope = serviceProvider.CreateScope();
             await scope.ServiceProvider.GetRequiredService<ControlDbContext>().Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
-            var importer = new ScrapeConfigurationImporter(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()));
+            var importer = new ScrapeConfigurationImporter(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()), TimeProvider.System);
 
             await new ScrapeConfigurationImportService(importer, new ScrapeConfigurationFileReader(new RealFileSystem())).ImportAsync(path, TestContext.Current.CancellationToken);
         }

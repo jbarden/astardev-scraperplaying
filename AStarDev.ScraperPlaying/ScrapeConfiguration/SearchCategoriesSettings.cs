@@ -8,7 +8,7 @@ public sealed record SearchCategoriesSettings(IReadOnlyList<SearchCategorySettin
 {
     /// <inheritdoc/>
     /// <remarks>Categories are matched to existing ones by id, ignoring case. Matches keep their key and scrape progress, unmatched existing categories are removed and unmatched settings are added.</remarks>
-    public void ApplyTo(ScrapeConfigurationEntity entity)
+    public void ApplyTo(ScrapeConfigurationEntity entity, DateTimeOffset now)
     {
         var search = entity.SearchConfiguration;
         var keptIds = Categories.Select(category => category.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -26,7 +26,7 @@ public sealed record SearchCategoriesSettings(IReadOnlyList<SearchCategorySettin
 
         foreach (var category in Categories)
         {
-            if (existingById.TryGetValue(category.Id, out var existing)) UpdateCategory(existing, category);
+            if (existingById.TryGetValue(category.Id, out var existing)) UpdateCategory(existing, category, now);
             else existingById[category.Id] = AddCategory(search, category);
         }
     }
@@ -47,12 +47,12 @@ public sealed record SearchCategoriesSettings(IReadOnlyList<SearchCategorySettin
         return added;
     }
 
-    private static void UpdateCategory(SearchCategoryEntity existing, SearchCategorySettings category)
+    private static void UpdateCategory(SearchCategoryEntity existing, SearchCategorySettings category, DateTimeOffset now)
     {
         existing.Name = category.Name;
         existing.IncludeInSearch = category.IncludeInSearch;
         existing.IsFamous = category.IsFamous;
         existing.IsInternet = category.IsInternet;
-        existing.UpdatedAt = DateTimeOffset.UtcNow;
+        existing.UpdatedAt = now;
     }
 }

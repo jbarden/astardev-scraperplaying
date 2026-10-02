@@ -8,7 +8,8 @@ namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 
 /// <summary>Replaces the stored scrape configuration settings aggregate with an imported document.</summary>
 /// <param name="scopedRunner">Runs each import in its own scope, with its own unit of work.</param>
-public sealed class ScrapeConfigurationImporter(IScopedRunner scopedRunner) : IScrapeConfigurationImporter
+/// <param name="timeProvider">The source of the time recorded as the created and modified time of the imported categories.</param>
+public sealed class ScrapeConfigurationImporter(IScopedRunner scopedRunner, TimeProvider timeProvider) : IScrapeConfigurationImporter
 {
     /// <inheritdoc/>
     public async Task<Exceptional<Unit>> ImportScrapeConfigurationAsync(ScrapeConfigurationImportDocument document, CancellationToken cancellationToken = default)
@@ -18,7 +19,7 @@ public sealed class ScrapeConfigurationImporter(IScopedRunner scopedRunner) : IS
             var dbContext = unitOfWork.GetRepository<ScrapeConfigurationEntity, ScrapeConfigurationId>();
 
             // Map first: an unmappable document must not cost the user their current configuration.
-            var replacement = document.ToEntity();
+            var replacement = document.ToEntity(timeProvider.GetUtcNow());
             var current = (await dbContext.TryGetFirstAsync(cancellationToken)).GetOrThrow();
 
             // Exports leave the API keys out by default, so a file without them must not blank the keys already stored.

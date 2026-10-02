@@ -22,7 +22,7 @@ public sealed class GivenAScrapeConfigurationUpdater : IDisposable
     public GivenAScrapeConfigurationUpdater()
     {
         serviceProvider = new ServiceCollection().AddDataServices(databasePath).BuildServiceProvider();
-        updater = new ScrapeConfigurationUpdater(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()));
+        updater = new ScrapeConfigurationUpdater(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()), TimeProvider.System);
     }
 
     [Fact]

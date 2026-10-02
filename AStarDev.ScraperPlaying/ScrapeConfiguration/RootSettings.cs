@@ -26,11 +26,11 @@ public sealed record RootSettings(
         BrowserOptions.From(entity));
 
     /// <inheritdoc/>
-    public void ApplyTo(ScrapeConfigurationEntity entity)
+    public void ApplyTo(ScrapeConfigurationEntity entity, DateTimeOffset now)
     {
-        Urls.ApplyTo(entity);
-        Pages.ApplyTo(entity);
-        Browser.ApplyTo(entity);
+        Urls.ApplyTo(entity, now);
+        Pages.ApplyTo(entity, now);
+        Browser.ApplyTo(entity, now);
         entity.ApiKey = ApiKey;
         entity.SearchString = SearchString;
         entity.SearchStringPrefix = SearchStringPrefix;

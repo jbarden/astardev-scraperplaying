@@ -36,7 +36,7 @@ public sealed record PageRanges(PageRange Search, PageRange Subscriptions, PageR
 
     /// <summary>Replaces the page ranges of the specified scrape configuration.</summary>
     /// <param name="entity">The scrape configuration to update.</param>
-    public void ApplyTo(ScrapeConfigurationEntity entity)
+    public void ApplyTo(ScrapeConfigurationEntity entity, DateTimeOffset now)
     {
         (entity.StartingPageNumber, entity.TotalPages) = (Search.Start, Search.Total);
         (entity.SubscriptionsStartingPageNumber, entity.SubscriptionsTotalPages) = (Subscriptions.Start, Subscriptions.Total);

@@ -144,7 +144,7 @@ public sealed class GivenAScrapeConfigurationImport
             ScrapeDirectories = new() { RootDirectory = "/tmp" }
         };
 
-        var entity = document.ToEntity();
+        var entity = document.ToEntity(DateTimeOffset.UnixEpoch);
 
         entity.UserConfiguration.Username.ShouldBe("user");
         entity.SearchConfiguration.SearchTerm.ShouldBe("cats");

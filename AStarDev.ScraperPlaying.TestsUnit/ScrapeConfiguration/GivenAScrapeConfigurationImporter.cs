@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using AStarDev.ScraperPlaying.TestsUnit.Fakes;
+using Microsoft.Extensions.Time.Testing;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.ScrapeConfiguration;
 
@@ -15,6 +16,7 @@ public sealed class GivenAScrapeConfigurationImporter : IDisposable
     private readonly FakeUnitOfWork unitOfWork = new();
     private readonly FakeRepository<ScrapeConfigurationEntity, ScrapeConfigurationId> repository;
     private readonly ScrapeConfigurationImporter importer;
+    private readonly FakeTimeProvider timeProvider = new(new DateTimeOffset(2026, 3, 4, 5, 6, 7, TimeSpan.Zero));
 
     public GivenAScrapeConfigurationImporter()
     {
@@ -25,10 +27,19 @@ public sealed class GivenAScrapeConfigurationImporter : IDisposable
 
             return unitOfWork;
         }).BuildServiceProvider();
-        importer = new ScrapeConfigurationImporter(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()));
+        importer = new ScrapeConfigurationImporter(new ScopedRunner(serviceProvider.GetRequiredService<IServiceScopeFactory>()), timeProvider);
     }
 
     public void Dispose() => serviceProvider.Dispose();
+
+    [Fact]
+    public async Task when_a_document_is_imported_then_the_stored_person_categories_are_stamped_with_the_time_provider_time()
+    {
+        _ = await importer.ImportScrapeConfigurationAsync(CreateDocument("user"), TestContext.Current.CancellationToken);
+
+        var search = repository.Added.Single().SearchConfiguration;
+        search.PersonCategories.Select(category => category.CreatedAt).Distinct().ShouldBe([timeProvider.GetUtcNow()]);
+    }
 
     [Fact]
     public async Task when_several_imports_run_then_each_resolves_its_own_unit_of_work()

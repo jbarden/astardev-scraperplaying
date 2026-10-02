@@ -16,7 +16,7 @@ public sealed record UserSettings(string EmailAddress, string Username, string A
         entity.UserConfiguration.ApiKey);
 
     /// <inheritdoc/>
-    public void ApplyTo(ScrapeConfigurationEntity entity)
+    public void ApplyTo(ScrapeConfigurationEntity entity, DateTimeOffset now)
     {
         entity.UserConfiguration.EmailAddress = EmailAddress;
         entity.UserConfiguration.Username = Username;

@@ -10,7 +10,7 @@ public sealed class GivenDirectorySettings
         var entity = GivenAUserSettingsInput.CreateEntity();
         var directoriesId = entity.ScrapeDirectories.Id;
 
-        new DirectorySettings("/new/root", "/new/famous", "new-sub").ApplyTo(entity);
+        new DirectorySettings("/new/root", "/new/famous", "new-sub").ApplyTo(entity, DateTimeOffset.UnixEpoch);
 
         entity.ScrapeDirectories.RootDirectory.ShouldBe("/new/root");
         entity.ScrapeDirectories.RootDirectoryFamous.ShouldBe("/new/famous");

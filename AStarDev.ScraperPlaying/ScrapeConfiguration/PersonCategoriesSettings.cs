@@ -14,10 +14,9 @@ public sealed record PersonCategoriesSettings(IReadOnlyList<PersonCategorySettin
 {
     /// <inheritdoc/>
     /// <remarks>Categories are matched to existing ones by id, so a rename keeps the same row. Unmatched existing categories are removed and unmatched settings are added.</remarks>
-    public void ApplyTo(ScrapeConfigurationEntity entity)
+    public void ApplyTo(ScrapeConfigurationEntity entity, DateTimeOffset now)
     {
         var search = entity.SearchConfiguration;
-        var now = DateTimeOffset.UtcNow;
         var keptIds = Categories.Select(category => category.Id.Match(id => id, () => Guid.Empty)).ToHashSet();
 
         foreach (var removed in search.PersonCategories.Where(existing => !keptIds.Contains(existing.Id)).ToList())

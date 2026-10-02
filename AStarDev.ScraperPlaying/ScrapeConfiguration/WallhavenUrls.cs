@@ -14,7 +14,7 @@ public sealed record WallhavenUrls(Uri BaseUrl, string LoginUrl, string TopWallp
 
     /// <summary>Replaces the addresses of the specified scrape configuration.</summary>
     /// <param name="entity">The scrape configuration to update.</param>
-    public void ApplyTo(ScrapeConfigurationEntity entity)
+    public void ApplyTo(ScrapeConfigurationEntity entity, DateTimeOffset now)
     {
         entity.BaseUrl = BaseUrl;
         entity.LoginUrl = LoginUrl;
