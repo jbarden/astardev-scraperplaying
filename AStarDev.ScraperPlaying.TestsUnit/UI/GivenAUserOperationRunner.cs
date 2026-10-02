@@ -8,7 +8,7 @@ namespace AStarDev.ScraperPlaying.TestsUnit.UI;
 public sealed class GivenAUserOperationRunner : IDisposable
 {
     private readonly OperationCoordinator coordinator = new();
-    private readonly StatusReporter status = new(NullLogger<StatusReporter>.Instance);
+    private readonly StatusReporter status = TestStatusReporter.Create();
     private readonly UserOperationRunner runner;
 
     public GivenAUserOperationRunner() => runner = new(coordinator, status);
@@ -55,7 +55,7 @@ public sealed class GivenAUserOperationRunner : IDisposable
             await Task.Delay(Timeout.Infinite, cancellationToken);
         });
 
-        (status.Text, coordinator.IsOperationRunning).ShouldBe(("Import cancelled.", false));
+        (status.Text, coordinator.IsOperationRunning).ShouldBe(($"{TestStatusReporter.Timestamp} Import cancelled.", false));
     }
 
     [Theory]
@@ -64,7 +64,7 @@ public sealed class GivenAUserOperationRunner : IDisposable
     {
         await runner.RunAsync("cancelled", "Unable to import.", _ => throw failure);
 
-        (status.Text, coordinator.IsOperationRunning).ShouldBe(($"Unable to import. {failure.Message}", false));
+        (status.Text, coordinator.IsOperationRunning).ShouldBe(($"{TestStatusReporter.Timestamp} Unable to import. {failure.Message}", false));
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public sealed class GivenAUserOperationRunner : IDisposable
     {
         await Should.NotThrowAsync(() => runner.RunAsync("cancelled", "Unable to export.", _ => throw new InvalidCastException("unexpected")));
 
-        (status.Text, coordinator.IsOperationRunning).ShouldBe(("Unable to export. unexpected", false));
+        (status.Text, coordinator.IsOperationRunning).ShouldBe(($"{TestStatusReporter.Timestamp} Unable to export. unexpected", false));
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public sealed class GivenAUserOperationRunner : IDisposable
     {
         await runner.RunAsync("cancelled", "Unable to import.", _ => throw new UnauthorizedAccessException("Access denied", new IOException("read-only file system")));
 
-        status.Text.ShouldBe("Unable to import. Access denied Caused by: read-only file system");
+        status.Text.ShouldBe($"{TestStatusReporter.Timestamp} Unable to import. Access denied Caused by: read-only file system");
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public sealed class GivenAUserOperationRunner : IDisposable
     {
         await Should.NotThrowAsync(() => runner.ReportFailuresAsync("Unable to edit.", () => throw new InvalidOperationException("dialog failed")));
 
-        status.Text.ShouldBe("Unable to edit. dialog failed");
+        status.Text.ShouldBe($"{TestStatusReporter.Timestamp} Unable to edit. dialog failed");
     }
 
     [Fact]

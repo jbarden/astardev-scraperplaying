@@ -13,7 +13,7 @@ public sealed class GivenAConfigurationBrowser
 {
     private static readonly ScrapeConfigurationSummary Summary = new(new ScrapeConfigurationId(Guid.CreateVersion7()), "wallhaven.cc");
     private readonly FakeCatalogue catalogue = new();
-    private readonly StatusReporter status = new(NullLogger<StatusReporter>.Instance);
+    private readonly StatusReporter status = TestStatusReporter.Create();
     private readonly CapturingLogger<ConfigurationBrowser> logger = new();
     private readonly ConfigurationBrowser browser;
 
@@ -36,7 +36,7 @@ public sealed class GivenAConfigurationBrowser
 
         var summaries = await browser.ListAsync();
 
-        (summaries.Count, status.Text).ShouldBe((0, "Unable to list scrape configurations. list failed"));
+        (summaries.Count, status.Text).ShouldBe((0, $"{TestStatusReporter.Timestamp} Unable to list scrape configurations. list failed"));
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public sealed class GivenAConfigurationBrowser
 
         var found = await browser.FindAsync(Summary);
 
-        (found is Option<ScrapeConfigurationEntity>.None, status.Text).ShouldBe((true, "The selected scrape configuration could not be found."));
+        (found is Option<ScrapeConfigurationEntity>.None, status.Text).ShouldBe((true, $"{TestStatusReporter.Timestamp} The selected scrape configuration could not be found."));
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public sealed class GivenAConfigurationBrowser
 
         var found = await browser.FindAsync(Summary);
 
-        (found is Option<ScrapeConfigurationEntity>.None, status.Text).ShouldBe((true, "Unable to load scrape configuration. load failed"));
+        (found is Option<ScrapeConfigurationEntity>.None, status.Text).ShouldBe((true, $"{TestStatusReporter.Timestamp} Unable to load scrape configuration. load failed"));
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public sealed class GivenAConfigurationBrowser
 
         var loaded = await browser.LoadAsync(Summary);
 
-        (loaded is Option<LoadedConfiguration>.None, status.Text).ShouldBe((true, "The selected scrape configuration could not be found."));
+        (loaded is Option<LoadedConfiguration>.None, status.Text).ShouldBe((true, $"{TestStatusReporter.Timestamp} The selected scrape configuration could not be found."));
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public sealed class GivenAConfigurationBrowser
 
         var editor = await browser.CreateEditorAsync();
 
-        (editor is Option<ConfigurationEditorWindow>.None, status.Text).ShouldBe((true, "There are no scrape configurations to edit."));
+        (editor is Option<ConfigurationEditorWindow>.None, status.Text).ShouldBe((true, $"{TestStatusReporter.Timestamp} There are no scrape configurations to edit."));
     }
 
     [Fact]
@@ -131,7 +131,7 @@ public sealed class GivenAConfigurationBrowser
 
         var editor = await browser.CreateEditorAsync();
 
-        (editor is Option<ConfigurationEditorWindow>.None, status.Text).ShouldBe((true, "The selected scrape configuration could not be found."));
+        (editor is Option<ConfigurationEditorWindow>.None, status.Text).ShouldBe((true, $"{TestStatusReporter.Timestamp} The selected scrape configuration could not be found."));
     }
 
     private sealed class FakeUpdater : IScrapeConfigurationUpdater

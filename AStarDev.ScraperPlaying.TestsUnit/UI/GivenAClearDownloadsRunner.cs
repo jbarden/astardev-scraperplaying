@@ -9,7 +9,7 @@ namespace AStarDev.ScraperPlaying.TestsUnit.UI;
 public sealed class GivenAClearDownloadsRunner : IDisposable
 {
     private readonly OperationCoordinator coordinator = new();
-    private readonly StatusReporter status = new(NullLogger<StatusReporter>.Instance);
+    private readonly StatusReporter status = TestStatusReporter.Create();
     private readonly FakeDownloadsClearer downloadsClearer = new();
     private readonly ClearDownloadsRunner runner;
 
@@ -24,7 +24,7 @@ public sealed class GivenAClearDownloadsRunner : IDisposable
 
         await runner.RunAsync();
 
-        (downloadsClearer.ClearCount, status.Text).ShouldBe((1, "Downloads cleared: 7 file records removed and the save directories emptied."));
+        (downloadsClearer.ClearCount, status.Text).ShouldBe((1, $"{TestStatusReporter.Timestamp} Downloads cleared: 7 file records removed and the save directories emptied."));
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public sealed class GivenAClearDownloadsRunner : IDisposable
 
         await runner.RunAsync();
 
-        status.Text.ShouldBe("Unable to clear downloads. clear failed");
+        status.Text.ShouldBe($"{TestStatusReporter.Timestamp} Unable to clear downloads. clear failed");
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public sealed class GivenAClearDownloadsRunner : IDisposable
 
         await runner.RunAsync();
 
-        status.Text.ShouldBe("Clear Downloads cancelled.");
+        status.Text.ShouldBe($"{TestStatusReporter.Timestamp} Clear Downloads cancelled.");
     }
 
     private sealed class FakeDownloadsClearer : IDownloadsClearer

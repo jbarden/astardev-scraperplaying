@@ -10,7 +10,7 @@ namespace AStarDev.ScraperPlaying.TestsUnit.UI;
 public sealed class GivenScrapeActions : IDisposable
 {
     private readonly OperationCoordinator coordinator = new();
-    private readonly StatusReporter status = new(NullLogger<StatusReporter>.Instance);
+    private readonly StatusReporter status = TestStatusReporter.Create();
     private readonly FakeDialogHost dialogs = new();
     private readonly FakeDownloadsClearer downloadsClearer = new();
     private readonly FakeScrapeService scrapeService = new();
@@ -32,7 +32,7 @@ public sealed class GivenScrapeActions : IDisposable
 
         await actions.ClearDownloadsAsync(dialogs);
 
-        (downloadsClearer.ClearCount, status.Text).ShouldBe((1, "Downloads cleared: 3 file records removed and the save directories emptied."));
+        (downloadsClearer.ClearCount, status.Text).ShouldBe((1, $"{TestStatusReporter.Timestamp} Downloads cleared: 3 file records removed and the save directories emptied."));
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class GivenScrapeActions : IDisposable
 
         await Should.NotThrowAsync(() => actions.ClearDownloadsAsync(dialogs));
 
-        (downloadsClearer.ClearCount, status.Text).ShouldBe((0, "Unable to clear downloads. dialog broke"));
+        (downloadsClearer.ClearCount, status.Text).ShouldBe((0, $"{TestStatusReporter.Timestamp} Unable to clear downloads. dialog broke"));
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public sealed class GivenScrapeActions : IDisposable
 
         await actions.RunScraperAsync(ScrapeSelection.All);
 
-        status.Text.ShouldBe("Fetching categories.");
+        status.Text.ShouldBe($"{TestStatusReporter.Timestamp} Fetching categories.");
     }
 
     [Fact]

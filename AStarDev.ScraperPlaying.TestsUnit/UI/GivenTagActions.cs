@@ -9,7 +9,7 @@ namespace AStarDev.ScraperPlaying.TestsUnit.UI;
 public sealed class GivenTagActions : IDisposable
 {
     private readonly OperationCoordinator coordinator = new();
-    private readonly StatusReporter status = new(NullLogger<StatusReporter>.Instance);
+    private readonly StatusReporter status = TestStatusReporter.Create();
     private readonly FakeDialogHost dialogs = new();
     private readonly FakeTagCatalogue tagCatalogue = new();
     private readonly TagActions actions;
@@ -24,7 +24,7 @@ public sealed class GivenTagActions : IDisposable
     {
         await actions.EditTagsAsync(dialogs);
 
-        (dialogs.ShownCount, status.Text).ShouldBe((0, "There are no tags to edit."));
+        (dialogs.ShownCount, status.Text).ShouldBe((0, $"{TestStatusReporter.Timestamp} There are no tags to edit."));
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public sealed class GivenTagActions : IDisposable
 
         await Should.NotThrowAsync(() => actions.EditTagsAsync(dialogs));
 
-        (dialogs.ShownCount, status.Text).ShouldBe((0, "Unable to edit tags. tags broke"));
+        (dialogs.ShownCount, status.Text).ShouldBe((0, $"{TestStatusReporter.Timestamp} Unable to edit tags. tags broke"));
     }
 
     private sealed class FakeTagCatalogue : ITagCatalogue

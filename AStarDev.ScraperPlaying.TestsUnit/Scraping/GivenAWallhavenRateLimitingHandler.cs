@@ -13,6 +13,7 @@ public sealed class GivenAWallhavenRateLimitingHandler : IDisposable
     private readonly CountingRateLimiter limiter = new();
     private readonly ManualTimeProvider timeProvider = new();
     private readonly StubHandler inner = new();
+    private readonly RateLimitBackoffNotifier notifier = new();
 
     [Fact]
     public async Task when_an_api_request_is_sent_then_one_permit_is_acquired_and_the_response_is_returned()
@@ -61,6 +62,37 @@ public sealed class GivenAWallhavenRateLimitingHandler : IDisposable
         using var response = await request;
 
         (response.StatusCode, inner.RequestedUrls.Count, limiter.AcquiredPermits).ShouldBe((HttpStatusCode.OK, 2, 2));
+    }
+
+    [Fact]
+    public async Task when_a_429_is_retried_then_the_back_off_delay_is_announced_before_waiting()
+    {
+        var announced = new List<TimeSpan>();
+        notifier.BackingOff += (_, delay) => announced.Add(delay);
+        inner.Enqueue(HttpStatusCode.TooManyRequests, retryAfter: new RetryConditionHeaderValue(TimeSpan.FromSeconds(5)));
+        inner.Enqueue(HttpStatusCode.OK);
+        using var client = CreateClient();
+
+        var request = client.GetAsync(ApiUrl, CancellationToken.None);
+        await timeProvider.WaitForDelaysAsync(1);
+        var announcedBeforeRetry = announced.ToList();
+        timeProvider.FireAll();
+        using var response = await request;
+
+        announcedBeforeRetry.ShouldBe([TimeSpan.FromSeconds(5)]);
+    }
+
+    [Fact]
+    public async Task when_the_request_is_not_rate_limited_then_no_back_off_is_announced()
+    {
+        var announced = 0;
+        notifier.BackingOff += (_, _) => announced++;
+        inner.Enqueue(HttpStatusCode.OK);
+        using var client = CreateClient();
+
+        using var response = await client.GetAsync(ApiUrl, CancellationToken.None);
+
+        announced.ShouldBe(0);
     }
 
     [Fact]
@@ -136,7 +168,7 @@ public sealed class GivenAWallhavenRateLimitingHandler : IDisposable
     }
 
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient owns and disposes the handler.")]
-    private HttpClient CreateClient() => new(new WallhavenRateLimitingHandler(limiter, timeProvider) { InnerHandler = inner });
+    private HttpClient CreateClient() => new(new WallhavenRateLimitingHandler(limiter, notifier, timeProvider) { InnerHandler = inner });
 
     private sealed class StubHandler : HttpMessageHandler
     {

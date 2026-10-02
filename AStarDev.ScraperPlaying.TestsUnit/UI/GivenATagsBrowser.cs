@@ -8,7 +8,7 @@ namespace AStarDev.ScraperPlaying.TestsUnit.UI;
 public sealed class GivenATagsBrowser
 {
     private readonly FakeTagCatalogue catalogue = new();
-    private readonly StatusReporter status = new(NullLogger<StatusReporter>.Instance);
+    private readonly StatusReporter status = TestStatusReporter.Create();
     private readonly TagsBrowser browser;
 
     public GivenATagsBrowser() => browser = new(catalogue, status);
@@ -18,7 +18,7 @@ public sealed class GivenATagsBrowser
     {
         var editor = await browser.CreateEditorAsync();
 
-        (editor is Option<TagsEditorWindow>.None, status.Text).ShouldBe((true, "There are no tags to edit."));
+        (editor is Option<TagsEditorWindow>.None, status.Text).ShouldBe((true, $"{TestStatusReporter.Timestamp} There are no tags to edit."));
     }
 
     [Fact]
@@ -28,7 +28,7 @@ public sealed class GivenATagsBrowser
 
         var editor = await browser.CreateEditorAsync();
 
-        (editor is Option<TagsEditorWindow>.None, status.Text).ShouldBe((true, "Unable to list tags. list failed"));
+        (editor is Option<TagsEditorWindow>.None, status.Text).ShouldBe((true, $"{TestStatusReporter.Timestamp} Unable to list tags. list failed"));
     }
 
     private sealed class FakeTagCatalogue : ITagCatalogue
