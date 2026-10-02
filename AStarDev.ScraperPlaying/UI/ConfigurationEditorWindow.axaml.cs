@@ -48,7 +48,7 @@ public sealed partial class ConfigurationEditorWindow : Window
         else
         {
             ConfigurationPicker.SelectedItem = session.Summaries.FirstOrDefault(current => current.Id == configurationId);
-            ShowError(switched.Error);
+            ShowError(switched.Error.Match(message => message, () => string.Empty));
         }
     }
 
