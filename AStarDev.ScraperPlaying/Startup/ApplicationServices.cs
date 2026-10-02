@@ -131,6 +131,7 @@ public static class ApplicationServices
             .AddSingleton<ClearDownloadsRunner>()
             .AddSingleton<ScrapeRunner>()
             .AddSingleton<ApplicationReadiness>()
+            .AddSingleton<ConfigurationTransfer>()
             .AddSingleton<ConfigurationActions>()
             .AddSingleton<TagActions>()
             .AddSingleton<ScrapeActions>()

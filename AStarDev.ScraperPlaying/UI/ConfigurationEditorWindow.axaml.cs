@@ -35,26 +35,20 @@ public sealed partial class ConfigurationEditorWindow : Window
         ConfigurationPicker.SelectedItem = session.Summaries.FirstOrDefault(summary => summary.Id == session.Initial.Id);
     }
 
-    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "An async void handler: any exception escaping it would crash the application, so the failure is shown in the editor instead.")]
     public async void ConfigurationSelected(object? sender, SelectionChangedEventArgs eventArgs)
     {
         if (ConfigurationPicker.SelectedItem is not ScrapeConfigurationSummary summary || summary.Id == configurationId) return;
 
         ShowError(string.Empty);
-        try
+        var switched = await ConfigurationSwitch.ResolveAsync(summary, CanDiscardEditsAsync, session);
+        if (switched.Loaded is Option<LoadedConfiguration>.Some loaded)
         {
-            if (!await CanDiscardEditsAsync())
-            {
-                ConfigurationPicker.SelectedItem = session.Summaries.FirstOrDefault(current => current.Id == configurationId);
-
-                return;
-            }
-
-            if (await session.LoadAsync(summary) is Option<LoadedConfiguration>.Some loaded) Load(loaded.Value);
+            Load(loaded.Value);
         }
-        catch (Exception exception)
+        else
         {
-            ShowError($"Unable to load the scrape configuration. {exception.Message}");
+            ConfigurationPicker.SelectedItem = session.Summaries.FirstOrDefault(current => current.Id == configurationId);
+            ShowError(switched.Error);
         }
     }
 
