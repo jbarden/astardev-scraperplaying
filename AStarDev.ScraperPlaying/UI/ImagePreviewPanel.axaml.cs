@@ -20,6 +20,7 @@ public sealed partial class ImagePreviewPanel : UserControl
     {
         coordinator = imageDisplayCoordinator;
         imageDisplayCoordinator.ImageReady += (_, preview) => Dispatcher.UIThread.Post(() => DisplayImage(preview));
+        imageDisplayCoordinator.DetailsReady += (_, info) => Dispatcher.UIThread.Post(() => DisplayDetails(info));
     }
 
     public void ToggleImageDisplay(object? sender, RoutedEventArgs eventArgs)
@@ -47,10 +48,15 @@ public sealed partial class ImagePreviewPanel : UserControl
 
         (previousImage as IDisposable)?.Dispose();
 
-        ImageNameText.Text = preview.Info.Name;
-        ImageCategoryText.Text = preview.Info.CategoryDescription;
-        ImageSizeText.Text = preview.Info.FileSizeBytes.ToFileSizeString();
-        ImageDimensionsText.Text = $"{preview.Info.Width} x {preview.Info.Height}";
+        DisplayDetails(preview.Info);
+    }
+
+    private void DisplayDetails(WallpaperInfo info)
+    {
+        ImageNameText.Text = info.Name;
+        ImageCategoryText.Text = info.CategoryDescription;
+        ImageSizeText.Text = info.FileSizeBytes.ToFileSizeString();
+        ImageDimensionsText.Text = $"{info.Width} x {info.Height}";
         ImageDetailsPanel.IsVisible = true;
     }
 
@@ -58,10 +64,5 @@ public sealed partial class ImagePreviewPanel : UserControl
     {
         (DownloadedImage.Source as IDisposable)?.Dispose();
         DownloadedImage.Source = null;
-        ImageDetailsPanel.IsVisible = false;
-        ImageNameText.Text = string.Empty;
-        ImageCategoryText.Text = string.Empty;
-        ImageSizeText.Text = string.Empty;
-        ImageDimensionsText.Text = string.Empty;
     }
 }

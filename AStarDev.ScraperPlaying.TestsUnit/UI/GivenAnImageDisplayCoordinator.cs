@@ -73,6 +73,32 @@ public sealed class GivenAnImageDisplayCoordinator
     }
 
     [Fact]
+    public void when_display_is_disabled_then_a_notified_images_details_are_still_raised_without_decoding()
+    {
+        var coordinator = new ImageDisplayCoordinator(notifier, decoder) { IsEnabled = false };
+        List<WallpaperInfo> received = [];
+        coordinator.DetailsReady += (_, info) => received.Add(info);
+
+        notifier.NotifyImageDownloaded(Details("wallpaper-1"));
+
+        (received.Single().Name, decoder.DecodedPaths.Count).ShouldBe(("wallpaper-1", 0));
+    }
+
+    [Fact]
+    public async Task when_display_is_enabled_then_details_are_not_raised_separately_from_the_image()
+    {
+        var coordinator = new ImageDisplayCoordinator(notifier, decoder);
+        var raised = false;
+        coordinator.DetailsReady += (_, _) => raised = true;
+        var received = ExpectImages(coordinator, 1);
+
+        notifier.NotifyImageDownloaded(Details("wallpaper-1"));
+
+        _ = await received.Task.WaitAsync(Timeout, TestContext.Current.CancellationToken);
+        raised.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task when_display_is_enabled_again_then_notified_images_are_decoded_again()
     {
         var coordinator = new ImageDisplayCoordinator(notifier, decoder) { IsEnabled = false };
