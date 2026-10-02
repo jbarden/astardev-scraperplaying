@@ -35,7 +35,7 @@ public sealed class WallpaperFiler(WallpaperSaver wallpaperSaver, ITagLinker tag
                 .Match(
                     _ =>
                     {
-                        imageDownloadNotifier.NotifyImageDownloaded(saved.Details);
+                        imageDownloadNotifier.NotifyImageDownloaded(saved.Details with { Info = saved.Details.Info with { Count = run.Tally.RecordDownload() } });
 
                         return IngestOutcome.Complete;
                     },

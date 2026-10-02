@@ -48,7 +48,7 @@ public sealed partial class ImagePreviewPanel : UserControl
         (previousImage as IDisposable)?.Dispose();
 
         ImageNameText.Text = preview.Info.Name;
-        ImageCategoryText.Text = preview.Info.CategoryLabel;
+        ImageCategoryText.Text = preview.Info.CategoryDescription;
         ImageSizeText.Text = preview.Info.FileSizeBytes.ToFileSizeString();
         ImageDimensionsText.Text = $"{preview.Info.Width} x {preview.Info.Height}";
         ImageDetailsPanel.IsVisible = true;
