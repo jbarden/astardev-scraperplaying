@@ -10,11 +10,12 @@ public sealed class ScrapeRunner(IScrapeService scrapeService, StatusReporter st
 {
     /// <summary>Runs the scraper on the thread pool so its continuations never resume on the UI thread; progress reaches the UI through the status dispatch.</summary>
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Called from an async void UI handler: any exception escaping it would crash the application, so every failure is reported in the status instead.")]
-    public async Task RunAsync()
+    /// <param name="selection">Which of the scrapes to run.</param>
+    public async Task RunAsync(ScrapeSelection selection)
     {
         try
         {
-            await Task.Run(() => scrapeService.RunScraperAsync(new StatusProgress(status)));
+            await Task.Run(() => scrapeService.RunScraperAsync(selection, new StatusProgress(status)));
         }
         catch (Exception exception)
         {

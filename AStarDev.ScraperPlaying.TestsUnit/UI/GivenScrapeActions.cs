@@ -60,7 +60,7 @@ public sealed class GivenScrapeActions : IDisposable
     {
         scrapeService.OnRun = progress => progress.Report("Fetching categories.");
 
-        await actions.RunScraperAsync();
+        await actions.RunScraperAsync(ScrapeSelection.All);
 
         status.Text.ShouldBe("Fetching categories.");
     }
@@ -97,7 +97,7 @@ public sealed class GivenScrapeActions : IDisposable
     {
         public Action<IProgress<string>> OnRun { get; set; } = _ => { };
 
-        public Task RunScraperAsync(IProgress<string> progress)
+        public Task RunScraperAsync(ScrapeSelection selection, IProgress<string> progress)
         {
             OnRun(progress);
 

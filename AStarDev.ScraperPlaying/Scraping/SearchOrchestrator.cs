@@ -15,15 +15,23 @@ public sealed class SearchOrchestrator(IPagesProcessor pagesProcessor, ScrapeLim
     private const string HotWallpapersName = "Hot Wallpapers";
 
     /// <inheritdoc/>
-    public async Task RunSearchesAsync(ScrapeConfigurationEntity configuration, IProgress<string> progress, CancellationToken cancellationToken)
+    public async Task RunSearchesAsync(ScrapeConfigurationEntity configuration, ScrapeSelection selection, IProgress<string> progress, CancellationToken cancellationToken)
     {
         var target = new ScrapeTarget(new WallhavenConnection(configuration.UserConfiguration.ApiKey, configuration.BaseUrl), [.. configuration.SearchConfiguration.PersonCategories.Select(category => category.Name)]);
 
-        progress.Report("Fetching hot wallpapers.");
-        await RunSearchAsync(HotRequest(configuration, target), progress, cancellationToken);
+        if (selection.HotWallpapers)
+        {
+            progress.Report("Fetching hot wallpapers.");
+            await RunSearchAsync(HotRequest(configuration, target), progress, cancellationToken);
+        }
 
-        progress.Report("Fetching top wallpapers.");
-        await RunSearchAsync(TopRequest(configuration, target), progress, cancellationToken);
+        if (selection.TopWallpapers)
+        {
+            progress.Report("Fetching top wallpapers.");
+            await RunSearchAsync(TopRequest(configuration, target), progress, cancellationToken);
+        }
+
+        if (!selection.Categories) return;
 
         progress.Report("Fetching categories.");
         foreach (var category in configuration.SearchConfiguration.SearchCategories.Where(category => category.IncludeInSearch).Take(limits.MaximumSearchCategories))

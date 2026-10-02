@@ -21,7 +21,7 @@ public sealed class GivenAScrapeRunner
             progress.Report("Fetching categories.");
         };
 
-        await runner.RunAsync();
+        await runner.RunAsync(ScrapeSelection.All);
 
         status.Text.ShouldBe($"Starting scrape operation.{Environment.NewLine}Fetching categories.");
     }
@@ -31,7 +31,7 @@ public sealed class GivenAScrapeRunner
     {
         scrapeService.OnRun = _ => throw new InvalidOperationException("Scrape configuration not found");
 
-        await Should.NotThrowAsync(() => runner.RunAsync());
+        await Should.NotThrowAsync(() => runner.RunAsync(ScrapeSelection.All));
 
         status.Text.ShouldBe("The scrape failed. Scrape configuration not found");
     }
@@ -47,7 +47,7 @@ public sealed class GivenAScrapeRunner
             var scrapeContext = new SynchronizationContext();
             scrapeService.OnRun = _ => scrapeContext = SynchronizationContext.Current!;
 
-            await runner.RunAsync();
+            await runner.RunAsync(ScrapeSelection.All);
 
             scrapeContext.ShouldBeNull();
         }
@@ -61,7 +61,7 @@ public sealed class GivenAScrapeRunner
     {
         public Action<IProgress<string>> OnRun { get; set; } = _ => { };
 
-        public Task RunScraperAsync(IProgress<string> progress)
+        public Task RunScraperAsync(ScrapeSelection selection, IProgress<string> progress)
         {
             OnRun(progress);
 

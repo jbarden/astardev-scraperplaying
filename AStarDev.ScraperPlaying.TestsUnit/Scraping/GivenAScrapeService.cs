@@ -188,13 +188,13 @@ public sealed class GivenAScrapeService : IDisposable
         operationCoordinator.Dispose();
     }
 
-    private Task Run() => service.RunScraperAsync(progress);
+    private Task Run() => service.RunScraperAsync(ScrapeSelection.All, progress);
 
     private sealed class FakeSearchOrchestrator : ISearchOrchestrator
     {
         public Action OnSearch { get; set; } = () => { };
 
-        public Task RunSearchesAsync(ScrapeConfigurationEntity configuration, IProgress<string> progress, CancellationToken cancellationToken)
+        public Task RunSearchesAsync(ScrapeConfigurationEntity configuration, ScrapeSelection selection, IProgress<string> progress, CancellationToken cancellationToken)
         {
             progress.Report($"Searched configuration {configuration.Id.Value}.");
             OnSearch();
