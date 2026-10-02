@@ -12,21 +12,21 @@ namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 public sealed class WallpaperIngestionService(IFilesQuery filesQuery, INewWallpaperIngestor newWallpaperIngestor) : IWallpaperIngestionService
 {
     /// <inheritdoc/>
-    public async Task IngestPageAsync(IReadOnlyList<Data> wallpapers, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+    public async Task<IngestOutcome> IngestPageAsync(IReadOnlyList<Data> wallpapers, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
     {
-        if (wallpapers.Count == 0) return;
+        if (wallpapers.Count == 0) return IngestOutcome.Complete;
 
         var candidates = BuildCandidates(wallpapers);
         IReadOnlyCollection<FileHandle> handles = [.. candidates.Select(candidate => FileHandle.Create(candidate.Wallpaper.Id))];
 
-        await (await filesQuery.GetExistingHandlesAsync(handles, cancellationToken))
+        return await (await filesQuery.GetExistingHandlesAsync(handles, cancellationToken))
         .Match(
             existingHandles => IngestNewWallpapersAsync(SplitNewCandidates(candidates, existingHandles, progress), context, progress, cancellationToken),
             exception =>
             {
                 progress.Report($"Failed to check whether the file details already exist for this page of wallpapers: {exception.Message}");
 
-                return Task.CompletedTask;
+                return Task.FromResult(IngestOutcome.Incomplete);
             }
         );
     }
@@ -51,10 +51,11 @@ public sealed class WallpaperIngestionService(IFilesQuery filesQuery, INewWallpa
     /// Ingests the new wallpapers in page order, fetching the next wallpaper's tags (network only, and one fetch at a time so the API rate limit still applies) while the current one
     /// downloads and is recorded (network and the single, non-thread-safe database context, and one wallpaper at a time).
     /// </summary>
-    private async Task IngestNewWallpapersAsync(List<WallpaperCandidate> newWallpapers, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+    private async Task<IngestOutcome> IngestNewWallpapersAsync(List<WallpaperCandidate> newWallpapers, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
     {
-        if (newWallpapers.Count == 0) return;
+        if (newWallpapers.Count == 0) return IngestOutcome.Complete;
 
+        var pageOutcome = IngestOutcome.Complete;
         var prefetch = newWallpaperIngestor.FetchTagsAsync(newWallpapers[0].Wallpaper, context, progress, cancellationToken);
         try
         {
@@ -63,8 +64,11 @@ public sealed class WallpaperIngestionService(IFilesQuery filesQuery, INewWallpa
                 var tags = await prefetch;
                 prefetch = i + 1 < newWallpapers.Count ? newWallpaperIngestor.FetchTagsAsync(newWallpapers[i + 1].Wallpaper, context, progress, cancellationToken) : Task.FromResult(Option.None<IReadOnlyList<Tag>>());
 
-                if (tags.TryGetValue(out var fetchedTags)) await newWallpaperIngestor.IngestAsync(newWallpapers[i], fetchedTags, context, progress, cancellationToken);
+                var outcome = tags.TryGetValue(out var fetchedTags) ? await newWallpaperIngestor.IngestAsync(newWallpapers[i], fetchedTags, context, progress, cancellationToken) : IngestOutcome.Incomplete;
+                if (outcome == IngestOutcome.Incomplete) pageOutcome = IngestOutcome.Incomplete;
             }
+
+            return pageOutcome;
         }
         finally
         {

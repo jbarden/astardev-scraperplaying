@@ -34,7 +34,7 @@ public sealed class PagesProcessor(IWallpaperIngestionContextFactory contextFact
             return Option.None<SearchCategoryProgress>();
         }
 
-        return Option.Some(await IngestPagesAsync(run, startPage));
+        return await IngestPagesAsync(run, startPage);
     }
 
     private async Task<FetchedPage> ResolveStartPageAsync(IngestionRun run)
@@ -47,13 +47,21 @@ public sealed class PagesProcessor(IWallpaperIngestionContextFactory contextFact
         return fetched;
     }
 
-    private async Task<SearchCategoryProgress> IngestPagesAsync(IngestionRun run, FetchedPage startPage)
+    /// <summary>Visits each page in turn. Once a page is not fully ingested, no later page records progress either, so the next scrape resumes at that page and retries it.</summary>
+    /// <returns>The progress of the last page recorded, or <see cref="Option{T}.None"/> when no page was.</returns>
+    private async Task<Option<SearchCategoryProgress>> IngestPagesAsync(IngestionRun run, FetchedPage startPage)
     {
         var current = startPage;
+        var recorded = Option.None<SearchCategoryProgress>();
+        var progressWithheld = false;
         while (true)
         {
-            await ingestionStep.IngestPageAsync(run, current);
-            if (resumePolicy.IsLastPageToVisit(current.Number, current.Response.Meta)) return new SearchCategoryProgress(current.Response.Meta.Total, current.Number, current.Response.Meta.LastPage);
+            var outcome = await ingestionStep.IngestPageAsync(run, current, !progressWithheld);
+            if (!progressWithheld && outcome == IngestOutcome.Complete) recorded = Option.Some(new SearchCategoryProgress(current.Response.Meta.Total, current.Number, current.Response.Meta.LastPage));
+            else if (!progressWithheld) run.Progress.Report($"Not every wallpaper on page {current.Number} was ingested - progress stays before that page so it is retried on the next scrape.");
+
+            progressWithheld |= outcome == IngestOutcome.Incomplete;
+            if (resumePolicy.IsLastPageToVisit(current.Number, current.Response.Meta)) return recorded;
 
             current = await FetchPageAsync(run, current.Number + 1);
         }

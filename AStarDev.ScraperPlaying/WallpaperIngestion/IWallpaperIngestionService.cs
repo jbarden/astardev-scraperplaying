@@ -18,6 +18,6 @@ public interface IWallpaperIngestionService
     /// <param name="context">The per-page state (save directory, HTTP client, file repository) to ingest the wallpaper into.</param>
     /// <param name="progress">The progress reporter to report ingestion progress.</param>
     /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    Task IngestPageAsync(IReadOnlyList<Data> wallpapers, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken);
+    /// <returns><see cref="IngestOutcome.Incomplete"/> if any wallpaper on the page was skipped because a step failed (so the page must be visited again), otherwise <see cref="IngestOutcome.Complete"/>.</returns>
+    Task<IngestOutcome> IngestPageAsync(IReadOnlyList<Data> wallpapers, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken);
 }

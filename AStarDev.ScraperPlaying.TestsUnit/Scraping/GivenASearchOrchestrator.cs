@@ -205,11 +205,11 @@ public sealed class GivenASearchOrchestrator
 
     private sealed class FakeIngestionService : IWallpaperIngestionService
     {
-        public Task IngestPageAsync(IReadOnlyList<Data> wallpapers, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
+        public Task<IngestOutcome> IngestPageAsync(IReadOnlyList<Data> wallpapers, WallpaperIngestionContext context, IProgress<string> progress, CancellationToken cancellationToken)
         {
             progress.Report($"Ingested {context.CategoryLabel} with people {string.Join(",", context.PersonCategories)}.");
 
-            return Task.CompletedTask;
+            return Task.FromResult(IngestOutcome.Complete);
         }
     }
 
