@@ -35,6 +35,9 @@
                   Margin="0,24,0,0">
         <Button x:Name="RunScraperButton" Content="Run Scraper" Click="RunScraper" />
         <Button x:Name="CancelButton" Content="Cancel" Click="CancelOperation" IsEnabled="False" />
+        <ToggleSwitch x:Name="HotWallpapersSwitch" OnContent="Hot Wallpapers" OffContent="Hot Wallpapers" IsChecked="True" />
+        <ToggleSwitch x:Name="TopWallpapersSwitch" OnContent="Top Wallpapers" OffContent="Top Wallpapers" IsChecked="True" />
+        <ToggleSwitch x:Name="CategoriesSwitch" OnContent="Categories" OffContent="Categories" IsChecked="True" />
       </StackPanel>
       <Grid Grid.Row="2"
             ColumnDefinitions="*,*"

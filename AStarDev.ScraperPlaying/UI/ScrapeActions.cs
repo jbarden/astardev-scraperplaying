@@ -1,3 +1,5 @@
+using AStarDev.ScraperPlaying.Scraping;
+
 namespace AStarDev.ScraperPlaying.UI;
 
 /// <summary>The scraping actions the main window's buttons trigger: run, cancel and clear the downloads.</summary>
@@ -16,7 +18,8 @@ public sealed class ScrapeActions(UserOperationRunner operations, ClearDownloads
         });
 
     /// <summary>Runs the scraper.</summary>
-    public async Task RunScraperAsync() => await scrapeRunner.RunAsync();
+    /// <param name="selection">Which of the scrapes to run.</param>
+    public async Task RunScraperAsync(ScrapeSelection selection) => await scrapeRunner.RunAsync(selection);
 
     /// <summary>Cancels the operation in progress.</summary>
     public void CancelOperation() => operations.Cancel();

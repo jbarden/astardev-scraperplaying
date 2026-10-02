@@ -30,6 +30,18 @@ public sealed class GivenASearchOrchestrator
         IngestedLabels.ShouldBe(["Hot Wallpapers", "Top Wallpapers", "category one", "category two", "category three"]);
     }
 
+    [Theory]
+    [InlineData(false, true, true, new[] { "top wallpapers", "search category category one", "search category category two" })]
+    [InlineData(true, false, true, new[] { "hot wallpapers", "search category category one", "search category category two" })]
+    [InlineData(true, true, false, new[] { "hot wallpapers", "top wallpapers" })]
+    [InlineData(false, false, false, new string[0])]
+    public async Task when_a_scrape_is_switched_off_then_only_the_scrapes_still_switched_on_are_processed(bool hot, bool top, bool categories, string[] expected)
+    {
+        await Run(ScrapeConfigurationTestData.CreateConfiguration(categoryCount: 2), new ScrapeSelection(hot, top, categories));
+
+        FetchedLabels.ShouldBe(expected);
+    }
+
     [Fact]
     public async Task when_a_category_is_excluded_from_the_search_then_it_is_not_processed_and_the_limit_applies_to_the_included_categories()
     {
@@ -198,13 +210,18 @@ public sealed class GivenASearchOrchestrator
 
     private Task Run(ScrapeConfigurationEntity configuration) => Run(configuration, new ScrapeLimits(3, 4));
 
+    private Task Run(ScrapeConfigurationEntity configuration, ScrapeSelection selection) => RunWithToken(configuration, new ScrapeLimits(3, 4), selection, CancellationToken.None);
+
     private Task Run(ScrapeConfigurationEntity configuration, ScrapeLimits limits) => RunWithToken(configuration, limits, CancellationToken.None);
 
     private Task RunWithToken(ScrapeConfigurationEntity configuration, ScrapeLimits limits, CancellationToken cancellationToken)
+        => RunWithToken(configuration, limits, ScrapeSelection.All, cancellationToken);
+
+    private Task RunWithToken(ScrapeConfigurationEntity configuration, ScrapeLimits limits, ScrapeSelection selection, CancellationToken cancellationToken)
     {
         var pagesProcessor = new PagesProcessor(new WallpaperIngestionContextFactory(new FakeClientFactory(), unitOfWork, new FakeSaveDirectoryResolver()), pageFetcher, new PageIngestionStep(new FakeIngestionService(), unitOfWork), new ScrapeResumePolicy(limits));
 
-        return new SearchOrchestrator(pagesProcessor, limits, NullLogger<SearchOrchestrator>.Instance).RunSearchesAsync(configuration, progress, cancellationToken);
+        return new SearchOrchestrator(pagesProcessor, limits, NullLogger<SearchOrchestrator>.Instance).RunSearchesAsync(configuration, selection, progress, cancellationToken);
     }
 
     private sealed class FakeClientFactory : IWallhavenClientFactory

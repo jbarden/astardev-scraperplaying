@@ -16,7 +16,7 @@ public sealed class ScrapeService(OperationCoordinator operationCoordinator, ISc
 {
     /// <inheritdoc/>
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "This is the single place a scrape failure is reported: every failure, including start-up ones, is reported once with its whole message chain rather than escaping.")]
-    public async Task RunScraperAsync(IProgress<string> progress)
+    public async Task RunScraperAsync(ScrapeSelection selection, IProgress<string> progress)
     {
         if (!operationCoordinator.TryStart(out var cancellationToken))
         {
@@ -30,7 +30,7 @@ public sealed class ScrapeService(OperationCoordinator operationCoordinator, ISc
         {
             progress.Report("Starting scrape operation.");
             LogMessage.Information(logger, "Scrape started");
-            await RunWithinScopeAsync(progress, cancellationToken);
+            await RunWithinScopeAsync(selection, progress, cancellationToken);
             ReportCompleted(progress, startTime);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -57,11 +57,11 @@ public sealed class ScrapeService(OperationCoordinator operationCoordinator, ISc
         LogMessage.Information(logger, completedMessage);
     }
 
-    private async Task RunWithinScopeAsync(IProgress<string> progress, CancellationToken cancellationToken)
+    private async Task RunWithinScopeAsync(ScrapeSelection selection, IProgress<string> progress, CancellationToken cancellationToken)
         => _ = await scopedRunner.RunAsync<IUnitOfWork, ISearchOrchestrator, Unit>(async (unitOfWork, searchOrchestrator) =>
         {
             var configuration = await unitOfWork.LoadScrapeConfigurationAsync(cancellationToken);
-            await searchOrchestrator.RunSearchesAsync(configuration, progress, cancellationToken);
+            await searchOrchestrator.RunSearchesAsync(configuration, selection, progress, cancellationToken);
 
             return Unit.Instance;
         });

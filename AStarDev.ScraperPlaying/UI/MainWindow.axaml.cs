@@ -1,3 +1,4 @@
+using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -41,7 +42,7 @@ public sealed partial class MainWindow : Window
 
     public async void ClearDownloads(object? sender, RoutedEventArgs eventArgs) => await actions.Scrape.ClearDownloadsAsync(new WindowDialogHost(this));
 
-    public async void RunScraper(object? sender, RoutedEventArgs eventArgs) => await actions.Scrape.RunScraperAsync();
+    public async void RunScraper(object? sender, RoutedEventArgs eventArgs) => await actions.Scrape.RunScraperAsync(new ScrapeSelection(HotWallpapersSwitch.IsChecked == true, TopWallpapersSwitch.IsChecked == true, CategoriesSwitch.IsChecked == true));
 
     public void CancelOperation(object? sender, RoutedEventArgs eventArgs) => actions.Scrape.CancelOperation();
 
