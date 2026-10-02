@@ -10,7 +10,11 @@ namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 /// <param name="timeouts">The time an image body is allowed to take to arrive.</param>
 public sealed class ImageDownloader(IFileSystem fileSystem, TimeProvider timeProvider, DownloadPacing pacing, ScrapeTimeouts timeouts) : IImageDownloader
 {
+    /// <summary>How long an image body may go without data before the user is told the download has stalled; repeated for each further period without data.</summary>
+    public static readonly TimeSpan StallNoticeAfter = TimeSpan.FromSeconds(10);
+
     private const string PartialFileExtension = ".part";
+    private const int BufferSize = 81920;
 
     /// <inheritdoc/>
     public Task<string> DownloadAsync(WallpaperFileRequest request, IProgress<string> progress, HttpClient client, CancellationToken cancellationToken)
@@ -35,7 +39,7 @@ public sealed class ImageDownloader(IFileSystem fileSystem, TimeProvider timePro
             using var bodyToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, bodyTimeout.Token);
             using (var fileStream = fileSystem.FileStream.New(partialPath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                await downloadStream.CopyToAsync(fileStream, bodyToken.Token);
+                await CopyReportingStallsAsync(downloadStream, fileStream, request.Wallpaper.Id, progress, bodyToken.Token);
             }
 
             fileSystem.File.Move(partialPath, savedPath, overwrite: true);
@@ -47,5 +51,38 @@ public sealed class ImageDownloader(IFileSystem fileSystem, TimeProvider timePro
         }
 
         return savedPath;
+    }
+
+    private async Task CopyReportingStallsAsync(Stream source, Stream destination, string wallpaperId, IProgress<string> progress, CancellationToken cancellationToken)
+    {
+        var buffer = new byte[BufferSize];
+        int read;
+        do
+        {
+            read = await ReadReportingStallsAsync(source, buffer, wallpaperId, progress, cancellationToken);
+            await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+        }
+        while (read > 0);
+    }
+
+    private async Task<int> ReadReportingStallsAsync(Stream source, byte[] buffer, string wallpaperId, IProgress<string> progress, CancellationToken cancellationToken)
+    {
+        var read = source.ReadAsync(buffer, cancellationToken).AsTask();
+        var stalledFor = TimeSpan.Zero;
+        while (true)
+        {
+            try
+            {
+                var bytesRead = await read.WaitAsync(StallNoticeAfter, timeProvider, cancellationToken);
+                if (stalledFor > TimeSpan.Zero) progress.Report($"Image data for wallpaper {wallpaperId} is flowing again after {(int)stalledFor.TotalSeconds}s.");
+
+                return bytesRead;
+            }
+            catch (TimeoutException) when (!read.IsCompleted)
+            {
+                stalledFor += StallNoticeAfter;
+                progress.Report($"Still waiting for image data for wallpaper {wallpaperId} - no data received for {(int)stalledFor.TotalSeconds}s.");
+            }
+        }
     }
 }
