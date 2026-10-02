@@ -6,7 +6,7 @@ using AStarDev.ScraperPlaying.ScrapeConfiguration;
 namespace AStarDev.ScraperPlaying.Scraping;
 
 /// <inheritdoc/>
-public sealed class SearchOrchestrator(IPagesProcessor pagesProcessor, IUnitOfWork unitOfWork, ScrapeLimits limits) : ISearchOrchestrator
+public sealed class SearchOrchestrator(IPagesProcessor pagesProcessor, ScrapeLimits limits) : ISearchOrchestrator
 {
     /// <summary>The hot wallpapers are saved and labelled like a category of this name, so they land in the "hot-wallpapers" directory.</summary>
     private const string HotWallpapersName = "Hot Wallpapers";
@@ -25,7 +25,7 @@ public sealed class SearchOrchestrator(IPagesProcessor pagesProcessor, IUnitOfWo
         progress.Report("Fetching categories.");
         foreach (var category in configuration.SearchConfiguration.SearchCategories.Where(category => category.IncludeInSearch).Take(limits.MaximumSearchCategories))
         {
-            await ScrapeCategoryAsync(category, CategoryRequest(configuration, category, target), progress, cancellationToken);
+            _ = await pagesProcessor.FetchAndProcessPagesAsync(CategoryRequest(configuration, category, target), progress, cancellationToken);
         }
     }
 
@@ -40,13 +40,4 @@ public sealed class SearchOrchestrator(IPagesProcessor pagesProcessor, IUnitOfWo
 
     private static Action<SearchCategoryProgress> RecordProgress(SearchCategoryEntity category)
         => scraped => category.RecordScrapeProgress(scraped.LastKnownImageCount, scraped.LastPageVisited, scraped.TotalPages);
-
-    private async Task ScrapeCategoryAsync(SearchCategoryEntity category, PageScrapeRequest request, IProgress<string> progress, CancellationToken cancellationToken)
-    {
-        var scrapedProgress = await pagesProcessor.FetchAndProcessPagesAsync(request, progress, cancellationToken);
-        if (!scrapedProgress.TryGetValue(out var scraped)) return;
-
-        RecordProgress(category)(scraped);
-        _ = await unitOfWork.SaveChangesAsync(cancellationToken);
-    }
 }

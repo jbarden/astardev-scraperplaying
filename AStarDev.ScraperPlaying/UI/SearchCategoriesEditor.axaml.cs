@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
+using AStarDev.ScraperPlaying.Scraping;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 
