@@ -34,7 +34,7 @@ public sealed class WallpaperIngestionService(IFilesQuery filesQuery, INewWallpa
     private static IReadOnlyList<WallpaperCandidate> BuildCandidates(IReadOnlyList<Data> wallpapers)
         => [.. wallpapers.Select(wallpaper => new WallpaperCandidate(wallpaper, wallpaper.Path.ToFileExtension()))];
 
-    private static List<WallpaperCandidate> SplitNewCandidates(IReadOnlyList<WallpaperCandidate> candidates, IEnumerable<FileHandle> existingHandles, IProgress<string> progress)
+    private static List<WallpaperCandidate> SplitNewCandidates(IReadOnlyList<WallpaperCandidate> candidates, IReadOnlyCollection<FileHandle> existingHandles, IProgress<string> progress)
     {
         var existing = existingHandles.Select(handle => handle.Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
         List<WallpaperCandidate> newWallpapers = [];

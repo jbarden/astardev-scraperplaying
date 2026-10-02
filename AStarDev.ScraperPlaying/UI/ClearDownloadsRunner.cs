@@ -13,7 +13,7 @@ public sealed class ClearDownloadsRunner(IDownloadsClearer downloadsClearer, Use
     public Task RunAsync() =>
         operations.RunAsync("Clear Downloads cancelled.", "Unable to clear downloads.", async cancellationToken =>
         {
-            var cleared = (await downloadsClearer.ClearAsync(cancellationToken)).Match(value => value, exception => throw exception);
+            var cleared = (await downloadsClearer.ClearAsync(cancellationToken)).GetOrThrow();
             status.Append($"Downloads cleared: {cleared.FileRecords} file records removed and the save directories emptied.");
         });
 }

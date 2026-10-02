@@ -6,8 +6,8 @@ using AStarDev.ScraperPlaying.Scoping;
 
 namespace AStarDev.ScraperPlaying.ScrapeConfiguration;
 
-/// <summary>Represents a repository for scrape configuration settings repository.</summary>
-/// <param name="dbContextFactory">The factory for creating instances of the ControlDbContext.</param>
+/// <summary>Replaces the stored scrape configuration settings aggregate with an imported document.</summary>
+/// <param name="scopedRunner">Runs each import in its own scope, with its own unit of work.</param>
 public sealed class ScrapeConfigurationImporter(IScopedRunner scopedRunner) : IScrapeConfigurationImporter
 {
     /// <inheritdoc/>
@@ -19,7 +19,7 @@ public sealed class ScrapeConfigurationImporter(IScopedRunner scopedRunner) : IS
 
             // Map first: an unmappable document must not cost the user their current configuration.
             var replacement = document.ToEntity();
-            var current = (await dbContext.TryGetFirstAsync(cancellationToken)).Match(option => option, exception => throw exception);
+            var current = (await dbContext.TryGetFirstAsync(cancellationToken)).GetOrThrow();
 
             // Exports leave the API keys out by default, so a file without them must not blank the keys already stored.
             _ = current.Match(existing => KeepStoredApiKeysWhereFileHasNone(replacement, existing), () => Unit.Instance);
@@ -35,12 +35,12 @@ public sealed class ScrapeConfigurationImporter(IScopedRunner scopedRunner) : IS
             await current.MatchAsync(
                 async existing =>
                 {
-                    _ = repository.Delete(existing).Match(unit => unit, exception => throw exception);
+                    _ = repository.Delete(existing).GetOrThrow();
                     _ = await unitOfWork.SaveChangesAsync(cancellationToken);
                 },
                 () => { });
 
-            _ = repository.Add(replacement).Match(entity => entity, exception => throw exception);
+            _ = repository.Add(replacement).GetOrThrow();
             _ = await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return Unit.Instance;

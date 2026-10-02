@@ -30,7 +30,7 @@ public sealed class TagLinker(ITagsQuery tagsQuery, IUnitOfWork unitOfWork, IFil
             {
                 var tagEntity = ResolveOrAdd(tag);
                 _ = fileTagRepository.Add(new FileTagEntity { FileId = fileId, TagId = tagEntity.Id })
-                    .Match(_ => Unit.Instance, ex => throw ex);
+                    .GetOrThrow();
             }
 
             return Unit.Instance;
@@ -40,7 +40,7 @@ public sealed class TagLinker(ITagsQuery tagsQuery, IUnitOfWork unitOfWork, IFil
     {
         if (resolvedTags.TryGetValue(tag.Id, out var existing)) return existing;
 
-        var added = unitOfWork.GetRepository<TagEntity, TagId>().Add(ToEntity(tag)).Match(entity => entity, ex => throw ex);
+        var added = unitOfWork.GetRepository<TagEntity, TagId>().Add(ToEntity(tag)).GetOrThrow();
         resolvedTags.Add(tag.Id, added);
 
         return added;
@@ -65,7 +65,7 @@ public sealed class TagLinker(ITagsQuery tagsQuery, IUnitOfWork unitOfWork, IFil
         if (uncachedIds.Count == 0) return;
 
         var existingTags = (await tagsQuery.FindByWallhavenIdsAsync(uncachedIds, cancellationToken))
-            .Match(found => found, exception => throw exception);
+            .GetOrThrow();
 
         foreach (var existingTag in existingTags)
         {
