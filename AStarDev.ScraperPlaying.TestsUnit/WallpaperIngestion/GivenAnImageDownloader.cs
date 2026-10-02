@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using AStarDev.ControlDb.FileDetail;
+using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
 using Microsoft.Extensions.Time.Testing;
@@ -13,7 +14,7 @@ public sealed class GivenAnImageDownloader
     private readonly MockFileSystem fileSystem = new();
     private readonly ImageDownloader downloader;
 
-    public GivenAnImageDownloader() => downloader = new(fileSystem, System.TimeProvider.System, DownloadPacing.None);
+    public GivenAnImageDownloader() => downloader = new(fileSystem, System.TimeProvider.System, DownloadPacing.None, ScrapeTimeouts.Default);
 
     [Fact]
     public async Task when_downloading_an_image_succeeds_then_it_is_written_to_the_directory_and_the_saved_path_and_progress_are_reported()
@@ -131,7 +132,7 @@ public sealed class GivenAnImageDownloader
     public async Task when_pacing_is_configured_then_the_download_waits_for_the_delay_before_requesting_the_image()
     {
         var clock = new FakeTimeProvider();
-        var pacedDownloader = new ImageDownloader(fileSystem, clock, new DownloadPacing(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(3)));
+        var pacedDownloader = new ImageDownloader(fileSystem, clock, new DownloadPacing(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(3)), ScrapeTimeouts.Default);
         var requestCount = 0;
         using var client = CreateClient(_ =>
         {
@@ -187,9 +188,85 @@ public sealed class GivenAnImageDownloader
         thrown.ShouldNotBeOfType<TimeoutException>();
     }
 
+    [Fact]
+    [SuppressMessage("Reliability", "CA2025:Ensure tasks using 'IDisposable' instances complete before the instances are disposed", Justification = "The download is awaited before the client goes out of scope; the clock must advance while it is pending.")]
+    public async Task when_the_image_body_stalls_past_the_body_timeout_then_a_timeout_is_thrown_and_no_file_is_left()
+    {
+        var clock = new FakeTimeProvider();
+        var timeouts = new ScrapeTimeouts(TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(1));
+        var stalledDownloader = new ImageDownloader(fileSystem, clock, DownloadPacing.None, timeouts);
+        var stalledStream = new StalledStream();
+        using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(stalledStream) });
+        var directory = fileSystem.Path.Combine("root-directory", "top-wallpapers");
+        var wallpaper = CreateWallpaper(id: "stalled-1", path: "https://example.test/image.jpg");
+
+        var download = stalledDownloader.DownloadAsync(new WallpaperFileRequest(wallpaper, directory, NameFor(wallpaper, ".jpg"), "Top Wallpapers"), new CapturingProgress(), client, CancellationToken.None);
+        await stalledStream.ReadStarted.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        clock.Advance(timeouts.ImageBody);
+
+        await Should.ThrowAsync<TimeoutException>(() => download);
+        fileSystem.Directory.GetFiles(directory).ShouldBeEmpty();
+    }
+
+    [Fact]
+    [SuppressMessage("Reliability", "CA2025:Ensure tasks using 'IDisposable' instances complete before the instances are disposed", Justification = "The download is awaited before the client goes out of scope; the scrape is cancelled while it is pending.")]
+    public async Task when_the_scrape_is_cancelled_while_the_image_body_is_stalled_then_the_cancellation_is_not_turned_into_a_timeout()
+    {
+        var stalledStream = new StalledStream();
+        using var cancellationTokenSource = new CancellationTokenSource();
+        using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(stalledStream) });
+        var wallpaper = CreateWallpaper(id: "stalled-2", path: "https://example.test/image.jpg");
+
+        var download = downloader.DownloadAsync(new WallpaperFileRequest(wallpaper, "root-directory", NameFor(wallpaper, ".jpg"), "Top Wallpapers"), new CapturingProgress(), client, cancellationTokenSource.Token);
+        await stalledStream.ReadStarted.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        await cancellationTokenSource.CancelAsync();
+
+        var thrown = await Should.ThrowAsync<OperationCanceledException>(() => download);
+        thrown.ShouldNotBeOfType<TimeoutException>();
+    }
+
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient owns and disposes the handler.")]
     private static HttpClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> responder)
         => new(new StubHttpMessageHandler(responder));
+
+    private sealed class StalledStream : Stream
+    {
+        public TaskCompletionSource ReadStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush()
+        {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            _ = ReadStarted.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+
+            return 0;
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
 
     private sealed class FailingStream : Stream
     {

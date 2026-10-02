@@ -51,7 +51,7 @@ public sealed class GivenANewWallpaperIngestor
         ingestor = new(
             new TagFetcher(new JsonResponseProcessor(), tagsQuery, flagStore),
             new TagLinker(tagsQuery, unitOfWork, fileTagRepository, flagStore),
-            new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None), new WallpaperFileRecorder(System.TimeProvider.System), notifier));
+            new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None, ScrapeTimeouts.Default), new WallpaperFileRecorder(System.TimeProvider.System), notifier));
     }
 
     [Fact]

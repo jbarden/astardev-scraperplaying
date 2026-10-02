@@ -86,6 +86,7 @@ public static class ApplicationServices
             .AddScoped<IJsonResponseProcessor, JsonResponseProcessor>()
             .AddHttpClient(ApplicationConstants.WallhavenHttpClientName, client =>
             {
+                client.Timeout = ScrapeTimeouts.Default.Client;
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36");
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             }).AddHttpMessageHandler<WallhavenApiKeyHandler>().AddHttpMessageHandler<WallhavenRateLimitingHandler>().Services;
@@ -98,6 +99,7 @@ public static class ApplicationServices
             .AddSingleton<IImageDownloadNotifier, ImageDownloadNotifier>()
             .AddSingleton<IDownloadedImageDecoder, DownloadedImageDecoder>()
             .AddSingleton(DownloadPacing.Default)
+            .AddSingleton(ScrapeTimeouts.Default)
             .AddScoped<IImageDownloader, ImageDownloader>()
             .AddScoped<IWallpaperFileRecorder, WallpaperFileRecorder>()
             .AddScoped<WallpaperSaver>()
