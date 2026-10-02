@@ -1,12 +1,15 @@
 using AStarDev.ControlDb;
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
+using AStarDev.LoggingExtensions;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
+using AStarDev.Utilities;
+using Microsoft.Extensions.Logging;
 
 namespace AStarDev.ScraperPlaying.Scraping;
 
 /// <inheritdoc/>
-public sealed class SearchOrchestrator(IPagesProcessor pagesProcessor, ScrapeLimits limits) : ISearchOrchestrator
+public sealed class SearchOrchestrator(IPagesProcessor pagesProcessor, ScrapeLimits limits, ILogger<SearchOrchestrator> logger) : ISearchOrchestrator
 {
     /// <summary>The hot wallpapers are saved and labelled like a category of this name, so they land in the "hot-wallpapers" directory.</summary>
     private const string HotWallpapersName = "Hot Wallpapers";
@@ -17,15 +20,29 @@ public sealed class SearchOrchestrator(IPagesProcessor pagesProcessor, ScrapeLim
         var target = new ScrapeTarget(new WallhavenConnection(configuration.UserConfiguration.ApiKey, configuration.BaseUrl), [.. configuration.SearchConfiguration.PersonCategories.Select(category => category.Name)]);
 
         progress.Report("Fetching hot wallpapers.");
-        _ = await pagesProcessor.FetchAndProcessPagesAsync(HotRequest(configuration, target), progress, cancellationToken);
+        await RunSearchAsync(HotRequest(configuration, target), progress, cancellationToken);
 
         progress.Report("Fetching top wallpapers.");
-        _ = await pagesProcessor.FetchAndProcessPagesAsync(TopRequest(configuration, target), progress, cancellationToken);
+        await RunSearchAsync(TopRequest(configuration, target), progress, cancellationToken);
 
         progress.Report("Fetching categories.");
         foreach (var category in configuration.SearchConfiguration.SearchCategories.Where(category => category.IncludeInSearch).Take(limits.MaximumSearchCategories))
         {
-            _ = await pagesProcessor.FetchAndProcessPagesAsync(CategoryRequest(configuration, category, target), progress, cancellationToken);
+            await RunSearchAsync(CategoryRequest(configuration, category, target), progress, cancellationToken);
+        }
+    }
+
+    /// <summary>Runs one search. A page that cannot be fetched ends only this search: it is reported once and the next search still runs, and its progress stays withheld so it resumes next scrape. Anything else, including a cancellation, propagates.</summary>
+    private async Task RunSearchAsync(PageScrapeRequest request, IProgress<string> progress, CancellationToken cancellationToken)
+    {
+        try
+        {
+            _ = await pagesProcessor.FetchAndProcessPagesAsync(request, progress, cancellationToken);
+        }
+        catch (PageFetchException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            progress.Report($"The {request.Label.LogLabel} search failed: {exception.Failure.ToMessageChain()}");
+            LogMessage.Error(logger, $"Search {request.Label.LogLabel} failed", exception.Failure);
         }
     }
 

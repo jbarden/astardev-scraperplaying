@@ -287,14 +287,14 @@ public sealed class GivenAPagesProcessor
     }
 
     [Fact]
-    public async Task when_fetching_a_page_fails_then_the_failure_is_rethrown_unreported()
+    public async Task when_fetching_a_page_fails_then_the_failure_is_rethrown_as_a_page_fetch_failure_unreported()
     {
         var exception = new InvalidOperationException("page fetch failed");
         jsonResponseProcessor.Response = exception;
 
-        var thrown = await Should.ThrowAsync<InvalidOperationException>(Run);
+        var thrown = await Should.ThrowAsync<PageFetchException>(Run);
 
-        thrown.ShouldBeSameAs(exception);
+        thrown.Failure.ShouldBeSameAs(exception);
         progress.Messages.ShouldNotContain(message => message.Contains("page fetch failed", StringComparison.Ordinal));
     }
 

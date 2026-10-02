@@ -6,6 +6,8 @@ using AStarDev.ScraperPlaying.Scraping;
 using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 using AStarDev.ScraperPlaying.TestsUnit.Fakes;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AStarDev.ScraperPlaying.TestsUnit.Scraping;
 
@@ -73,14 +75,47 @@ public sealed class GivenASearchOrchestrator
     }
 
     [Fact]
-    public async Task when_a_search_fails_then_the_failure_propagates_and_later_searches_are_not_run()
+    public async Task when_the_hot_wallpapers_search_fails_then_the_failure_is_reported_once_and_the_later_searches_still_run()
     {
-        pageFetcher.FailWhen = (_, _) => true;
+        pageFetcher.FailWhen = (label, _) => label == "hot wallpapers";
 
-        _ = await Should.ThrowAsync<HttpRequestException>(() => Run(ScrapeConfigurationTestData.CreateConfiguration(categoryCount: 2)));
+        await Run(ScrapeConfigurationTestData.CreateConfiguration(categoryCount: 2));
+
+        FetchedLabels.ShouldBe(["top wallpapers", "search category category one", "search category category two"]);
+        progress.Messages.Where(message => message.Contains("boom", StringComparison.Ordinal)).ShouldHaveSingleItem().ShouldBe("The hot wallpapers search failed: boom");
+    }
+
+    [Fact]
+    public async Task when_a_category_search_fails_then_the_next_category_is_still_processed_and_the_failure_is_reported_once()
+    {
+        pageFetcher.FailWhen = (label, _) => label == "search category category one";
+
+        await Run(ScrapeConfigurationTestData.CreateConfiguration(categoryCount: 3));
+
+        FetchedLabels.ShouldBe(["hot wallpapers", "top wallpapers", "search category category two", "search category category three"]);
+        progress.Messages.Where(message => message.Contains("boom", StringComparison.Ordinal)).ShouldHaveSingleItem().ShouldBe("The search category category one search failed: boom");
+    }
+
+    [Fact]
+    public async Task when_the_scrape_is_cancelled_then_the_cancellation_propagates_and_later_searches_are_not_run()
+    {
+        using var cancellationTokenSource = new CancellationTokenSource();
+        await cancellationTokenSource.CancelAsync();
+
+        _ = await Should.ThrowAsync<OperationCanceledException>(() => RunWithToken(ScrapeConfigurationTestData.CreateConfiguration(categoryCount: 2), new ScrapeLimits(3, 4), cancellationTokenSource.Token));
 
         progress.Messages.ShouldNotContain("Fetching top wallpapers.");
-        progress.Messages.ShouldNotContain("Fetching categories.");
+        progress.Messages.ShouldNotContain(message => message.Contains("search failed", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task when_saving_a_page_fails_then_the_failure_propagates_and_later_searches_are_not_run()
+    {
+        unitOfWork.OnSave = _ => throw new DbUpdateException("save failed");
+
+        _ = await Should.ThrowAsync<DbUpdateException>(() => Run(ScrapeConfigurationTestData.CreateConfiguration(categoryCount: 2)));
+
+        progress.Messages.ShouldNotContain("Fetching top wallpapers.");
     }
 
     [Fact]
@@ -131,10 +166,11 @@ public sealed class GivenASearchOrchestrator
         pageFetcher.Meta = new Meta(3, 50);
         pageFetcher.FailWhen = (label, page) => label == "search category category one" && page == 2;
 
-        _ = await Should.ThrowAsync<HttpRequestException>(() => Run(configuration));
+        await Run(configuration);
 
         var category = configuration.SearchConfiguration.SearchCategories.Single();
         (category.LastKnownImageCount, category.LastPageVisited, category.TotalPages).ShouldBe((50, 1, 3));
+        progress.Messages.ShouldContain("The search category category one search failed: boom");
     }
 
     [Fact]
@@ -162,11 +198,13 @@ public sealed class GivenASearchOrchestrator
 
     private Task Run(ScrapeConfigurationEntity configuration) => Run(configuration, new ScrapeLimits(3, 4));
 
-    private Task Run(ScrapeConfigurationEntity configuration, ScrapeLimits limits)
+    private Task Run(ScrapeConfigurationEntity configuration, ScrapeLimits limits) => RunWithToken(configuration, limits, CancellationToken.None);
+
+    private Task RunWithToken(ScrapeConfigurationEntity configuration, ScrapeLimits limits, CancellationToken cancellationToken)
     {
         var pagesProcessor = new PagesProcessor(new WallpaperIngestionContextFactory(new FakeClientFactory(), unitOfWork, new FakeSaveDirectoryResolver()), pageFetcher, new PageIngestionStep(new FakeIngestionService(), unitOfWork), new ScrapeResumePolicy(limits));
 
-        return new SearchOrchestrator(pagesProcessor, limits).RunSearchesAsync(configuration, progress, CancellationToken.None);
+        return new SearchOrchestrator(pagesProcessor, limits, NullLogger<SearchOrchestrator>.Instance).RunSearchesAsync(configuration, progress, cancellationToken);
     }
 
     private sealed class FakeClientFactory : IWallhavenClientFactory
@@ -190,6 +228,7 @@ public sealed class GivenASearchOrchestrator
 
         public Task<SearchResponse> FetchPageAsync(PageFetchRequest request, HttpClient client, IProgress<string> progress, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (FailWhen(request.LogLabel, request.Page)) throw new HttpRequestException("boom");
 
             Fetches.Add($"Fetched {request.LogLabel} page {request.Page} from {request.PageUrl} via {client.BaseAddress} with key {client.DefaultRequestHeaders.GetValues("X-API-Key").Single()}");

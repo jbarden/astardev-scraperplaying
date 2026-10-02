@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
 using AStarDev.ScraperPlaying.WallpaperIngestion;
@@ -67,6 +68,17 @@ public sealed class PagesProcessor(IWallpaperIngestionContextFactory contextFact
         }
     }
 
+    /// <exception cref="PageFetchException">The page could not be fetched. A cancellation of the scrape is left to propagate.</exception>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Every way a page can fail to arrive is wrapped, so a failed page ends only its own search.")]
     private async Task<FetchedPage> FetchPageAsync(IngestionRun run, int page)
-        => new(page, await pageFetcher.FetchPageAsync(new PageFetchRequest(run.Request.Label.LogLabel, run.Request.Hooks.PageUrlFactory(page), page), run.Context.Client, run.Progress, run.CancellationToken));
+    {
+        try
+        {
+            return new(page, await pageFetcher.FetchPageAsync(new PageFetchRequest(run.Request.Label.LogLabel, run.Request.Hooks.PageUrlFactory(page), page), run.Context.Client, run.Progress, run.CancellationToken));
+        }
+        catch (Exception exception) when (!run.CancellationToken.IsCancellationRequested)
+        {
+            throw new PageFetchException(exception);
+        }
+    }
 }
