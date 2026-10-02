@@ -274,6 +274,13 @@ public sealed class GivenANewWallpaperIngestor
 
             return fileTag;
         }
+
+        public Exceptional<Unit> Delete(FileTagEntity fileTag)
+        {
+            _ = Added.Remove(fileTag);
+
+            return Unit.Instance;
+        }
     }
 
     private sealed class WallhavenStub

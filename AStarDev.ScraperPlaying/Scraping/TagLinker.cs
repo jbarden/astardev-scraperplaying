@@ -26,24 +26,50 @@ public sealed class TagLinker(ITagsQuery tagsQuery, IUnitOfWork unitOfWork, IFil
             var distinctTags = tags.DistinctBy(tag => tag.Id).ToList();
             await CacheExistingTagsAsync(distinctTags, cancellationToken);
 
-            foreach (var tag in distinctTags)
+            var added = new AddedRows();
+            try
             {
-                var tagEntity = ResolveOrAdd(tag);
-                _ = fileTagRepository.Add(new FileTagEntity { FileId = fileId, TagId = tagEntity.Id })
-                    .GetOrThrow();
+                foreach (var tag in distinctTags)
+                {
+                    var tagEntity = ResolveOrAdd(tag, added);
+                    added.Links.Add(fileTagRepository.Add(new FileTagEntity { FileId = fileId, TagId = tagEntity.Id })
+                        .GetOrThrow());
+                }
+            }
+            catch (Exception)
+            {
+                Rollback(added);
+
+                throw;
             }
 
             return Unit.Instance;
         });
 
-    private TagEntity ResolveOrAdd(Tag tag)
+    private TagEntity ResolveOrAdd(Tag tag, AddedRows added)
     {
         if (resolvedTags.TryGetValue(tag.Id, out var existing)) return existing;
 
-        var added = unitOfWork.GetRepository<TagEntity, TagId>().Add(ToEntity(tag)).GetOrThrow();
-        resolvedTags.Add(tag.Id, added);
+        var addedTag = unitOfWork.GetRepository<TagEntity, TagId>().Add(ToEntity(tag)).GetOrThrow();
+        resolvedTags.Add(tag.Id, addedTag);
+        added.Tags.Add(addedTag);
 
-        return added;
+        return addedTag;
+    }
+
+    /// <summary>Removes what a failed link added, so nothing of it is left tracked for the page save: a link pointing at a file that is then discarded would fail that save, and a tag created for it would be stored unused. Links go first, as a tag cannot be removed while a link to it is tracked. Removing a row that was only added, never saved, cannot meaningfully fail, so the original failure is the one reported.</summary>
+    private void Rollback(AddedRows added)
+    {
+        foreach (var link in added.Links)
+        {
+            _ = fileTagRepository.Delete(link);
+        }
+
+        foreach (var tag in added.Tags)
+        {
+            _ = unitOfWork.GetRepository<TagEntity, TagId>().Delete(tag);
+            _ = resolvedTags.Remove(tag.WallhavenTagId);
+        }
     }
 
     private static TagEntity ToEntity(Tag tag) => new()
@@ -71,5 +97,12 @@ public sealed class TagLinker(ITagsQuery tagsQuery, IUnitOfWork unitOfWork, IFil
         {
             resolvedTags[existingTag.WallhavenTagId] = existingTag;
         }
+    }
+
+    private sealed class AddedRows
+    {
+        public List<TagEntity> Tags { get; } = [];
+
+        public List<FileTagEntity> Links { get; } = [];
     }
 }

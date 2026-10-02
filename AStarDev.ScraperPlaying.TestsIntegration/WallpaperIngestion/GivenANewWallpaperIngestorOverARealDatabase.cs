@@ -85,6 +85,25 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
     }
 
     [Fact]
+    public async Task when_linking_the_tags_fails_part_way_then_no_file_tag_or_link_rows_are_stored_and_the_page_still_saves()
+    {
+        await Ingest("partly-linked-wallpaper", HttpStatusCode.OK, [WallhavenTag(1, "landscape"), WallhavenTag(2, "mountain")], TestContext.Current.CancellationToken, linkFailure: new InvalidOperationException("link failed"), succeedingLinks: 1);
+
+        progress.Messages.ShouldContain("Failed to link tags for wallpaper partly-linked-wallpaper: link failed");
+        (await ReadStoredAsync()).IsEmpty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task when_the_operation_is_cancelled_while_linking_the_tags_then_no_file_tag_or_link_rows_are_stored_and_the_page_still_saves()
+    {
+        using var cancellationTokenSource = new CancellationTokenSource();
+
+        _ = await Should.ThrowAsync<OperationCanceledException>(() => Ingest("cancelled-link-wallpaper", HttpStatusCode.OK, [WallhavenTag(1, "landscape"), WallhavenTag(2, "mountain")], cancellationTokenSource.Token, linkFailure: new OperationCanceledException(), succeedingLinks: 1, onLinkFailure: cancellationTokenSource.Cancel, saveOnCancellation: true));
+
+        (await ReadStoredAsync()).IsEmpty.ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task when_a_wallpaper_is_ignored_then_it_is_recorded_once_and_the_next_scrape_does_not_fetch_its_tags_again()
     {
         await SeedIgnoredTagAsync(2, "unwanted");
@@ -128,7 +147,7 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
         if (File.Exists(databasePath)) File.Delete(databasePath);
     }
 
-    private NewWallpaperIngestor CreateIngestor(IServiceProvider scopedServices, Exception? linkFailure = null)
+    private NewWallpaperIngestor CreateIngestor(IServiceProvider scopedServices, Exception? linkFailure = null, int succeedingLinks = 0, Action? onLinkFailure = null)
     {
         var unitOfWork = scopedServices.GetRequiredService<IUnitOfWork>();
         var tagsQuery = scopedServices.GetRequiredService<ITagsQuery>();
@@ -136,7 +155,7 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
 
         return new NewWallpaperIngestor(
             new TagFetcher(new JsonResponseProcessor(), tagsQuery, flagStore),
-            new TagLinker(tagsQuery, unitOfWork, linkFailure is null ? scopedServices.GetRequiredService<IFileTagRepository>() : new FailingFileTagRepository(linkFailure), flagStore),
+            new TagLinker(tagsQuery, unitOfWork, linkFailure is null ? scopedServices.GetRequiredService<IFileTagRepository>() : new FailingFileTagRepository(scopedServices.GetRequiredService<IFileTagRepository>(), linkFailure, succeedingLinks, onLinkFailure ?? (() => { })), flagStore),
             new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None, ScrapeTimeouts.Default), new WallpaperFileRecorder(System.TimeProvider.System), notifier),
             scopedServices.GetRequiredService<IIgnoredWallpapers>());
     }
@@ -153,18 +172,28 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
         _ = await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task Ingest(string wallpaperId, HttpStatusCode imageStatus, object[] tags, CancellationToken cancellationToken, Exception? linkFailure = null)
+    private async Task Ingest(string wallpaperId, HttpStatusCode imageStatus, object[] tags, CancellationToken cancellationToken, Exception? linkFailure = null, int succeedingLinks = 0, Action? onLinkFailure = null, bool saveOnCancellation = false)
     {
         using var scope = serviceProvider.CreateScope();
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-        var ingestor = CreateIngestor(scope.ServiceProvider, linkFailure);
+        var ingestor = CreateIngestor(scope.ServiceProvider, linkFailure, succeedingLinks, onLinkFailure);
         using var client = CreateClient(imageStatus, tags);
         var wallpaper = new Data(wallpaperId, 0, 0, 0, "", "https://example.test/image.jpg");
         var context = new WallpaperIngestionContext(new SaveDirectories("save-directory", "famous-save-directory", ""), client, unitOfWork.GetRepository<FileEntity, FileId>(), "category", PersonCategories);
 
-        var fetchedTags = await ingestor.FetchTagsAsync(wallpaper, context, progress, cancellationToken);
-        if (fetchedTags.TryGetValue(out var tagsToLink)) await ingestor.IngestAsync(new WallpaperCandidate(wallpaper, ".jpg"), tagsToLink, context, progress, cancellationToken);
-        _ = await unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            var fetchedTags = await ingestor.FetchTagsAsync(wallpaper, context, progress, cancellationToken);
+            if (fetchedTags.TryGetValue(out var tagsToLink)) await ingestor.IngestAsync(new WallpaperCandidate(wallpaper, ".jpg"), tagsToLink, context, progress, cancellationToken);
+            _ = await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (saveOnCancellation)
+        {
+            // As when a page is cancelled part-way: what was ingested so far is still saved.
+            _ = await unitOfWork.SaveChangesAsync(CancellationToken.None);
+
+            throw;
+        }
     }
 
     private async Task<StoredRows> ReadStoredAsync()
@@ -221,9 +250,21 @@ public sealed class GivenANewWallpaperIngestorOverARealDatabase : IDisposable
         public bool IsEmpty => Files.Count + Tags.Count + LinkedTags.Count == 0;
     }
 
-    private sealed class FailingFileTagRepository(Exception failure) : IFileTagRepository
+    /// <summary>Adds the first <paramref name="succeedingAdds"/> links for real, then fails (a failure that is an <see cref="OperationCanceledException"/> is thrown, as a cancelled operation would).</summary>
+    private sealed class FailingFileTagRepository(IFileTagRepository inner, Exception failure, int succeedingAdds, Action onFailure) : IFileTagRepository
     {
-        public Exceptional<FileTagEntity> Add(FileTagEntity fileTag) => failure;
+        private int adds;
+
+        public Exceptional<FileTagEntity> Add(FileTagEntity fileTag)
+        {
+            if (adds++ < succeedingAdds) return inner.Add(fileTag);
+
+            onFailure();
+
+            return failure is OperationCanceledException ? throw failure : failure;
+        }
+
+        public Exceptional<Unit> Delete(FileTagEntity fileTag) => inner.Delete(fileTag);
     }
 
     private sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
