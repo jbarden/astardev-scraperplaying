@@ -152,6 +152,16 @@ public sealed class GivenAnImageDownloader
         (requestsBeforeTheDelay, requestCount).ShouldBe((0, 1));
     }
 
+    private static async Task WaitForMessageCountAsync(CapturingProgress progress, int count)
+    {
+        for (var attempt = 0; attempt < 5000 && progress.Messages.Count < count; attempt++)
+        {
+            await Task.Delay(1, TestContext.Current.CancellationToken);
+        }
+
+        progress.Messages.Count.ShouldBeGreaterThanOrEqualTo(count);
+    }
+
     private static FileName NameFor(Data wallpaper, string extension) => new($"{wallpaper.Id}{extension}");
 
     private static Data CreateWallpaper(string id, string path = "")
@@ -227,58 +237,33 @@ public sealed class GivenAnImageDownloader
 
     [Fact]
     [SuppressMessage("Reliability", "CA2025:Ensure tasks using 'IDisposable' instances complete before the instances are disposed", Justification = "The download is awaited before the client goes out of scope; the clock must advance while it is pending.")]
-    public async Task when_the_image_body_receives_no_data_for_the_stall_notice_period_then_the_user_is_told_and_told_again_for_each_further_period()
-    {
-        var clock = new FakeTimeProvider();
-        var stalledDownloader = new ImageDownloader(fileSystem, clock, DownloadPacing.None, ScrapeTimeouts.Default);
-        var stalledStream = new StalledStream();
-        using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(stalledStream) });
-        var progress = new CapturingProgress();
-        var wallpaper = CreateWallpaper(id: "slow-1", path: "https://example.test/image.jpg");
-        using var cancellationTokenSource = new CancellationTokenSource();
-
-        var download = stalledDownloader.DownloadAsync(new WallpaperFileRequest(wallpaper, "root-directory", NameFor(wallpaper, ".jpg"), "Top Wallpapers"), progress, client, cancellationTokenSource.Token);
-        await stalledStream.ReadStarted.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-        clock.Advance(ImageDownloader.StallNoticeAfter);
-        clock.Advance(ImageDownloader.StallNoticeAfter);
-        await cancellationTokenSource.CancelAsync();
-        _ = await Should.ThrowAsync<OperationCanceledException>(() => download);
-
-        progress.Messages.Where(message => message.StartsWith("Still waiting", StringComparison.Ordinal)).ShouldBe(
-        [
-            "Still waiting for image data for wallpaper slow-1 - no data received for 10s.",
-            "Still waiting for image data for wallpaper slow-1 - no data received for 20s."
-        ]);
-    }
-
-    [Fact]
-    [SuppressMessage("Reliability", "CA2025:Ensure tasks using 'IDisposable' instances complete before the instances are disposed", Justification = "The download is awaited before the client goes out of scope; the clock must advance while it is pending.")]
-    public async Task when_data_arrives_after_a_stall_then_the_user_is_told_it_is_flowing_again_and_the_image_is_saved()
+    public async Task when_the_image_body_is_still_downloading_then_the_bytes_received_so_far_are_reported_every_period()
     {
         var clock = new FakeTimeProvider();
         var slowDownloader = new ImageDownloader(fileSystem, clock, DownloadPacing.None, ScrapeTimeouts.Default);
-        var gatedStream = new GatedStream([1, 2, 3]);
-        using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(gatedStream) });
+        var slowStream = new SlowStream(new byte[2048]);
+        using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(slowStream) });
         var progress = new CapturingProgress();
-        var wallpaper = CreateWallpaper(id: "slow-2", path: "https://example.test/image.jpg");
-        var directory = fileSystem.Path.Combine("root-directory", "top-wallpapers");
+        var wallpaper = CreateWallpaper(id: "slow-1", path: "https://example.test/image.jpg");
 
-        var download = slowDownloader.DownloadAsync(new WallpaperFileRequest(wallpaper, directory, NameFor(wallpaper, ".jpg"), "Top Wallpapers"), progress, client, TestContext.Current.CancellationToken);
-        await gatedStream.ReadStarted.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-        clock.Advance(ImageDownloader.StallNoticeAfter);
-        gatedStream.Release();
-        var savedPath = await download;
+        var download = slowDownloader.DownloadAsync(new WallpaperFileRequest(wallpaper, "root-directory", NameFor(wallpaper, ".jpg"), "Top Wallpapers"), progress, client, TestContext.Current.CancellationToken);
+        await slowStream.WaitingForMoreData.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        clock.Advance(ImageDownloader.ProgressEvery);
+        await WaitForMessageCountAsync(progress, 2);
+        clock.Advance(ImageDownloader.ProgressEvery);
+        await WaitForMessageCountAsync(progress, 3);
+        slowStream.Finish();
+        _ = await download;
 
         progress.Messages.Skip(1).ShouldBe(
         [
-            "Still waiting for image data for wallpaper slow-2 - no data received for 10s.",
-            "Image data for wallpaper slow-2 is flowing again after 10s."
+            "Still downloading wallpaper slow-1 - 2 KB received so far.",
+            "Still downloading wallpaper slow-1 - 2 KB received so far."
         ]);
-        fileSystem.File.Exists(savedPath).ShouldBeTrue();
     }
 
     [Fact]
-    public async Task when_the_image_body_arrives_promptly_then_no_stall_notice_is_reported()
+    public async Task when_the_image_body_arrives_promptly_then_no_progress_message_is_reported()
     {
         using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1, 2, 3]) });
         var progress = new CapturingProgress();
@@ -332,12 +317,12 @@ public sealed class GivenAnImageDownloader
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 
-    private sealed class GatedStream(byte[] content) : Stream
+    private sealed class SlowStream(byte[] firstChunk) : Stream
     {
-        private readonly TaskCompletionSource gate = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly MemoryStream inner = new(content);
+        private readonly TaskCompletionSource finish = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private bool firstChunkSent;
 
-        public TaskCompletionSource ReadStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource WaitingForMoreData { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public override bool CanRead => true;
 
@@ -353,7 +338,7 @@ public sealed class GivenAnImageDownloader
             set => throw new NotSupportedException();
         }
 
-        public void Release() => gate.SetResult();
+        public void Finish() => finish.SetResult();
 
         public override void Flush()
         {
@@ -363,10 +348,18 @@ public sealed class GivenAnImageDownloader
 
         public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
-            _ = ReadStarted.TrySetResult();
-            await gate.Task.WaitAsync(cancellationToken);
+            if (!firstChunkSent)
+            {
+                firstChunkSent = true;
+                firstChunk.CopyTo(buffer);
 
-            return await inner.ReadAsync(buffer, cancellationToken);
+                return firstChunk.Length;
+            }
+
+            _ = WaitingForMoreData.TrySetResult();
+            await finish.Task.WaitAsync(cancellationToken);
+
+            return 0;
         }
 
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
@@ -374,13 +367,6 @@ public sealed class GivenAnImageDownloader
         public override void SetLength(long value) => throw new NotSupportedException();
 
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing) inner.Dispose();
-
-            base.Dispose(disposing);
-        }
     }
 
     private sealed class FailingStream : Stream
