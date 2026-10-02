@@ -105,11 +105,85 @@ public sealed class GivenAJsonResponseProcessor
         result.Match(_ => (Exception?)null, ex => ex).ShouldBeOfType<TimeoutException>();
     }
 
+    [Fact]
+    public async Task when_an_error_response_has_a_short_body_then_the_whole_body_is_in_the_failure()
+    {
+        using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.TooManyRequests) { Content = new StringContent("slow down") });
+
+        var result = await processor.GetFromJsonAsync<TestPayload>(new Uri("https://example.test/search"), client, CancellationToken.None);
+
+        result.Match(_ => string.Empty, ex => ex.Message).ShouldEndWith("Response: slow down");
+    }
+
+    [Fact]
+    public async Task when_an_error_response_has_a_long_body_then_only_the_start_of_it_is_in_the_failure()
+    {
+        using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.BadGateway) { Content = new StringContent(new string('a', 5_000)) });
+
+        var result = await processor.GetFromJsonAsync<TestPayload>(new Uri("https://example.test/search"), client, CancellationToken.None);
+
+        var message = result.Match(_ => string.Empty, ex => ex.Message);
+        message.ShouldContain(new string('a', 500));
+        message.ShouldNotContain(new string('a', 501));
+        message.ShouldEndWith("…");
+    }
+
+    [Fact]
+    public async Task when_an_error_response_body_never_ends_then_the_failure_is_still_returned()
+    {
+        using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.BadGateway) { Content = new StreamContent(new EndlessStream()) });
+
+        var result = await processor.GetFromJsonAsync<TestPayload>(new Uri("https://example.test/search"), client, CancellationToken.None)
+            .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        result.Match(_ => (Exception?)null, ex => ex).ShouldBeOfType<HttpRequestException>();
+    }
+
+    [Fact]
+    public async Task when_the_limit_falls_inside_a_surrogate_pair_then_the_pair_is_dropped_not_split()
+    {
+        using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.BadGateway) { Content = new StringContent($"{new string('a', 499)}😀tail") });
+
+        var result = await processor.GetFromJsonAsync<TestPayload>(new Uri("https://example.test/search"), client, CancellationToken.None);
+
+        result.Match(_ => string.Empty, ex => ex.Message).ShouldContain($"Response: {new string('a', 499)}…");
+    }
+
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient owns and disposes the handler.")]
     private static HttpClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> responder)
         => new(new StubHttpMessageHandler(responder));
 
     private sealed record TestPayload(string Name);
+
+    private sealed class EndlessStream : Stream
+    {
+        public override bool CanRead => true;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+
+        public override void Flush()
+        {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            Array.Fill(buffer, (byte)'a', offset, count);
+
+            return count;
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
 
     private sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
     {

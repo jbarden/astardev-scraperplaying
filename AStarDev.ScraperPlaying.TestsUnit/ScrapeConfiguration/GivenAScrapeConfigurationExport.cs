@@ -1,6 +1,7 @@
 using AStarDev.ControlDb.ScrapeConfiguration;
 using AStarDev.FunctionalParadigm;
 using AStarDev.ScraperPlaying.ScrapeConfiguration;
+using System.Runtime.Versioning;
 using System.Text.Json;
 using Testably.Abstractions.Testing;
 
@@ -126,6 +127,67 @@ public sealed class GivenAScrapeConfigurationExport
         var text = await fileSystem.File.ReadAllTextAsync(path, TestContext.Current.CancellationToken);
 
         (text.Contains("scrape-key", StringComparison.Ordinal), text.Contains("user-key", StringComparison.Ordinal)).ShouldBe((false, false));
+    }
+
+    [Fact]
+    public async Task when_a_document_is_written_then_no_partial_file_is_left_beside_it()
+    {
+        const string path = "/configuration.json";
+
+        await new ScrapeConfigurationFileWriter(fileSystem).WriteAsync(new ScrapeConfigurationImportDocument(), path, TestContext.Current.CancellationToken);
+
+        fileSystem.Directory.GetFiles("/").ShouldBe([path]);
+    }
+
+    [Fact]
+    public async Task when_writing_is_cancelled_then_an_existing_export_is_left_untouched_and_no_partial_file_remains()
+    {
+        const string path = "/configuration.json";
+        await fileSystem.File.WriteAllTextAsync(path, "previous export", TestContext.Current.CancellationToken);
+        using var cancellationTokenSource = new CancellationTokenSource();
+        await cancellationTokenSource.CancelAsync();
+
+        _ = await Should.ThrowAsync<OperationCanceledException>(
+            () => new ScrapeConfigurationFileWriter(fileSystem).WriteAsync(new ScrapeConfigurationImportDocument(), path, cancellationTokenSource.Token));
+
+        (await fileSystem.File.ReadAllTextAsync(path, TestContext.Current.CancellationToken)).ShouldBe("previous export");
+        fileSystem.Directory.GetFiles("/").ShouldBe([path]);
+    }
+
+    [Fact]
+    public async Task when_writing_is_cancelled_then_no_file_is_created()
+    {
+        const string path = "/configuration.json";
+        using var cancellationTokenSource = new CancellationTokenSource();
+        await cancellationTokenSource.CancelAsync();
+
+        _ = await Should.ThrowAsync<OperationCanceledException>(
+            () => new ScrapeConfigurationFileWriter(fileSystem).WriteAsync(new ScrapeConfigurationImportDocument(), path, cancellationTokenSource.Token));
+
+        fileSystem.Directory.GetFiles("/").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task when_a_document_is_written_over_an_existing_export_then_the_file_holds_the_new_content()
+    {
+        const string path = "/configuration.json";
+        await fileSystem.File.WriteAllTextAsync(path, "previous export", TestContext.Current.CancellationToken);
+
+        await new ScrapeConfigurationFileWriter(fileSystem).WriteAsync(new ScrapeConfigurationImportDocument { ApiKey = "fresh" }, path, TestContext.Current.CancellationToken);
+
+        (await fileSystem.File.ReadAllTextAsync(path, TestContext.Current.CancellationToken)).ShouldContain("fresh");
+    }
+
+    [Fact]
+    [UnsupportedOSPlatform("windows")]
+    public async Task when_a_document_is_written_on_unix_then_only_the_owner_can_read_or_write_the_file()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Unix file modes do not apply on Windows.");
+        const string path = "/configuration.json";
+
+        await new ScrapeConfigurationFileWriter(fileSystem).WriteAsync(new ScrapeConfigurationImportDocument(), path, TestContext.Current.CancellationToken);
+
+        fileSystem.File.GetUnixFileMode(path).ShouldBe(UnixFileMode.UserRead | UnixFileMode.UserWrite);
     }
 
     private static ScrapeConfigurationEntity EntityWithApiKeys()
