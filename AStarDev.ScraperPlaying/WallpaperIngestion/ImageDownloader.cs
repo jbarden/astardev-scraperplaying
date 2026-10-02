@@ -1,5 +1,6 @@
 using System.IO.Abstractions;
 using AStarDev.ScraperPlaying.Scraping;
+using AStarDev.ScraperPlaying.Scraping.WallhavenResponses.SearchResponse;
 
 namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 
@@ -39,7 +40,7 @@ public sealed class ImageDownloader(IFileSystem fileSystem, TimeProvider timePro
             using var bodyToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, bodyTimeout.Token);
             using (var fileStream = fileSystem.FileStream.New(partialPath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                await CopyReportingProgressAsync(downloadStream, fileStream, request.Wallpaper.Id, progress, bodyToken.Token);
+                await CopyReportingProgressAsync(downloadStream, fileStream, request.Wallpaper, progress, bodyToken.Token);
             }
 
             fileSystem.File.Move(partialPath, savedPath, overwrite: true);
@@ -53,11 +54,11 @@ public sealed class ImageDownloader(IFileSystem fileSystem, TimeProvider timePro
         return savedPath;
     }
 
-    private async Task CopyReportingProgressAsync(Stream source, Stream destination, string wallpaperId, IProgress<string> progress, CancellationToken cancellationToken)
+    private async Task CopyReportingProgressAsync(Stream source, Stream destination, Data wallpaper, IProgress<string> progress, CancellationToken cancellationToken)
     {
         long received = 0;
         using var heartbeatStop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var heartbeat = ReportProgressPeriodicallyAsync(() => Interlocked.Read(ref received), wallpaperId, progress, heartbeatStop.Token);
+        var heartbeat = ReportProgressPeriodicallyAsync(() => Interlocked.Read(ref received), wallpaper, progress, heartbeatStop.Token);
         try
         {
             var buffer = new byte[BufferSize];
@@ -75,14 +76,15 @@ public sealed class ImageDownloader(IFileSystem fileSystem, TimeProvider timePro
         }
     }
 
-    private async Task ReportProgressPeriodicallyAsync(Func<long> bytesReceived, string wallpaperId, IProgress<string> progress, CancellationToken cancellationToken)
+    private async Task ReportProgressPeriodicallyAsync(Func<long> bytesReceived, Data wallpaper, IProgress<string> progress, CancellationToken cancellationToken)
     {
         using var timer = new PeriodicTimer(ProgressEvery, timeProvider);
         try
         {
             while (await timer.WaitForNextTickAsync(cancellationToken))
             {
-                progress.Report($"Still downloading wallpaper {wallpaperId} - {bytesReceived() / 1024} KB received so far.");
+                var total = wallpaper.FileSize > 0 ? $" of {wallpaper.FileSize / 1024} KB" : string.Empty;
+                progress.Report($"Still downloading wallpaper {wallpaper.Id} - {bytesReceived() / 1024} KB{total} received so far.");
             }
         }
         catch (OperationCanceledException)
