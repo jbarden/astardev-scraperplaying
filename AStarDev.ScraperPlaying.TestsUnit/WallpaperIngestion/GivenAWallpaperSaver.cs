@@ -11,20 +11,17 @@ public sealed class GivenAWallpaperSaver
 {
     private readonly StubImageDownloader downloader = new();
     private readonly StubFileRecorder recorder = new();
-    private readonly ImageDownloadNotifier notifier = new();
-    private readonly List<WallpaperDownloadDetails> notifications = [];
     private readonly FakeRepository<FileEntity, FileId> fileRepository = new();
     private readonly CapturingProgress progress = new();
     private readonly WallpaperSaver saver;
 
     public GivenAWallpaperSaver()
     {
-        notifier.ImageDownloaded += (_, details) => notifications.Add(details);
-        saver = new(downloader, recorder, notifier);
+        saver = new(downloader, recorder);
     }
 
     [Fact]
-    public async Task when_a_wallpaper_is_saved_then_the_recorded_entity_is_returned_and_the_download_announced_with_its_details()
+    public async Task when_a_wallpaper_is_saved_then_the_recorded_entity_is_returned_with_the_details_to_announce()
     {
         var recorded = CreateEntity();
         recorder.Result = recorded;
@@ -32,43 +29,43 @@ public sealed class GivenAWallpaperSaver
 
         var saved = await Save(CreateRequest("wallpaper-1"), CancellationToken.None);
 
-        saved.ShouldBeSameAs(recorded);
-        notifications.ShouldBe([new WallpaperDownloadDetails("saved/path.jpg", new WallpaperInfo("wallpaper-1.jpg", "category", 5, 1920, 1080))]);
+        saved.Entity.ShouldBeSameAs(recorded);
+        saved.Details.ShouldBe(new WallpaperDownloadDetails("saved/path.jpg", new WallpaperInfo("wallpaper-1.jpg", "category", 5, 1920, 1080)));
         progress.Messages.ShouldContain("Downloaded image data for wallpaper wallpaper-1");
     }
 
     [Fact]
-    public async Task when_the_download_fails_then_the_failure_is_thrown_and_nothing_is_recorded_or_announced()
+    public async Task when_the_download_fails_then_the_failure_is_thrown_and_nothing_is_recorded()
     {
         downloader.Failure = new InvalidOperationException("download failed");
 
         var thrown = await Should.ThrowAsync<InvalidOperationException>(() => Save(CreateRequest("wallpaper-1"), CancellationToken.None));
 
-        (thrown.Message, recorder.Recorded, notifications.Count).ShouldBe(("download failed", 0, 0));
+        (thrown.Message, recorder.Recorded).ShouldBe(("download failed", 0));
     }
 
     [Fact]
-    public async Task when_recording_fails_then_the_failure_is_thrown_and_the_download_is_not_announced()
+    public async Task when_recording_fails_then_the_failure_is_thrown()
     {
         recorder.Result = new InvalidOperationException("record failed");
 
         var thrown = await Should.ThrowAsync<InvalidOperationException>(() => Save(CreateRequest("wallpaper-1"), CancellationToken.None));
 
-        (thrown.Message, notifications.Count).ShouldBe(("record failed", 0));
+        thrown.Message.ShouldBe("record failed");
     }
 
     [Fact]
-    public async Task when_the_operation_is_cancelled_after_the_download_then_nothing_is_recorded_or_announced_and_the_cancellation_propagates()
+    public async Task when_the_operation_is_cancelled_after_the_download_then_nothing_is_recorded_and_the_cancellation_propagates()
     {
         using var cancellationTokenSource = new CancellationTokenSource();
         downloader.OnDownloaded = cancellationTokenSource.Cancel;
 
         _ = await Should.ThrowAsync<OperationCanceledException>(() => Save(CreateRequest("wallpaper-1"), cancellationTokenSource.Token));
 
-        (recorder.Recorded, notifications.Count).ShouldBe((0, 0));
+        recorder.Recorded.ShouldBe(0);
     }
 
-    private async Task<FileEntity> Save(WallpaperFileRequest request, CancellationToken cancellationToken)
+    private async Task<SavedWallpaper> Save(WallpaperFileRequest request, CancellationToken cancellationToken)
     {
         using var client = new HttpClient();
 

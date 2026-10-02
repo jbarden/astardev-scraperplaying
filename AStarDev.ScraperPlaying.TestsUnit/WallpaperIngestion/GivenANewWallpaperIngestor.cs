@@ -52,7 +52,8 @@ public sealed class GivenANewWallpaperIngestor
         ingestor = new(
             new TagFetcher(new JsonResponseProcessor(), tagsQuery, flagStore),
             new TagLinker(tagsQuery, unitOfWork, fileTagRepository, flagStore),
-            new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None, ScrapeTimeouts.Default), new WallpaperFileRecorder(System.TimeProvider.System), notifier),
+            new WallpaperSaver(new ImageDownloader(fileSystem, System.TimeProvider.System, DownloadPacing.None, ScrapeTimeouts.Default), new WallpaperFileRecorder(System.TimeProvider.System)),
+            notifier,
             ignoredWallpapers);
     }
 
@@ -190,6 +191,40 @@ public sealed class GivenANewWallpaperIngestor
         progress.Messages.ShouldContain("Failed to link tags for wallpaper failing-link: link failed");
         progress.Messages.ShouldNotContain(message => message.Contains("Failed to process image"));
         fileRepository.Deleted.ShouldBe(fileRepository.Added);
+    }
+
+    [Fact]
+    public async Task when_linking_the_tags_fails_then_the_download_is_not_announced()
+    {
+        wallhaven.Tags = [WallhavenTag(1, "landscape")];
+        fileTagRepository.Failure = Option.Some<Exception>(new InvalidOperationException("link failed"));
+
+        await Ingest(CreateWallpaper("unannounced-link"), ".jpg");
+
+        notifications.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task when_the_operation_is_cancelled_while_linking_the_tags_then_the_download_is_not_announced()
+    {
+        wallhaven.Tags = [WallhavenTag(1, "landscape")];
+        fileTagRepository.Failure = Option.Some<Exception>(new OperationCanceledException());
+
+        _ = await Should.ThrowAsync<OperationCanceledException>(() => Ingest(CreateWallpaper("unannounced-cancel"), ".jpg"));
+
+        notifications.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task when_a_wallpaper_is_ingested_then_its_tags_are_already_linked_when_the_download_is_announced()
+    {
+        wallhaven.Tags = [WallhavenTag(1, "landscape")];
+        var linksWhenAnnounced = -1;
+        notifier.ImageDownloaded += (_, _) => linksWhenAnnounced = fileTagRepository.Added.Count;
+
+        await Ingest(CreateWallpaper("announced-after-link"), ".jpg");
+
+        linksWhenAnnounced.ShouldBe(1);
     }
 
     [Fact]
