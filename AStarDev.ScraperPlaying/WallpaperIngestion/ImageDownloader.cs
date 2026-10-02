@@ -7,7 +7,8 @@ namespace AStarDev.ScraperPlaying.WallpaperIngestion;
 /// <param name="fileSystem">The file system the image is written to.</param>
 /// <param name="timeProvider">The time source used to wait before each download.</param>
 /// <param name="pacing">The range of the random wait applied before each download.</param>
-public sealed class ImageDownloader(IFileSystem fileSystem, TimeProvider timeProvider, DownloadPacing pacing) : IImageDownloader
+/// <param name="timeouts">The time an image body is allowed to take to arrive.</param>
+public sealed class ImageDownloader(IFileSystem fileSystem, TimeProvider timeProvider, DownloadPacing pacing, ScrapeTimeouts timeouts) : IImageDownloader
 {
     private const string PartialFileExtension = ".part";
 
@@ -30,9 +31,11 @@ public sealed class ImageDownloader(IFileSystem fileSystem, TimeProvider timePro
         var partialPath = $"{savedPath}{PartialFileExtension}";
         try
         {
+            using var bodyTimeout = new CancellationTokenSource(timeouts.ImageBody, timeProvider);
+            using var bodyToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, bodyTimeout.Token);
             using (var fileStream = fileSystem.FileStream.New(partialPath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                await downloadStream.CopyToAsync(fileStream, cancellationToken);
+                await downloadStream.CopyToAsync(fileStream, bodyToken.Token);
             }
 
             fileSystem.File.Move(partialPath, savedPath, overwrite: true);

@@ -44,6 +44,14 @@ public sealed class GivenTheApplicationServices : IDisposable
     }
 
     [Fact]
+    public void when_the_wallhaven_client_is_created_then_it_uses_the_client_timeout_that_outlasts_the_rate_limit_retries()
+    {
+        using var client = serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient(ApplicationConstants.WallhavenHttpClientName);
+
+        client.Timeout.ShouldBe(ScrapeTimeouts.Default.Client);
+    }
+
+    [Fact]
     public void when_the_main_window_collaborators_are_resolved_then_each_is_a_single_shared_instance()
     {
         var resolved = new object[]
