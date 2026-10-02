@@ -32,6 +32,20 @@ public sealed class GivenAWallpaperIngestionService
     }
 
     [Fact]
+    public async Task when_wallpapers_already_exist_then_they_count_as_skipped_towards_the_search_count()
+    {
+        filesQuery.ExistingHandles.Add(new FileHandle("existing-one"));
+        filesQuery.ExistingHandles.Add(new FileHandle("existing-two"));
+        using var client = new HttpClient();
+        var context = new WallpaperIngestionContext(new SearchOutput(new SaveDirectories("resolved-directory", "famous-resolved-directory", ""), "resolved-category"), client, fileRepository, []);
+        var run = IngestionRuns.Create(context, progress, TestContext.Current.CancellationToken);
+
+        await service.IngestPageAsync([CreateWallpaper("existing-one"), CreateWallpaper("existing-two"), CreateWallpaper("fresh")], run);
+
+        run.Tally.Current.ShouldBe(2);
+    }
+
+    [Fact]
     public async Task when_a_wallpaper_is_new_then_it_is_ingested_with_the_page_context_and_progress()
     {
         var wallpaper = CreateWallpaper("new-wallpaper", path: "https://example.test/full/new-wallpaper.jpg");

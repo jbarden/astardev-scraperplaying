@@ -219,7 +219,7 @@ public sealed class GivenASearchOrchestrator
 
     private Task RunWithToken(ScrapeConfigurationEntity configuration, ScrapeLimits limits, ScrapeSelection selection, CancellationToken cancellationToken)
     {
-        var pagesProcessor = new PagesProcessor(new WallpaperIngestionContextFactory(new FakeClientFactory(), unitOfWork, new FakeSaveDirectoryResolver()), pageFetcher, new PageIngestionStep(new FakeIngestionService(), unitOfWork), new ScrapeResumePolicy(limits));
+        var pagesProcessor = new PagesProcessor(new WallpaperIngestionContextFactory(new FakeClientFactory(), unitOfWork, new FakeSaveDirectoryResolver()), pageFetcher, new PageIngestionStep(new FakeIngestionService(), unitOfWork), new ScrapeResumePolicy(limits), DownloadPacing.None, TimeProvider.System);
 
         return new SearchOrchestrator(pagesProcessor, limits, NullLogger<SearchOrchestrator>.Instance).RunSearchesAsync(configuration, selection, progress, cancellationToken);
     }
